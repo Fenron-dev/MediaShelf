@@ -1,11 +1,8 @@
-import 'dart:io';
-
-import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:just_audio/just_audio.dart';
-import 'package:video_player/video_player.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 
 import '../../core/mime_resolver.dart';
 import '../../data/database/app_database.dart';
@@ -22,18 +19,13 @@ class PlayerScreen extends ConsumerStatefulWidget {
 
 class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Asset? _asset;
-  // Video
-  VideoPlayerController? _videoCtrl;
-  ChewieController? _chewieCtrl;
-  // Audio
-  AudioPlayer? _audioPlayer;
-  Duration _audioDuration = Duration.zero;
-  Duration _audioPosition = Duration.zero;
-  bool _audioPlaying = false;
+  late final Player _player;
+  VideoController? _videoController;
 
   @override
   void initState() {
     super.initState();
+    _player = Player();
     _loadAsset();
   }
 
@@ -41,103 +33,60 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final dao = ref.read(assetsDaoProvider);
     final asset = await dao.getById(widget.assetId);
     if (!mounted || asset == null) return;
-    setState(() => _asset = asset);
-    _initPlayer(asset);
-  }
 
-  Future<void> _initPlayer(Asset asset) async {
     final libraryPath = ref.read(libraryPathProvider);
     if (libraryPath == null) return;
-    final filePath = '$libraryPath/${asset.path}';
+
     final mime = asset.mimeType ?? '';
+    final filePath = '$libraryPath/${asset.path}';
 
+    // For video: create a VideoController so the Video widget can render frames.
+    // For audio: the Player alone is sufficient.
     if (isVideo(mime)) {
-      await _initVideo(filePath, asset.playbackPositionMs);
-    } else if (isAudio(mime)) {
-      await _initAudio(filePath, asset.playbackPositionMs);
+      final ctrl = VideoController(_player);
+      if (mounted) setState(() => _videoController = ctrl);
     }
-    ref.read(playbackProvider.notifier).setAsset(asset.id);
-  }
 
-  Future<void> _initVideo(String path, int? resumeMs) async {
-    final ctrl = VideoPlayerController.file(File(path));
-    await ctrl.initialize();
-    if (resumeMs != null && resumeMs > 0) {
-      await ctrl.seekTo(Duration(milliseconds: resumeMs));
-    }
-    if (!mounted) return;
-    final primary = Theme.of(context).colorScheme.primary;
-    final chewie = ChewieController(
-      videoPlayerController: ctrl,
-      autoPlay: true,
-      allowFullScreen: true,
-      allowMuting: true,
-      showOptions: false,
-      materialProgressColors: ChewieProgressColors(
-        playedColor: primary,
-        handleColor: primary,
-      ),
-    );
-    ctrl.addListener(_onVideoProgress);
-    if (mounted) {
-      setState(() {
-        _videoCtrl = ctrl;
-        _chewieCtrl = chewie;
-      });
-    }
-  }
+    setState(() => _asset = asset);
 
-  void _onVideoProgress() {
-    final ctrl = _videoCtrl;
-    if (ctrl == null || !ctrl.value.isInitialized) return;
-    final pos = ctrl.value.position;
-    ref.read(playbackProvider.notifier).updatePosition(pos);
-    _savePosition(pos.inMilliseconds);
-  }
+    await _player.open(Media(filePath), play: false);
 
-  Future<void> _initAudio(String path, int? resumeMs) async {
-    final player = AudioPlayer();
-    await player.setFilePath(path);
-    if (resumeMs != null && resumeMs > 0) {
-      await player.seek(Duration(milliseconds: resumeMs));
+    // Resume from saved position
+    final resumeMs = asset.playbackPositionMs ?? 0;
+    if (resumeMs > 500) {
+      await _player.seek(Duration(milliseconds: resumeMs));
     }
-    player.durationStream.listen((d) {
-      if (d != null && mounted) {
-        setState(() => _audioDuration = d);
-        ref.read(playbackProvider.notifier).updateDuration(d);
-      }
+    await _player.play();
+
+    // Track position changes for resume & playback provider
+    _player.stream.position.listen((pos) {
+      if (!mounted) return;
+      ref.read(playbackProvider.notifier).updatePosition(pos);
+      _savePosition(pos.inMilliseconds);
     });
-    player.positionStream.listen((p) {
-      if (mounted) {
-        setState(() => _audioPosition = p);
-        ref.read(playbackProvider.notifier).updatePosition(p);
-        _savePosition(p.inMilliseconds);
-      }
+    _player.stream.duration.listen((dur) {
+      if (!mounted) return;
+      ref.read(playbackProvider.notifier).updateDuration(dur);
     });
-    player.playingStream.listen((playing) {
-      if (mounted) {
-        setState(() => _audioPlaying = playing);
-        ref.read(playbackProvider.notifier).setPlaying(playing);
-      }
+    _player.stream.playing.listen((playing) {
+      if (!mounted) return;
+      ref.read(playbackProvider.notifier).setPlaying(playing);
     });
-    await player.play();
-    if (mounted) setState(() => _audioPlayer = player);
+
+    ref.read(playbackProvider.notifier).setAsset(widget.assetId);
   }
 
   void _savePosition(int ms) {
     final asset = _asset;
     if (asset == null) return;
-    final dao = ref.read(assetsDaoProvider);
-    dao.savePlaybackPosition(asset.id, ms);
+    ref.read(assetsDaoProvider).savePlaybackPosition(asset.id, ms);
   }
 
   @override
   void dispose() {
-    _chewieCtrl?.dispose();
-    _videoCtrl?.removeListener(_onVideoProgress);
-    _videoCtrl?.dispose();
-    _audioPlayer?.dispose();
+    _savePosition(_player.state.position.inMilliseconds);
     ref.read(playbackProvider.notifier).clear();
+    _player.dispose();
     super.dispose();
   }
 
@@ -168,69 +117,71 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final mime = asset.mimeType ?? '';
 
     if (isVideo(mime)) {
-      final chewie = _chewieCtrl;
-      if (chewie == null) {
-        return const Center(child: CircularProgressIndicator(color: Colors.white));
+      final ctrl = _videoController;
+      if (ctrl == null) {
+        return const Center(
+            child: CircularProgressIndicator(color: Colors.white));
       }
-      return Center(child: Chewie(controller: chewie));
-    }
-
-    if (isAudio(mime)) {
-      return _AudioPlayerView(
-        asset: asset,
-        player: _audioPlayer,
-        position: _audioPosition,
-        duration: _audioDuration,
-        isPlaying: _audioPlaying,
+      return Video(
+        controller: ctrl,
+        controls: AdaptiveVideoControls,
       );
     }
 
-    // Unsupported format
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.file_present_outlined, size: 64, color: Colors.white54),
-          const SizedBox(height: 16),
-          Text(
-            'Cannot play ${asset.extension ?? 'this file'}',
-            style: const TextStyle(color: Colors.white54),
-          ),
-        ],
-      ),
-    );
+    // Audio (and M4B audiobooks)
+    return _AudioPlayerView(player: _player, asset: asset);
   }
 }
 
-// ── Audio player UI ───────────────────────────────────────────────────────────
+// ── Audio Player UI ───────────────────────────────────────────────────────────
 
-class _AudioPlayerView extends StatelessWidget {
+class _AudioPlayerView extends StatefulWidget {
+  final Player player;
   final Asset asset;
-  final AudioPlayer? player;
-  final Duration position;
-  final Duration duration;
-  final bool isPlaying;
 
-  const _AudioPlayerView({
-    required this.asset,
-    required this.player,
-    required this.position,
-    required this.duration,
-    required this.isPlaying,
-  });
+  const _AudioPlayerView({required this.player, required this.asset});
+
+  @override
+  State<_AudioPlayerView> createState() => _AudioPlayerViewState();
+}
+
+class _AudioPlayerViewState extends State<_AudioPlayerView> {
+  Duration _position = Duration.zero;
+  Duration _duration = Duration.zero;
+  bool _playing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Snapshot current state in case streams already fired
+    _position = widget.player.state.position;
+    _duration = widget.player.state.duration;
+    _playing = widget.player.state.playing;
+
+    widget.player.stream.position.listen((p) {
+      if (mounted) setState(() => _position = p);
+    });
+    widget.player.stream.duration.listen((d) {
+      if (mounted) setState(() => _duration = d);
+    });
+    widget.player.stream.playing.listen((pl) {
+      if (mounted) setState(() => _playing = pl);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final progress = duration.inMilliseconds == 0
+    final progress = _duration.inMilliseconds == 0
         ? 0.0
-        : position.inMilliseconds / duration.inMilliseconds;
+        : _position.inMilliseconds / _duration.inMilliseconds;
+    final primary = Theme.of(context).colorScheme.primary;
 
     return Padding(
       padding: const EdgeInsets.all(32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Album art placeholder
+          // Art placeholder
           Container(
             width: 220,
             height: 220,
@@ -243,8 +194,11 @@ class _AudioPlayerView extends StatelessWidget {
           const SizedBox(height: 32),
 
           Text(
-            asset.filename,
-            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+            widget.asset.filename,
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -256,16 +210,16 @@ class _AudioPlayerView extends StatelessWidget {
             data: SliderTheme.of(context).copyWith(
               trackHeight: 4,
               thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
-              activeTrackColor: Theme.of(context).colorScheme.primary,
+              activeTrackColor: primary,
               inactiveTrackColor: Colors.white24,
-              thumbColor: Theme.of(context).colorScheme.primary,
-              overlayColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+              thumbColor: primary,
+              overlayColor: primary.withValues(alpha: 0.2),
             ),
             child: Slider(
               value: progress.clamp(0.0, 1.0),
               onChanged: (v) {
-                final ms = (v * duration.inMilliseconds).round();
-                player?.seek(Duration(milliseconds: ms));
+                final ms = (v * _duration.inMilliseconds).round();
+                widget.player.seek(Duration(milliseconds: ms));
               },
             ),
           ),
@@ -276,8 +230,12 @@ class _AudioPlayerView extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(_fmt(position), style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                Text(_fmt(duration), style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                Text(_fmt(_position),
+                    style: const TextStyle(
+                        color: Colors.white54, fontSize: 12)),
+                Text(_fmt(_duration),
+                    style: const TextStyle(
+                        color: Colors.white54, fontSize: 12)),
               ],
             ),
           ),
@@ -288,22 +246,29 @@ class _AudioPlayerView extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               IconButton(
-                icon: const Icon(Icons.replay_10, color: Colors.white, size: 32),
-                onPressed: () => player?.seek(position - const Duration(seconds: 10)),
+                icon: const Icon(Icons.replay_10,
+                    color: Colors.white, size: 32),
+                onPressed: () => widget.player
+                    .seek(_position - const Duration(seconds: 10)),
               ),
               const SizedBox(width: 16),
               IconButton(
                 iconSize: 56,
                 icon: Icon(
-                  isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                  _playing
+                      ? Icons.pause_circle_filled
+                      : Icons.play_circle_filled,
                   color: Colors.white,
                 ),
-                onPressed: () => isPlaying ? player?.pause() : player?.play(),
+                onPressed: () =>
+                    _playing ? widget.player.pause() : widget.player.play(),
               ),
               const SizedBox(width: 16),
               IconButton(
-                icon: const Icon(Icons.forward_30, color: Colors.white, size: 32),
-                onPressed: () => player?.seek(position + const Duration(seconds: 30)),
+                icon: const Icon(Icons.forward_30,
+                    color: Colors.white, size: 32),
+                onPressed: () => widget.player
+                    .seek(_position + const Duration(seconds: 30)),
               ),
             ],
           ),

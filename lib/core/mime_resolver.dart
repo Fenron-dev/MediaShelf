@@ -46,12 +46,22 @@ const Map<String, String> _extensionMimeMap = {
   'oga': 'audio/ogg',
   'opus': 'audio/opus',
   'wav': 'audio/wav',
+  'wave': 'audio/wav',
   'aac': 'audio/aac',
   'm4a': 'audio/mp4',
+  'm4b': 'audio/mp4',   // audiobook
+  'm4r': 'audio/mp4',   // ringtone
+  'mp4a': 'audio/mp4',
+  'caf': 'audio/x-caf',
   'wma': 'audio/x-ms-wma',
   'aiff': 'audio/aiff',
   'aif': 'audio/aiff',
+  'aifc': 'audio/aiff',
   'alac': 'audio/x-alac',
+  'ape': 'audio/x-ape',
+  'wv': 'audio/x-wavpack',
+  'mka': 'audio/x-matroska',
+  'spx': 'audio/ogg',
   'mid': 'audio/midi',
   'midi': 'audio/midi',
 
