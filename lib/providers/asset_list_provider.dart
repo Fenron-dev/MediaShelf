@@ -9,6 +9,10 @@ import 'library_provider.dart';
 /// cached asset pages and force a refresh of the grid.
 final scanVersionProvider = StateProvider<int>((ref) => 0);
 
+/// Bumped after metadata writes (rating, color, tags, note) so the grid
+/// refreshes cards without requiring a full re-scan.
+final metaVersionProvider = StateProvider<int>((ref) => 0);
+
 /// Returns a single page of [Asset]s matching the current filter.
 ///
 /// Keyed by page index via `.family`. Watches both [assetFilterProvider] and
@@ -17,6 +21,7 @@ final assetPageProvider =
     FutureProvider.family<AssetsPage, int>((ref, page) async {
   final filter = ref.watch(assetFilterProvider);
   ref.watch(scanVersionProvider); // invalidate on scan
+  ref.watch(metaVersionProvider); // invalidate on metadata writes
   final dao = ref.watch(assetsDaoProvider);
   return dao.queryPage(filter: filter, page: page, pageSize: kPageSize);
 });

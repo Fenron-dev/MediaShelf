@@ -131,7 +131,7 @@ class BulkToolbar extends ConsumerWidget {
     for (final id in ids) {
       await dao.updateMeta(id: id, rating: Value(picked!));
     }
-    ref.read(scanVersionProvider.notifier).state++;
+    ref.read(metaVersionProvider.notifier).state++;
     ref.read(multiSelectProvider.notifier).clear();
   }
 
@@ -186,7 +186,7 @@ class BulkToolbar extends ConsumerWidget {
     for (final id in ids) {
       await dao.updateMeta(id: id, colorLabel: Value(color));
     }
-    ref.read(scanVersionProvider.notifier).state++;
+    ref.read(metaVersionProvider.notifier).state++;
     ref.read(multiSelectProvider.notifier).clear();
   }
 
@@ -258,7 +258,7 @@ class BulkToolbar extends ConsumerWidget {
     for (final id in ids) {
       await dao.deleteById(id);
     }
-    ref.read(scanVersionProvider.notifier).state++;
+    ref.read(metaVersionProvider.notifier).state++;
     ref.read(multiSelectProvider.notifier).clear();
   }
 }

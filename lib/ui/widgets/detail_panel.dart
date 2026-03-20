@@ -21,8 +21,8 @@ class DetailPanel extends ConsumerWidget {
     }
 
     final dao = ref.watch(assetsDaoProvider);
-    return FutureBuilder<Asset?>(
-      future: dao.getById(selectedId),
+    return StreamBuilder<Asset?>(
+      stream: dao.watchById(selectedId),
       builder: (context, snap) {
         if (!snap.hasData) {
           return const Center(child: CircularProgressIndicator());
@@ -184,19 +184,25 @@ class _AssetDetailState extends ConsumerState<_AssetDetail> {
     );
   }
 
+  void _bumpMeta() =>
+      ref.read(metaVersionProvider.notifier).state++;
+
   Future<void> _updateRating(int rating) async {
     final dao = ref.read(assetsDaoProvider);
     await dao.updateMeta(id: widget.asset.id, rating: Value(rating));
+    _bumpMeta();
   }
 
   Future<void> _updateColorLabel(String? label) async {
     final dao = ref.read(assetsDaoProvider);
     await dao.updateMeta(id: widget.asset.id, colorLabel: Value(label));
+    _bumpMeta();
   }
 
   Future<void> _saveNote(String note) async {
     final dao = ref.read(assetsDaoProvider);
     await dao.updateMeta(id: widget.asset.id, note: Value(note));
+    _bumpMeta();
   }
 
   Future<void> _removeTag(String tagName) async {
@@ -208,6 +214,7 @@ class _AssetDetailState extends ConsumerState<_AssetDetail> {
         .toList();
     await dao.setTagsForAsset(widget.asset.id, updatedIds);
     ref.invalidate(assetTagsProvider(widget.asset.id));
+    _bumpMeta();
   }
 
   Future<void> _addTagDialog(BuildContext context) async {
@@ -239,6 +246,7 @@ class _AssetDetailState extends ConsumerState<_AssetDetail> {
     final ids = {...current.map((t) => t.id), newTagId}.toList();
     await assetsDao.setTagsForAsset(widget.asset.id, ids);
     ref.invalidate(assetTagsProvider(widget.asset.id));
+    _bumpMeta();
   }
 
   String _formatSize(int bytes) {

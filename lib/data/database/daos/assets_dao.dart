@@ -30,6 +30,9 @@ class AssetsDao extends DatabaseAccessor<AppDatabase> with _$AssetsDaoMixin {
   Future<Asset?> getById(String id) =>
       (select(assets)..where((a) => a.id.equals(id))).getSingleOrNull();
 
+  Stream<Asset?> watchById(String id) =>
+      (select(assets)..where((a) => a.id.equals(id))).watchSingleOrNull();
+
   Future<Asset?> getByPath(String path) =>
       (select(assets)..where((a) => a.path.equals(path))).getSingleOrNull();
 
