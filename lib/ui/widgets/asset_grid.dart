@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/constants.dart';
+import '../../core/mime_resolver.dart';
+import '../../data/database/app_database.dart';
 import '../../providers/asset_list_provider.dart';
 import '../../providers/settings_provider.dart';
 import 'asset_card.dart';
@@ -39,9 +42,21 @@ class _AssetGridState extends ConsumerState<AssetGrid> {
 
   void _loadMore() {
     final total = ref.read(assetTotalProvider).valueOrNull ?? 0;
-    final loaded = _loadedPages * kPageSize;
-    if (loaded < total) {
+    if (_loadedPages * kPageSize < total) {
       setState(() => _loadedPages++);
+    }
+  }
+
+  void _onTap(BuildContext context, Asset asset) {
+    if (ref.read(isMultiSelectProvider)) {
+      ref.read(multiSelectProvider.notifier).toggle(asset.id);
+      return;
+    }
+    final mime = asset.mimeType ?? '';
+    if (isVideo(mime) || isAudio(mime)) {
+      context.push('/library/player/${asset.id}');
+    } else {
+      ref.read(selectedAssetIdProvider.notifier).state = asset.id;
     }
   }
 
@@ -51,8 +66,7 @@ class _AssetGridState extends ConsumerState<AssetGrid> {
     final selectedId = ref.watch(selectedAssetIdProvider);
     final selectedIds = ref.watch(multiSelectProvider);
 
-    // Collect all assets across loaded pages
-    final allAssets = <dynamic>[];
+    final allAssets = <Asset>[];
     bool isLoading = false;
 
     for (var page = 0; page < _loadedPages; page++) {
@@ -60,7 +74,7 @@ class _AssetGridState extends ConsumerState<AssetGrid> {
       pageAsync.when(
         data: (p) => allAssets.addAll(p.assets),
         loading: () => isLoading = true,
-        error: (_, __) {},
+        error: (e, st) {},
       );
     }
 
@@ -85,7 +99,7 @@ class _AssetGridState extends ConsumerState<AssetGrid> {
       controller: _scrollController,
       padding: const EdgeInsets.all(8),
       gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: thumbSize.toDouble(),
+        maxCrossAxisExtent: thumbSize,
         mainAxisSpacing: 8,
         crossAxisSpacing: 8,
       ),
@@ -98,16 +112,9 @@ class _AssetGridState extends ConsumerState<AssetGrid> {
         return AssetCard(
           asset: asset,
           isSelected: selectedIds.contains(asset.id) || selectedId == asset.id,
-          onTap: () {
-            if (ref.read(isMultiSelectProvider)) {
-              ref.read(multiSelectProvider.notifier).toggle(asset.id);
-            } else {
-              ref.read(selectedAssetIdProvider.notifier).state = asset.id;
-            }
-          },
-          onLongPress: () {
-            ref.read(multiSelectProvider.notifier).toggle(asset.id);
-          },
+          onTap: () => _onTap(context, asset),
+          onLongPress: () =>
+              ref.read(multiSelectProvider.notifier).toggle(asset.id),
         );
       },
     );

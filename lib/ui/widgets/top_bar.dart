@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:go_router/go_router.dart';
 
 import '../../providers/asset_filter_provider.dart';
@@ -28,6 +27,8 @@ class _TopBarState extends ConsumerState<TopBar> {
   Widget build(BuildContext context) {
     final scanState = ref.watch(scanProvider);
     final showSidebar = ref.watch(showSidebarProvider);
+    final showDetail = ref.watch(showDetailPanelProvider);
+    final thumbSize = ref.watch(thumbnailSizeProvider);
     final libraryPath = ref.watch(libraryPathProvider);
     final libraryName = libraryPath?.split('/').last ?? 'MediaShelf';
 
@@ -35,24 +36,28 @@ class _TopBarState extends ConsumerState<TopBar> {
       leading: IconButton(
         icon: Icon(showSidebar ? Icons.menu_open : Icons.menu),
         tooltip: showSidebar ? 'Hide sidebar' : 'Show sidebar',
-        onPressed: () => ref.read(showSidebarProvider.notifier).state = !showSidebar,
+        onPressed: () =>
+            ref.read(showSidebarProvider.notifier).state = !showSidebar,
       ),
       title: Text(libraryName),
       actions: [
         // Search field
         SizedBox(
-          width: 240,
+          width: 220,
           child: TextField(
             controller: _searchController,
             decoration: InputDecoration(
-              hintText: 'Search...',
+              hintText: 'Search…',
               prefixIcon: const Icon(Icons.search, size: 18),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
                       icon: const Icon(Icons.clear, size: 18),
                       onPressed: () {
                         _searchController.clear();
-                        ref.read(assetFilterProvider.notifier).setSearchQuery('');
+                        ref
+                            .read(assetFilterProvider.notifier)
+                            .setSearchQuery('');
+                        setState(() {});
                       },
                     )
                   : null,
@@ -70,23 +75,54 @@ class _TopBarState extends ConsumerState<TopBar> {
             },
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 4),
 
-        // Scan button
+        // Thumbnail size slider
+        SizedBox(
+          width: 100,
+          child: Slider(
+            value: thumbSize,
+            min: 80,
+            max: 400,
+            divisions: 16,
+            label: '${thumbSize.round()}px',
+            onChanged: (v) =>
+                ref.read(thumbnailSizeProvider.notifier).set(v),
+          ),
+        ),
+
+        // Detail panel toggle
+        IconButton(
+          icon: Icon(showDetail ? Icons.view_sidebar : Icons.view_sidebar_outlined),
+          tooltip: showDetail ? 'Hide detail panel' : 'Show detail panel',
+          onPressed: () =>
+              ref.read(showDetailPanelProvider.notifier).state = !showDetail,
+        ),
+
+        // Scan / progress
         if (scanState.isScanning)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(
+                SizedBox(
                   width: 16,
                   height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    value: scanState.phase == ScanPhase.scanning
+                        ? (scanState.total > 0 ? scanState.progress : null)
+                        : (scanState.thumbsTotal > 0
+                            ? scanState.thumbProgress
+                            : null),
+                  ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Text(
-                  '${scanState.processed} / ${scanState.total}',
+                  scanState.phase == ScanPhase.scanning
+                      ? '${scanState.processed} / ${scanState.total}'
+                      : '🖼 ${scanState.thumbsDone}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
@@ -96,7 +132,8 @@ class _TopBarState extends ConsumerState<TopBar> {
           IconButton(
             icon: const Icon(Icons.sync),
             tooltip: 'Scan library',
-            onPressed: () => ref.read(scanProvider.notifier).startScan(),
+            onPressed: () =>
+                ref.read(scanProvider.notifier).startScan(),
           ),
 
         IconButton(
@@ -111,20 +148,14 @@ class _TopBarState extends ConsumerState<TopBar> {
   void _showMenu(BuildContext context) {
     final renderBox = context.findRenderObject() as RenderBox?;
     if (renderBox == null) return;
-    final offset = renderBox.localToGlobal(Offset(renderBox.size.width - 180, renderBox.size.height));
-
+    final offset = renderBox.localToGlobal(
+      Offset(renderBox.size.width - 180, renderBox.size.height),
+    );
     showMenu(
       context: context,
-      position: RelativeRect.fromLTRB(offset.dx, offset.dy, offset.dx + 180, offset.dy + 200),
+      position: RelativeRect.fromLTRB(
+          offset.dx, offset.dy, offset.dx + 180, offset.dy + 200),
       items: [
-        PopupMenuItem(
-          child: const ListTile(
-            leading: Icon(Icons.settings_outlined),
-            title: Text('Settings'),
-            dense: true,
-          ),
-          onTap: () {},
-        ),
         PopupMenuItem(
           child: const ListTile(
             leading: Icon(Icons.history),
