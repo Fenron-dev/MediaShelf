@@ -155,7 +155,7 @@ class _TopBarState extends ConsumerState<TopBar> {
       context: context,
       position: RelativeRect.fromLTRB(
           offset.dx, offset.dy, offset.dx + 180, offset.dy + 200),
-      items: [
+      items: <PopupMenuEntry>[
         PopupMenuItem(
           child: const ListTile(
             leading: Icon(Icons.history),
@@ -163,6 +163,15 @@ class _TopBarState extends ConsumerState<TopBar> {
             dense: true,
           ),
           onTap: () => context.push('/library/activity'),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem(
+          child: const ListTile(
+            leading: Icon(Icons.logout),
+            title: Text('Close Library'),
+            dense: true,
+          ),
+          onTap: () => ref.read(libraryPathProvider.notifier).state = null,
         ),
       ],
     );

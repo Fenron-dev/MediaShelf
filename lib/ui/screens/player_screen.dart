@@ -20,12 +20,14 @@ class PlayerScreen extends ConsumerStatefulWidget {
 class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Asset? _asset;
   late final Player _player;
+  late final PlaybackNotifier _playbackNotifier;
   VideoController? _videoController;
 
   @override
   void initState() {
     super.initState();
     _player = Player();
+    _playbackNotifier = _playbackNotifier;
     _loadAsset();
   }
 
@@ -51,9 +53,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
     await _player.open(Media(filePath), play: false);
 
-    // Resume from saved position
+    // Resume: wait until the player has buffered enough to know the duration,
+    // only then seek — otherwise the seek is silently dropped.
     final resumeMs = asset.playbackPositionMs ?? 0;
     if (resumeMs > 500) {
+      await _player.stream.duration
+          .firstWhere((d) => d > Duration.zero)
+          .timeout(const Duration(seconds: 10), onTimeout: () => Duration.zero);
       await _player.seek(Duration(milliseconds: resumeMs));
     }
     await _player.play();
@@ -61,19 +67,19 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     // Track position changes for resume & playback provider
     _player.stream.position.listen((pos) {
       if (!mounted) return;
-      ref.read(playbackProvider.notifier).updatePosition(pos);
+      _playbackNotifier.updatePosition(pos);
       _savePosition(pos.inMilliseconds);
     });
     _player.stream.duration.listen((dur) {
       if (!mounted) return;
-      ref.read(playbackProvider.notifier).updateDuration(dur);
+      _playbackNotifier.updateDuration(dur);
     });
     _player.stream.playing.listen((playing) {
       if (!mounted) return;
-      ref.read(playbackProvider.notifier).setPlaying(playing);
+      _playbackNotifier.setPlaying(playing);
     });
 
-    ref.read(playbackProvider.notifier).setAsset(widget.assetId);
+    _playbackNotifier.setAsset(widget.assetId);
   }
 
   void _savePosition(int ms) {
@@ -85,7 +91,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   @override
   void dispose() {
     _savePosition(_player.state.position.inMilliseconds);
-    ref.read(playbackProvider.notifier).clear();
+    _playbackNotifier.clear();
     _player.dispose();
     super.dispose();
   }

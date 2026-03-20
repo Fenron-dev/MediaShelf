@@ -9,6 +9,7 @@ class AssetCard extends ConsumerWidget {
   final Asset asset;
   final bool isSelected;
   final VoidCallback? onTap;
+  final VoidCallback? onDoubleTap;
   final VoidCallback? onLongPress;
 
   const AssetCard({
@@ -16,6 +17,7 @@ class AssetCard extends ConsumerWidget {
     required this.asset,
     this.isSelected = false,
     this.onTap,
+    this.onDoubleTap,
     this.onLongPress,
   });
 
@@ -26,6 +28,7 @@ class AssetCard extends ConsumerWidget {
 
     return GestureDetector(
       onTap: onTap,
+      onDoubleTap: onDoubleTap,
       onLongPress: onLongPress,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),

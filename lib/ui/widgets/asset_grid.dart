@@ -52,11 +52,14 @@ class _AssetGridState extends ConsumerState<AssetGrid> {
       ref.read(multiSelectProvider.notifier).toggle(asset.id);
       return;
     }
+    ref.read(selectedAssetIdProvider.notifier).state = asset.id;
+  }
+
+  void _onDoubleTap(BuildContext context, Asset asset) {
+    if (ref.read(isMultiSelectProvider)) return;
     final mime = asset.mimeType ?? '';
     if (isVideo(mime) || isAudio(mime)) {
       context.push('/library/player/${asset.id}');
-    } else {
-      ref.read(selectedAssetIdProvider.notifier).state = asset.id;
     }
   }
 
@@ -113,6 +116,7 @@ class _AssetGridState extends ConsumerState<AssetGrid> {
           asset: asset,
           isSelected: selectedIds.contains(asset.id) || selectedId == asset.id,
           onTap: () => _onTap(context, asset),
+          onDoubleTap: () => _onDoubleTap(context, asset),
           onLongPress: () =>
               ref.read(multiSelectProvider.notifier).toggle(asset.id),
         );
