@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants.dart';
 import '../../providers/settings_provider.dart';
 import '../widgets/asset_grid.dart';
+import '../widgets/bulk_toolbar.dart';
 import '../widgets/detail_panel.dart';
+import '../widgets/drop_zone.dart';
 import '../widgets/sidebar.dart';
 import '../widgets/top_bar.dart';
 
@@ -23,28 +25,30 @@ class DesktopShell extends ConsumerWidget {
         children: [
           const TopBar(),
           Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Left sidebar
-                if (showSidebar)
-                  SizedBox(
-                    width: kSidebarWidth,
-                    child: const LibrarySidebar(),
+            child: DropZoneOverlay(
+              child: Stack(
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (showSidebar)
+                        SizedBox(width: kSidebarWidth, child: const LibrarySidebar()),
+                      if (showSidebar) const VerticalDivider(width: 1),
+                      const Expanded(child: AssetGrid()),
+                      if (showDetailPanel) const VerticalDivider(width: 1),
+                      if (showDetailPanel)
+                        SizedBox(width: kDetailPanelWidth, child: const DetailPanel()),
+                    ],
                   ),
-                if (showSidebar) const VerticalDivider(width: 1),
-
-                // Main content
-                Expanded(child: const AssetGrid()),
-
-                // Right detail panel
-                if (showDetailPanel) const VerticalDivider(width: 1),
-                if (showDetailPanel)
-                  SizedBox(
-                    width: kDetailPanelWidth,
-                    child: const DetailPanel(),
+                  // Bulk toolbar anchored to bottom
+                  const Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: BulkToolbar(),
                   ),
-              ],
+                ],
+              ),
             ),
           ),
         ],

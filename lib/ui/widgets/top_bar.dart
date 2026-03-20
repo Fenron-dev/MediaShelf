@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:go_router/go_router.dart';
+
 import '../../providers/asset_filter_provider.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/scan_provider.dart';
@@ -129,7 +131,7 @@ class _TopBarState extends ConsumerState<TopBar> {
             title: Text('Activity'),
             dense: true,
           ),
-          onTap: () {},
+          onTap: () => context.push('/library/activity'),
         ),
       ],
     );

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../domain/models/asset_filter.dart';
 import '../../providers/asset_filter_provider.dart';
 import '../../providers/collection_provider.dart';
+import '../../providers/library_provider.dart';
 import '../../providers/tag_provider.dart';
+import 'smart_filter_editor.dart';
 
 class LibrarySidebar extends ConsumerWidget {
   const LibrarySidebar({super.key});
@@ -120,7 +123,38 @@ class _CollectionsSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _sectionHeader(context, 'Collections'),
+        // Header with action buttons
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 4, 4),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Collections',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+              ),
+              // New manual collection
+              IconButton(
+                icon: const Icon(Icons.create_new_folder_outlined, size: 16),
+                tooltip: 'New collection',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                onPressed: () => _createCollection(context, ref),
+              ),
+              // New smart filter
+              IconButton(
+                icon: const Icon(Icons.auto_awesome_outlined, size: 16),
+                tooltip: 'New smart filter',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                onPressed: () => showSmartFilterEditor(context, ref),
+              ),
+            ],
+          ),
+        ),
         collectionsAsync.when(
           data: (cols) => Column(
             children: cols.map((c) {
@@ -132,6 +166,9 @@ class _CollectionsSection extends ConsumerWidget {
                 label: c.name,
                 selected: selected,
                 onTap: () => notifier.setCollectionId(selected ? null : c.id),
+                onLongPress: c.isSmartFilter
+                    ? () => showSmartFilterEditor(context, ref, existing: c)
+                    : null,
               );
             }).toList(),
           ),
@@ -141,6 +178,32 @@ class _CollectionsSection extends ConsumerWidget {
         const SizedBox(height: 8),
       ],
     );
+  }
+
+  Future<void> _createCollection(BuildContext ctx, WidgetRef ref) async {
+    final ctrl = TextEditingController();
+    final name = await showDialog<String>(
+      context: ctx,
+      builder: (context) => AlertDialog(
+        title: const Text('New Collection'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'Collection name'),
+          onSubmitted: (v) => Navigator.pop(context, v),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, ctrl.text),
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+    if (name == null || name.trim().isEmpty) return;
+    final dao = ref.read(collectionsDaoProvider);
+    await dao.createCollection(id: const Uuid().v4(), name: name.trim());
   }
 }
 
@@ -164,6 +227,7 @@ class _SidebarTile extends StatelessWidget {
   final Widget? trailing;
   final bool selected;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   const _SidebarTile({
     required this.icon,
@@ -171,6 +235,7 @@ class _SidebarTile extends StatelessWidget {
     this.trailing,
     this.selected = false,
     this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -193,6 +258,7 @@ class _SidebarTile extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12),
       onTap: onTap,
+      onLongPress: onLongPress,
     );
   }
 }
