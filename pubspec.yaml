@@ -1,0 +1,73 @@
+name: mediashelf
+description: "MediaShelf — Cross-platform Digital Asset Manager"
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # ── State Management ────────────────────────────────────────────────────────
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # ── Navigation ──────────────────────────────────────────────────────────────
+  go_router: ^14.8.1
+
+  # ── Database ────────────────────────────────────────────────────────────────
+  drift: ^2.22.1
+  drift_flutter: ^0.2.4
+  sqlite3_flutter_libs: ^0.5.28
+  sqlite3: ^2.9.4
+
+  # ── File System ─────────────────────────────────────────────────────────────
+  path_provider: ^2.1.5
+  path: ^1.9.1
+  file_picker: ^10.1.7
+  watcher: ^1.1.1
+
+  # ── Hashing & Identity ──────────────────────────────────────────────────────
+  crypto: ^3.0.6
+  uuid: ^4.5.1
+
+  # ── Image / Thumbnail ───────────────────────────────────────────────────────
+  image: ^4.2.0
+  mime: ^1.0.6
+
+  # ── Media Player ────────────────────────────────────────────────────────────
+  video_player: ^2.9.2
+  chewie: ^1.8.5
+  just_audio: ^0.9.43
+
+  # ── Grid / Virtual Scroll ───────────────────────────────────────────────────
+  flutter_staggered_grid_view: ^0.7.0
+
+  # ── Drag & Drop (Desktop) ───────────────────────────────────────────────────
+  desktop_drop: ^0.4.4
+
+  # ── UI Components ───────────────────────────────────────────────────────────
+  gap: ^3.0.1
+  intl: ^0.20.2
+  flutter_animate: ^4.5.2
+  google_fonts: ^6.2.1
+
+  # ── Utilities ───────────────────────────────────────────────────────────────
+  collection: ^1.19.1
+  shared_preferences: ^2.3.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  drift_dev: ^2.22.1
+  build_runner: ^2.4.14
+  riverpod_generator: ^2.6.3
+  riverpod_lint: ^2.6.3
+  custom_lint: ^0.7.2
+
+flutter:
+  uses-material-design: true
+  generate: true
