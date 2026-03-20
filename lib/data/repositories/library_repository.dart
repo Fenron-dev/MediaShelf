@@ -90,9 +90,11 @@ class LibraryRepository {
   /// Runs a full library scan and returns the result.
   ///
   /// [onProgress] receives progress updates during the scan.
-  /// After the scan, generates thumbnails for all new/changed assets.
+  /// [onThumbnailsStarted] is called once with the total thumbnail count.
+  /// [onThumbnailGenerated] is called for each generated thumbnail.
   Future<ScanResult> scanLibrary({
     void Function(int processed, int total)? onProgress,
+    void Function(int total)? onThumbnailsStarted,
     void Function(String thumbPath)? onThumbnailGenerated,
   }) async {
     final libraryPath = _info?.path;
@@ -113,6 +115,7 @@ class LibraryRepository {
     // Generate thumbnails for new/changed assets
     await _generateMissingThumbnails(
       libraryPath: libraryPath,
+      onStarted: onThumbnailsStarted,
       onGenerated: onThumbnailGenerated,
     );
 
@@ -127,6 +130,7 @@ class LibraryRepository {
 
   Future<void> _generateMissingThumbnails({
     required String libraryPath,
+    void Function(int total)? onStarted,
     void Function(String)? onGenerated,
   }) async {
     // Get all 'ok' assets that don't have a thumbnail yet
@@ -152,6 +156,7 @@ class LibraryRepository {
       }
     }
 
+    if (jobs.isNotEmpty) onStarted?.call(jobs.length);
     await for (final path in generateThumbnailBatch(jobs)) {
       onGenerated?.call(path);
     }

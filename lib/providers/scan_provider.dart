@@ -76,6 +76,13 @@ class ScanNotifier extends StateNotifier<ScanState> {
             total: total,
           );
         },
+        onThumbnailsStarted: (total) {
+          state = state.copyWith(
+            phase: ScanPhase.thumbnails,
+            thumbsTotal: total,
+            thumbsDone: 0,
+          );
+        },
         onThumbnailGenerated: (path) {
           state = state.copyWith(
             phase: ScanPhase.thumbnails,
