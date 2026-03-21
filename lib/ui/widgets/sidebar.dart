@@ -69,6 +69,7 @@ class _LibrarySidebarState extends ConsumerState<LibrarySidebar> {
         // ── Ordner ──────────────────────────────────────────────────────────
         _CollapsibleSection(
           title: 'Ordner',
+          color: Colors.blue,
           expanded: _expandFolders,
           onToggle: () => setState(() =>
               _toggle(_kExpandFolders, _expandFolders, (v) => _expandFolders = v)),
@@ -119,6 +120,7 @@ class _LibrarySidebarState extends ConsumerState<LibrarySidebar> {
         // ── Smarte Ordner ────────────────────────────────────────────────────
         _CollapsibleSection(
           title: 'Smarte Ordner',
+          color: Colors.amber,
           expanded: _expandSmart,
           onToggle: () => setState(() =>
               _toggle(_kExpandSmart, _expandSmart, (v) => _expandSmart = v)),
@@ -136,6 +138,7 @@ class _LibrarySidebarState extends ConsumerState<LibrarySidebar> {
         // ── Sammlungen ───────────────────────────────────────────────────────
         _CollapsibleSection(
           title: 'Sammlungen',
+          color: Colors.teal,
           expanded: _expandCollections,
           onToggle: () => setState(() => _toggle(
               _kExpandCollections, _expandCollections, (v) => _expandCollections = v)),
@@ -153,6 +156,7 @@ class _LibrarySidebarState extends ConsumerState<LibrarySidebar> {
         // ── Tags ─────────────────────────────────────────────────────────────
         _CollapsibleSection(
           title: 'Tags',
+          color: Colors.purple,
           expanded: _expandTags,
           onToggle: () => setState(() =>
               _toggle(_kExpandTags, _expandTags, (v) => _expandTags = v)),
@@ -424,15 +428,29 @@ class _FolderTileState extends ConsumerState<_FolderTile> {
           onSecondaryTap: () => _showFolderMenu(context),
           child: ListTile(
           dense: true,
-          contentPadding: EdgeInsets.only(left: indent, right: 4),
-          leading: Icon(
-            hasChildren
-                ? (_expanded
+          contentPadding: EdgeInsets.only(left: indent, right: 8),
+          leading: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 14,
+                child: hasChildren
+                    ? Icon(
+                        _expanded ? Icons.expand_more : Icons.chevron_right,
+                        size: 14,
+                        color: cs.onSurfaceVariant,
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                _expanded && hasChildren
                     ? Icons.folder_open_outlined
-                    : Icons.folder_outlined)
-                : Icons.folder_outlined,
-            size: 18,
-            color: selected ? cs.primary : null,
+                    : Icons.folder_outlined,
+                size: 18,
+                color: selected ? cs.primary : null,
+              ),
+            ],
           ),
           title: Text(
             widget.node.name,
@@ -441,28 +459,15 @@ class _FolderTileState extends ConsumerState<_FolderTile> {
               color: selected ? cs.primary : null,
             ),
           ),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (displayCount > 0)
-                Text('$displayCount', style: Theme.of(context).textTheme.bodySmall),
-              if (hasChildren)
-                IconButton(
-                  icon: Icon(
-                    _expanded ? Icons.expand_less : Icons.expand_more,
-                    size: 16,
-                  ),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                  onPressed: () => setState(() => _expanded = !_expanded),
-                ),
-            ],
-          ),
+          trailing: displayCount > 0
+              ? Text('$displayCount', style: Theme.of(context).textTheme.bodySmall)
+              : null,
           selected: selected,
           selectedTileColor: cs.primaryContainer.withValues(alpha: 0.3),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8)),
           onTap: () {
+            if (hasChildren) setState(() => _expanded = !_expanded);
             final notifier = ref.read(assetFilterProvider.notifier);
             if (selected) {
               notifier.clearDirFilter();
@@ -615,16 +620,32 @@ class _CollectionTileState extends ConsumerState<_CollectionTile> {
           children: [
             ListTile(
               dense: true,
-              contentPadding: EdgeInsets.only(left: indent, right: 4),
+              contentPadding: EdgeInsets.only(left: indent, right: 8),
               tileColor: isDragOver
                   ? cs.primaryContainer.withValues(alpha: 0.5)
                   : null,
-              leading: Icon(
-                hasChildren
-                    ? (_expanded ? Icons.folder_open_outlined : Icons.folder_outlined)
-                    : Icons.folder_outlined,
-                size: 18,
-                color: selected ? cs.primary : null,
+              leading: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 14,
+                    child: hasChildren
+                        ? Icon(
+                            _expanded ? Icons.expand_more : Icons.chevron_right,
+                            size: 14,
+                            color: cs.onSurfaceVariant,
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    hasChildren && _expanded
+                        ? Icons.folder_open_outlined
+                        : Icons.folder_outlined,
+                    size: 18,
+                    color: selected ? cs.primary : null,
+                  ),
+                ],
               ),
               title: Text(
                 widget.collection.name,
@@ -633,17 +654,13 @@ class _CollectionTileState extends ConsumerState<_CollectionTile> {
                   color: selected ? cs.primary : null,
                 ),
               ),
-              trailing: hasChildren
-                  ? IconButton(
-                      icon: Icon(_expanded ? Icons.expand_less : Icons.expand_more, size: 16),
-                      onPressed: () => setState(() => _expanded = !_expanded),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    )
-                  : null,
+              trailing: null,
               selected: selected,
               selectedTileColor: cs.primaryContainer.withValues(alpha: 0.3),
-              onTap: () => widget.onTap(widget.collection.id),
+              onTap: () {
+                if (hasChildren) setState(() => _expanded = !_expanded);
+                widget.onTap(widget.collection.id);
+              },
             ),
             if (hasChildren && _expanded)
               ...children.map((child) => _CollectionTile(
@@ -664,10 +681,10 @@ class _CollectionTileState extends ConsumerState<_CollectionTile> {
 // ── Tags ──────────────────────────────────────────────────────────────────────
 
 class _TagNode {
-  _TagNode({required this.name, required this.fullName, this.tagId});
+  _TagNode({required this.name, required this.fullName});
   final String name;       // display segment (e.g. "strand")
   final String fullName;   // full tag name (e.g. "bilder/strand")
-  String? tagId;           // null for virtual parent nodes
+  String? tagId;           // null for virtual parent nodes; set after creation
   int count = 0;
   final List<_TagNode> children = [];
 }
@@ -788,14 +805,30 @@ class _TagTileState extends ConsumerState<_TagTile> {
               onSecondaryTap: () => _showTagMenu(context),
               child: ListTile(
                 dense: true,
-                contentPadding: EdgeInsets.only(left: indent, right: 4),
+                contentPadding: EdgeInsets.only(left: indent, right: 8),
                 tileColor: isDragOver
                     ? cs.primaryContainer.withValues(alpha: 0.5)
                     : null,
-                leading: Icon(
-                  Icons.label_outline,
-                  size: 18,
-                  color: (selected || isAncestor) ? cs.primary : null,
+                leading: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 14,
+                      child: hasChildren
+                          ? Icon(
+                              _expanded ? Icons.expand_more : Icons.chevron_right,
+                              size: 14,
+                              color: cs.onSurfaceVariant,
+                            )
+                          : null,
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.label_outline,
+                      size: 18,
+                      color: (selected || isAncestor) ? cs.primary : null,
+                    ),
+                  ],
                 ),
                 title: Text(
                   widget.node.name,
@@ -804,28 +837,17 @@ class _TagTileState extends ConsumerState<_TagTile> {
                     color: (selected || isAncestor) ? cs.primary : null,
                   ),
                 ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (widget.node.count > 0)
-                      Text('${widget.node.count}',
-                          style: Theme.of(context).textTheme.bodySmall),
-                    if (hasChildren)
-                      IconButton(
-                        icon: Icon(
-                          _expanded ? Icons.expand_less : Icons.expand_more,
-                          size: 16,
-                        ),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                        onPressed: () => setState(() => _expanded = !_expanded),
-                      ),
-                  ],
-                ),
+                trailing: widget.node.count > 0
+                    ? Text('${widget.node.count}',
+                        style: Theme.of(context).textTheme.bodySmall)
+                    : null,
                 selected: selected,
                 selectedTileColor: cs.primaryContainer.withValues(alpha: 0.3),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                onTap: () => widget.onTap(widget.node.fullName),
+                onTap: () {
+                  if (hasChildren) setState(() => _expanded = !_expanded);
+                  widget.onTap(widget.node.fullName);
+                },
               ),
             ),
             if (_expanded && hasChildren)
@@ -916,6 +938,7 @@ class _CollapsibleSection extends StatelessWidget {
     required this.onToggle,
     required this.child,
     this.trailing,
+    this.color,
   });
 
   final String title;
@@ -923,12 +946,15 @@ class _CollapsibleSection extends StatelessWidget {
   final VoidCallback onToggle;
   final Widget child;
   final Widget? trailing;
+  /// Accent colour for the section header (label, chevron, left border).
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final accent = color ?? cs.onSurfaceVariant;
     final labelStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: cs.onSurfaceVariant,
+          color: accent,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.8,
         );
@@ -938,14 +964,19 @@ class _CollapsibleSection extends StatelessWidget {
       children: [
         InkWell(
           onTap: onToggle,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 4, 6),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border(
+                left: BorderSide(color: accent.withValues(alpha: 0.6), width: 3),
+              ),
+            ),
+            padding: const EdgeInsets.fromLTRB(13, 10, 4, 6),
             child: Row(
               children: [
                 Icon(
                   expanded ? Icons.expand_more : Icons.chevron_right,
                   size: 16,
-                  color: cs.onSurfaceVariant,
+                  color: accent,
                 ),
                 const SizedBox(width: 4),
                 Expanded(child: Text(title.toUpperCase(), style: labelStyle)),

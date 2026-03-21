@@ -1,5 +1,7 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/services/metadata_extractor.dart';
 import '../domain/models/scan_result.dart';
 import 'asset_list_provider.dart';
 import 'library_provider.dart';
@@ -53,7 +55,7 @@ class ScanState {
       );
 }
 
-enum ScanPhase { idle, scanning, thumbnails }
+enum ScanPhase { idle, scanning, thumbnails, metadata }
 
 class ScanNotifier extends StateNotifier<ScanState> {
   ScanNotifier(this._ref) : super(const ScanState());
@@ -90,6 +92,81 @@ class ScanNotifier extends StateNotifier<ScanState> {
           );
         },
       );
+
+      // Phase 3: metadata extraction for new/unprocessed assets
+      final libraryPath = _ref.read(libraryPathProvider);
+      if (libraryPath != null) {
+        final dao = _ref.read(assetsDaoProvider);
+        final toProcess = await dao.getAssetsNeedingMetadata();
+        if (toProcess.isNotEmpty) {
+          state = state.copyWith(
+            phase: ScanPhase.metadata,
+            processed: 0,
+            total: toProcess.length,
+          );
+          for (var i = 0; i < toProcess.length; i++) {
+            final asset = toProcess[i];
+            final mime = asset.mimeType ?? '';
+            if (mime.isEmpty) continue;
+            try {
+              final meta = await Future.microtask(
+                () => extractMetadata('$libraryPath/${asset.path}', mime),
+              );
+              if (!meta.isEmpty) {
+                await dao.updateMediaMetadata(
+                  id: asset.id,
+                  mediaTitle: meta.mediaTitle != null
+                      ? Value(meta.mediaTitle)
+                      : const Value.absent(),
+                  artist: meta.artist != null
+                      ? Value(meta.artist)
+                      : const Value.absent(),
+                  album: meta.album != null
+                      ? Value(meta.album)
+                      : const Value.absent(),
+                  genre: meta.genre != null
+                      ? Value(meta.genre)
+                      : const Value.absent(),
+                  trackNumber: meta.trackNumber != null
+                      ? Value(meta.trackNumber)
+                      : const Value.absent(),
+                  bitrate: meta.bitrate != null
+                      ? Value(meta.bitrate)
+                      : const Value.absent(),
+                  sampleRate: meta.sampleRate != null
+                      ? Value(meta.sampleRate)
+                      : const Value.absent(),
+                  author: meta.author != null
+                      ? Value(meta.author)
+                      : const Value.absent(),
+                  publisher: meta.publisher != null
+                      ? Value(meta.publisher)
+                      : const Value.absent(),
+                  pageCount: meta.pageCount != null
+                      ? Value(meta.pageCount)
+                      : const Value.absent(),
+                  captureDate: meta.captureDate != null
+                      ? Value(meta.captureDate)
+                      : const Value.absent(),
+                  cameraModel: meta.cameraModel != null
+                      ? Value(meta.cameraModel)
+                      : const Value.absent(),
+                  durationMs: meta.durationMs != null
+                      ? Value(meta.durationMs)
+                      : const Value.absent(),
+                  width: meta.width != null
+                      ? Value(meta.width)
+                      : const Value.absent(),
+                  height: meta.height != null
+                      ? Value(meta.height)
+                      : const Value.absent(),
+                );
+              }
+            } catch (_) {}
+            state = state.copyWith(processed: i + 1);
+          }
+        }
+      }
 
       state = ScanState(lastResult: result);
       // Invalidate asset grid

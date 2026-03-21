@@ -52,7 +52,7 @@ class AppDatabase extends _$AppDatabase {
   ActivityDao get activityDao => ActivityDao(this);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -64,7 +64,44 @@ class AppDatabase extends _$AppDatabase {
           await _createFts5Triggers();
         },
         onUpgrade: (m, from, to) async {
-          // Future migrations go here
+          if (from < 2) {
+            await customStatement(
+              'ALTER TABLE assets ADD COLUMN media_title TEXT',
+            );
+            await customStatement(
+              'ALTER TABLE assets ADD COLUMN artist TEXT',
+            );
+            await customStatement(
+              'ALTER TABLE assets ADD COLUMN album TEXT',
+            );
+            await customStatement(
+              'ALTER TABLE assets ADD COLUMN genre TEXT',
+            );
+            await customStatement(
+              'ALTER TABLE assets ADD COLUMN track_number INTEGER',
+            );
+            await customStatement(
+              'ALTER TABLE assets ADD COLUMN bitrate INTEGER',
+            );
+            await customStatement(
+              'ALTER TABLE assets ADD COLUMN sample_rate INTEGER',
+            );
+            await customStatement(
+              'ALTER TABLE assets ADD COLUMN author TEXT',
+            );
+            await customStatement(
+              'ALTER TABLE assets ADD COLUMN publisher TEXT',
+            );
+            await customStatement(
+              'ALTER TABLE assets ADD COLUMN page_count INTEGER',
+            );
+            await customStatement(
+              'ALTER TABLE assets ADD COLUMN capture_date TEXT',
+            );
+            await customStatement(
+              'ALTER TABLE assets ADD COLUMN camera_model TEXT',
+            );
+          }
         },
         beforeOpen: (details) async {
           await _applyPragmas();

@@ -59,6 +59,44 @@ class Assets extends Table {
   /// Unix timestamp (ms) when this record was last scanned/indexed.
   IntColumn get indexedAt => integer()();
 
+  // ── Embedded media metadata ─────────────────────────────────────────────
+
+  /// Embedded title (from ID3 / MP4 atom / PDF Info / EPUB OPF).
+  TextColumn get mediaTitle => text().nullable()();
+
+  /// Artist / performer (audio) or director (video).
+  TextColumn get artist => text().nullable()();
+
+  /// Album name (audio).
+  TextColumn get album => text().nullable()();
+
+  /// Genre string.
+  TextColumn get genre => text().nullable()();
+
+  /// Track number (audio).
+  IntColumn get trackNumber => integer().nullable()();
+
+  /// Bitrate in kbps.
+  IntColumn get bitrate => integer().nullable()();
+
+  /// Sample rate in Hz (audio).
+  IntColumn get sampleRate => integer().nullable()();
+
+  /// Author / creator (ebooks, PDFs, documents).
+  TextColumn get author => text().nullable()();
+
+  /// Publisher.
+  TextColumn get publisher => text().nullable()();
+
+  /// Page count (PDF, ebook).
+  IntColumn get pageCount => integer().nullable()();
+
+  /// Capture / creation date from EXIF or metadata (ISO 8601 string).
+  TextColumn get captureDate => text().nullable()();
+
+  /// Camera make+model from EXIF.
+  TextColumn get cameraModel => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

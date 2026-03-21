@@ -212,6 +212,130 @@ class $AssetsTable extends Assets with TableInfo<$AssetsTable, Asset> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _mediaTitleMeta = const VerificationMeta(
+    'mediaTitle',
+  );
+  @override
+  late final GeneratedColumn<String> mediaTitle = GeneratedColumn<String>(
+    'media_title',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _artistMeta = const VerificationMeta('artist');
+  @override
+  late final GeneratedColumn<String> artist = GeneratedColumn<String>(
+    'artist',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _albumMeta = const VerificationMeta('album');
+  @override
+  late final GeneratedColumn<String> album = GeneratedColumn<String>(
+    'album',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _genreMeta = const VerificationMeta('genre');
+  @override
+  late final GeneratedColumn<String> genre = GeneratedColumn<String>(
+    'genre',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _trackNumberMeta = const VerificationMeta(
+    'trackNumber',
+  );
+  @override
+  late final GeneratedColumn<int> trackNumber = GeneratedColumn<int>(
+    'track_number',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _bitrateMeta = const VerificationMeta(
+    'bitrate',
+  );
+  @override
+  late final GeneratedColumn<int> bitrate = GeneratedColumn<int>(
+    'bitrate',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sampleRateMeta = const VerificationMeta(
+    'sampleRate',
+  );
+  @override
+  late final GeneratedColumn<int> sampleRate = GeneratedColumn<int>(
+    'sample_rate',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _authorMeta = const VerificationMeta('author');
+  @override
+  late final GeneratedColumn<String> author = GeneratedColumn<String>(
+    'author',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _publisherMeta = const VerificationMeta(
+    'publisher',
+  );
+  @override
+  late final GeneratedColumn<String> publisher = GeneratedColumn<String>(
+    'publisher',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _pageCountMeta = const VerificationMeta(
+    'pageCount',
+  );
+  @override
+  late final GeneratedColumn<int> pageCount = GeneratedColumn<int>(
+    'page_count',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _captureDateMeta = const VerificationMeta(
+    'captureDate',
+  );
+  @override
+  late final GeneratedColumn<String> captureDate = GeneratedColumn<String>(
+    'capture_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _cameraModelMeta = const VerificationMeta(
+    'cameraModel',
+  );
+  @override
+  late final GeneratedColumn<String> cameraModel = GeneratedColumn<String>(
+    'camera_model',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -234,6 +358,18 @@ class $AssetsTable extends Assets with TableInfo<$AssetsTable, Asset> {
     fileCreatedAt,
     fileModifiedAt,
     indexedAt,
+    mediaTitle,
+    artist,
+    album,
+    genre,
+    trackNumber,
+    bitrate,
+    sampleRate,
+    author,
+    publisher,
+    pageCount,
+    captureDate,
+    cameraModel,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -384,6 +520,87 @@ class $AssetsTable extends Assets with TableInfo<$AssetsTable, Asset> {
     } else if (isInserting) {
       context.missing(_indexedAtMeta);
     }
+    if (data.containsKey('media_title')) {
+      context.handle(
+        _mediaTitleMeta,
+        mediaTitle.isAcceptableOrUnknown(data['media_title']!, _mediaTitleMeta),
+      );
+    }
+    if (data.containsKey('artist')) {
+      context.handle(
+        _artistMeta,
+        artist.isAcceptableOrUnknown(data['artist']!, _artistMeta),
+      );
+    }
+    if (data.containsKey('album')) {
+      context.handle(
+        _albumMeta,
+        album.isAcceptableOrUnknown(data['album']!, _albumMeta),
+      );
+    }
+    if (data.containsKey('genre')) {
+      context.handle(
+        _genreMeta,
+        genre.isAcceptableOrUnknown(data['genre']!, _genreMeta),
+      );
+    }
+    if (data.containsKey('track_number')) {
+      context.handle(
+        _trackNumberMeta,
+        trackNumber.isAcceptableOrUnknown(
+          data['track_number']!,
+          _trackNumberMeta,
+        ),
+      );
+    }
+    if (data.containsKey('bitrate')) {
+      context.handle(
+        _bitrateMeta,
+        bitrate.isAcceptableOrUnknown(data['bitrate']!, _bitrateMeta),
+      );
+    }
+    if (data.containsKey('sample_rate')) {
+      context.handle(
+        _sampleRateMeta,
+        sampleRate.isAcceptableOrUnknown(data['sample_rate']!, _sampleRateMeta),
+      );
+    }
+    if (data.containsKey('author')) {
+      context.handle(
+        _authorMeta,
+        author.isAcceptableOrUnknown(data['author']!, _authorMeta),
+      );
+    }
+    if (data.containsKey('publisher')) {
+      context.handle(
+        _publisherMeta,
+        publisher.isAcceptableOrUnknown(data['publisher']!, _publisherMeta),
+      );
+    }
+    if (data.containsKey('page_count')) {
+      context.handle(
+        _pageCountMeta,
+        pageCount.isAcceptableOrUnknown(data['page_count']!, _pageCountMeta),
+      );
+    }
+    if (data.containsKey('capture_date')) {
+      context.handle(
+        _captureDateMeta,
+        captureDate.isAcceptableOrUnknown(
+          data['capture_date']!,
+          _captureDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('camera_model')) {
+      context.handle(
+        _cameraModelMeta,
+        cameraModel.isAcceptableOrUnknown(
+          data['camera_model']!,
+          _cameraModelMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -473,6 +690,54 @@ class $AssetsTable extends Assets with TableInfo<$AssetsTable, Asset> {
         DriftSqlType.int,
         data['${effectivePrefix}indexed_at'],
       )!,
+      mediaTitle: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}media_title'],
+      ),
+      artist: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}artist'],
+      ),
+      album: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}album'],
+      ),
+      genre: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}genre'],
+      ),
+      trackNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}track_number'],
+      ),
+      bitrate: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}bitrate'],
+      ),
+      sampleRate: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sample_rate'],
+      ),
+      author: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}author'],
+      ),
+      publisher: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}publisher'],
+      ),
+      pageCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}page_count'],
+      ),
+      captureDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}capture_date'],
+      ),
+      cameraModel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}camera_model'],
+      ),
     );
   }
 
@@ -534,6 +799,42 @@ class Asset extends DataClass implements Insertable<Asset> {
 
   /// Unix timestamp (ms) when this record was last scanned/indexed.
   final int indexedAt;
+
+  /// Embedded title (from ID3 / MP4 atom / PDF Info / EPUB OPF).
+  final String? mediaTitle;
+
+  /// Artist / performer (audio) or director (video).
+  final String? artist;
+
+  /// Album name (audio).
+  final String? album;
+
+  /// Genre string.
+  final String? genre;
+
+  /// Track number (audio).
+  final int? trackNumber;
+
+  /// Bitrate in kbps.
+  final int? bitrate;
+
+  /// Sample rate in Hz (audio).
+  final int? sampleRate;
+
+  /// Author / creator (ebooks, PDFs, documents).
+  final String? author;
+
+  /// Publisher.
+  final String? publisher;
+
+  /// Page count (PDF, ebook).
+  final int? pageCount;
+
+  /// Capture / creation date from EXIF or metadata (ISO 8601 string).
+  final String? captureDate;
+
+  /// Camera make+model from EXIF.
+  final String? cameraModel;
   const Asset({
     required this.id,
     required this.path,
@@ -555,6 +856,18 @@ class Asset extends DataClass implements Insertable<Asset> {
     this.fileCreatedAt,
     this.fileModifiedAt,
     required this.indexedAt,
+    this.mediaTitle,
+    this.artist,
+    this.album,
+    this.genre,
+    this.trackNumber,
+    this.bitrate,
+    this.sampleRate,
+    this.author,
+    this.publisher,
+    this.pageCount,
+    this.captureDate,
+    this.cameraModel,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -607,6 +920,42 @@ class Asset extends DataClass implements Insertable<Asset> {
       map['file_modified_at'] = Variable<int>(fileModifiedAt);
     }
     map['indexed_at'] = Variable<int>(indexedAt);
+    if (!nullToAbsent || mediaTitle != null) {
+      map['media_title'] = Variable<String>(mediaTitle);
+    }
+    if (!nullToAbsent || artist != null) {
+      map['artist'] = Variable<String>(artist);
+    }
+    if (!nullToAbsent || album != null) {
+      map['album'] = Variable<String>(album);
+    }
+    if (!nullToAbsent || genre != null) {
+      map['genre'] = Variable<String>(genre);
+    }
+    if (!nullToAbsent || trackNumber != null) {
+      map['track_number'] = Variable<int>(trackNumber);
+    }
+    if (!nullToAbsent || bitrate != null) {
+      map['bitrate'] = Variable<int>(bitrate);
+    }
+    if (!nullToAbsent || sampleRate != null) {
+      map['sample_rate'] = Variable<int>(sampleRate);
+    }
+    if (!nullToAbsent || author != null) {
+      map['author'] = Variable<String>(author);
+    }
+    if (!nullToAbsent || publisher != null) {
+      map['publisher'] = Variable<String>(publisher);
+    }
+    if (!nullToAbsent || pageCount != null) {
+      map['page_count'] = Variable<int>(pageCount);
+    }
+    if (!nullToAbsent || captureDate != null) {
+      map['capture_date'] = Variable<String>(captureDate);
+    }
+    if (!nullToAbsent || cameraModel != null) {
+      map['camera_model'] = Variable<String>(cameraModel);
+    }
     return map;
   }
 
@@ -656,6 +1005,42 @@ class Asset extends DataClass implements Insertable<Asset> {
           ? const Value.absent()
           : Value(fileModifiedAt),
       indexedAt: Value(indexedAt),
+      mediaTitle: mediaTitle == null && nullToAbsent
+          ? const Value.absent()
+          : Value(mediaTitle),
+      artist: artist == null && nullToAbsent
+          ? const Value.absent()
+          : Value(artist),
+      album: album == null && nullToAbsent
+          ? const Value.absent()
+          : Value(album),
+      genre: genre == null && nullToAbsent
+          ? const Value.absent()
+          : Value(genre),
+      trackNumber: trackNumber == null && nullToAbsent
+          ? const Value.absent()
+          : Value(trackNumber),
+      bitrate: bitrate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bitrate),
+      sampleRate: sampleRate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sampleRate),
+      author: author == null && nullToAbsent
+          ? const Value.absent()
+          : Value(author),
+      publisher: publisher == null && nullToAbsent
+          ? const Value.absent()
+          : Value(publisher),
+      pageCount: pageCount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(pageCount),
+      captureDate: captureDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(captureDate),
+      cameraModel: cameraModel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cameraModel),
     );
   }
 
@@ -685,6 +1070,18 @@ class Asset extends DataClass implements Insertable<Asset> {
       fileCreatedAt: serializer.fromJson<int?>(json['fileCreatedAt']),
       fileModifiedAt: serializer.fromJson<int?>(json['fileModifiedAt']),
       indexedAt: serializer.fromJson<int>(json['indexedAt']),
+      mediaTitle: serializer.fromJson<String?>(json['mediaTitle']),
+      artist: serializer.fromJson<String?>(json['artist']),
+      album: serializer.fromJson<String?>(json['album']),
+      genre: serializer.fromJson<String?>(json['genre']),
+      trackNumber: serializer.fromJson<int?>(json['trackNumber']),
+      bitrate: serializer.fromJson<int?>(json['bitrate']),
+      sampleRate: serializer.fromJson<int?>(json['sampleRate']),
+      author: serializer.fromJson<String?>(json['author']),
+      publisher: serializer.fromJson<String?>(json['publisher']),
+      pageCount: serializer.fromJson<int?>(json['pageCount']),
+      captureDate: serializer.fromJson<String?>(json['captureDate']),
+      cameraModel: serializer.fromJson<String?>(json['cameraModel']),
     );
   }
   @override
@@ -711,6 +1108,18 @@ class Asset extends DataClass implements Insertable<Asset> {
       'fileCreatedAt': serializer.toJson<int?>(fileCreatedAt),
       'fileModifiedAt': serializer.toJson<int?>(fileModifiedAt),
       'indexedAt': serializer.toJson<int>(indexedAt),
+      'mediaTitle': serializer.toJson<String?>(mediaTitle),
+      'artist': serializer.toJson<String?>(artist),
+      'album': serializer.toJson<String?>(album),
+      'genre': serializer.toJson<String?>(genre),
+      'trackNumber': serializer.toJson<int?>(trackNumber),
+      'bitrate': serializer.toJson<int?>(bitrate),
+      'sampleRate': serializer.toJson<int?>(sampleRate),
+      'author': serializer.toJson<String?>(author),
+      'publisher': serializer.toJson<String?>(publisher),
+      'pageCount': serializer.toJson<int?>(pageCount),
+      'captureDate': serializer.toJson<String?>(captureDate),
+      'cameraModel': serializer.toJson<String?>(cameraModel),
     };
   }
 
@@ -735,6 +1144,18 @@ class Asset extends DataClass implements Insertable<Asset> {
     Value<int?> fileCreatedAt = const Value.absent(),
     Value<int?> fileModifiedAt = const Value.absent(),
     int? indexedAt,
+    Value<String?> mediaTitle = const Value.absent(),
+    Value<String?> artist = const Value.absent(),
+    Value<String?> album = const Value.absent(),
+    Value<String?> genre = const Value.absent(),
+    Value<int?> trackNumber = const Value.absent(),
+    Value<int?> bitrate = const Value.absent(),
+    Value<int?> sampleRate = const Value.absent(),
+    Value<String?> author = const Value.absent(),
+    Value<String?> publisher = const Value.absent(),
+    Value<int?> pageCount = const Value.absent(),
+    Value<String?> captureDate = const Value.absent(),
+    Value<String?> cameraModel = const Value.absent(),
   }) => Asset(
     id: id ?? this.id,
     path: path ?? this.path,
@@ -762,6 +1183,18 @@ class Asset extends DataClass implements Insertable<Asset> {
         ? fileModifiedAt.value
         : this.fileModifiedAt,
     indexedAt: indexedAt ?? this.indexedAt,
+    mediaTitle: mediaTitle.present ? mediaTitle.value : this.mediaTitle,
+    artist: artist.present ? artist.value : this.artist,
+    album: album.present ? album.value : this.album,
+    genre: genre.present ? genre.value : this.genre,
+    trackNumber: trackNumber.present ? trackNumber.value : this.trackNumber,
+    bitrate: bitrate.present ? bitrate.value : this.bitrate,
+    sampleRate: sampleRate.present ? sampleRate.value : this.sampleRate,
+    author: author.present ? author.value : this.author,
+    publisher: publisher.present ? publisher.value : this.publisher,
+    pageCount: pageCount.present ? pageCount.value : this.pageCount,
+    captureDate: captureDate.present ? captureDate.value : this.captureDate,
+    cameraModel: cameraModel.present ? cameraModel.value : this.cameraModel,
   );
   Asset copyWithCompanion(AssetsCompanion data) {
     return Asset(
@@ -797,6 +1230,28 @@ class Asset extends DataClass implements Insertable<Asset> {
           ? data.fileModifiedAt.value
           : this.fileModifiedAt,
       indexedAt: data.indexedAt.present ? data.indexedAt.value : this.indexedAt,
+      mediaTitle: data.mediaTitle.present
+          ? data.mediaTitle.value
+          : this.mediaTitle,
+      artist: data.artist.present ? data.artist.value : this.artist,
+      album: data.album.present ? data.album.value : this.album,
+      genre: data.genre.present ? data.genre.value : this.genre,
+      trackNumber: data.trackNumber.present
+          ? data.trackNumber.value
+          : this.trackNumber,
+      bitrate: data.bitrate.present ? data.bitrate.value : this.bitrate,
+      sampleRate: data.sampleRate.present
+          ? data.sampleRate.value
+          : this.sampleRate,
+      author: data.author.present ? data.author.value : this.author,
+      publisher: data.publisher.present ? data.publisher.value : this.publisher,
+      pageCount: data.pageCount.present ? data.pageCount.value : this.pageCount,
+      captureDate: data.captureDate.present
+          ? data.captureDate.value
+          : this.captureDate,
+      cameraModel: data.cameraModel.present
+          ? data.cameraModel.value
+          : this.cameraModel,
     );
   }
 
@@ -822,13 +1277,25 @@ class Asset extends DataClass implements Insertable<Asset> {
           ..write('sourceUrl: $sourceUrl, ')
           ..write('fileCreatedAt: $fileCreatedAt, ')
           ..write('fileModifiedAt: $fileModifiedAt, ')
-          ..write('indexedAt: $indexedAt')
+          ..write('indexedAt: $indexedAt, ')
+          ..write('mediaTitle: $mediaTitle, ')
+          ..write('artist: $artist, ')
+          ..write('album: $album, ')
+          ..write('genre: $genre, ')
+          ..write('trackNumber: $trackNumber, ')
+          ..write('bitrate: $bitrate, ')
+          ..write('sampleRate: $sampleRate, ')
+          ..write('author: $author, ')
+          ..write('publisher: $publisher, ')
+          ..write('pageCount: $pageCount, ')
+          ..write('captureDate: $captureDate, ')
+          ..write('cameraModel: $cameraModel')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     path,
     filename,
@@ -849,7 +1316,19 @@ class Asset extends DataClass implements Insertable<Asset> {
     fileCreatedAt,
     fileModifiedAt,
     indexedAt,
-  );
+    mediaTitle,
+    artist,
+    album,
+    genre,
+    trackNumber,
+    bitrate,
+    sampleRate,
+    author,
+    publisher,
+    pageCount,
+    captureDate,
+    cameraModel,
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -873,7 +1352,19 @@ class Asset extends DataClass implements Insertable<Asset> {
           other.sourceUrl == this.sourceUrl &&
           other.fileCreatedAt == this.fileCreatedAt &&
           other.fileModifiedAt == this.fileModifiedAt &&
-          other.indexedAt == this.indexedAt);
+          other.indexedAt == this.indexedAt &&
+          other.mediaTitle == this.mediaTitle &&
+          other.artist == this.artist &&
+          other.album == this.album &&
+          other.genre == this.genre &&
+          other.trackNumber == this.trackNumber &&
+          other.bitrate == this.bitrate &&
+          other.sampleRate == this.sampleRate &&
+          other.author == this.author &&
+          other.publisher == this.publisher &&
+          other.pageCount == this.pageCount &&
+          other.captureDate == this.captureDate &&
+          other.cameraModel == this.cameraModel);
 }
 
 class AssetsCompanion extends UpdateCompanion<Asset> {
@@ -897,6 +1388,18 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
   final Value<int?> fileCreatedAt;
   final Value<int?> fileModifiedAt;
   final Value<int> indexedAt;
+  final Value<String?> mediaTitle;
+  final Value<String?> artist;
+  final Value<String?> album;
+  final Value<String?> genre;
+  final Value<int?> trackNumber;
+  final Value<int?> bitrate;
+  final Value<int?> sampleRate;
+  final Value<String?> author;
+  final Value<String?> publisher;
+  final Value<int?> pageCount;
+  final Value<String?> captureDate;
+  final Value<String?> cameraModel;
   final Value<int> rowid;
   const AssetsCompanion({
     this.id = const Value.absent(),
@@ -919,6 +1422,18 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
     this.fileCreatedAt = const Value.absent(),
     this.fileModifiedAt = const Value.absent(),
     this.indexedAt = const Value.absent(),
+    this.mediaTitle = const Value.absent(),
+    this.artist = const Value.absent(),
+    this.album = const Value.absent(),
+    this.genre = const Value.absent(),
+    this.trackNumber = const Value.absent(),
+    this.bitrate = const Value.absent(),
+    this.sampleRate = const Value.absent(),
+    this.author = const Value.absent(),
+    this.publisher = const Value.absent(),
+    this.pageCount = const Value.absent(),
+    this.captureDate = const Value.absent(),
+    this.cameraModel = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   AssetsCompanion.insert({
@@ -942,6 +1457,18 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
     this.fileCreatedAt = const Value.absent(),
     this.fileModifiedAt = const Value.absent(),
     required int indexedAt,
+    this.mediaTitle = const Value.absent(),
+    this.artist = const Value.absent(),
+    this.album = const Value.absent(),
+    this.genre = const Value.absent(),
+    this.trackNumber = const Value.absent(),
+    this.bitrate = const Value.absent(),
+    this.sampleRate = const Value.absent(),
+    this.author = const Value.absent(),
+    this.publisher = const Value.absent(),
+    this.pageCount = const Value.absent(),
+    this.captureDate = const Value.absent(),
+    this.cameraModel = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        path = Value(path),
@@ -968,6 +1495,18 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
     Expression<int>? fileCreatedAt,
     Expression<int>? fileModifiedAt,
     Expression<int>? indexedAt,
+    Expression<String>? mediaTitle,
+    Expression<String>? artist,
+    Expression<String>? album,
+    Expression<String>? genre,
+    Expression<int>? trackNumber,
+    Expression<int>? bitrate,
+    Expression<int>? sampleRate,
+    Expression<String>? author,
+    Expression<String>? publisher,
+    Expression<int>? pageCount,
+    Expression<String>? captureDate,
+    Expression<String>? cameraModel,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -992,6 +1531,18 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
       if (fileCreatedAt != null) 'file_created_at': fileCreatedAt,
       if (fileModifiedAt != null) 'file_modified_at': fileModifiedAt,
       if (indexedAt != null) 'indexed_at': indexedAt,
+      if (mediaTitle != null) 'media_title': mediaTitle,
+      if (artist != null) 'artist': artist,
+      if (album != null) 'album': album,
+      if (genre != null) 'genre': genre,
+      if (trackNumber != null) 'track_number': trackNumber,
+      if (bitrate != null) 'bitrate': bitrate,
+      if (sampleRate != null) 'sample_rate': sampleRate,
+      if (author != null) 'author': author,
+      if (publisher != null) 'publisher': publisher,
+      if (pageCount != null) 'page_count': pageCount,
+      if (captureDate != null) 'capture_date': captureDate,
+      if (cameraModel != null) 'camera_model': cameraModel,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1017,6 +1568,18 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
     Value<int?>? fileCreatedAt,
     Value<int?>? fileModifiedAt,
     Value<int>? indexedAt,
+    Value<String?>? mediaTitle,
+    Value<String?>? artist,
+    Value<String?>? album,
+    Value<String?>? genre,
+    Value<int?>? trackNumber,
+    Value<int?>? bitrate,
+    Value<int?>? sampleRate,
+    Value<String?>? author,
+    Value<String?>? publisher,
+    Value<int?>? pageCount,
+    Value<String?>? captureDate,
+    Value<String?>? cameraModel,
     Value<int>? rowid,
   }) {
     return AssetsCompanion(
@@ -1040,6 +1603,18 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
       fileCreatedAt: fileCreatedAt ?? this.fileCreatedAt,
       fileModifiedAt: fileModifiedAt ?? this.fileModifiedAt,
       indexedAt: indexedAt ?? this.indexedAt,
+      mediaTitle: mediaTitle ?? this.mediaTitle,
+      artist: artist ?? this.artist,
+      album: album ?? this.album,
+      genre: genre ?? this.genre,
+      trackNumber: trackNumber ?? this.trackNumber,
+      bitrate: bitrate ?? this.bitrate,
+      sampleRate: sampleRate ?? this.sampleRate,
+      author: author ?? this.author,
+      publisher: publisher ?? this.publisher,
+      pageCount: pageCount ?? this.pageCount,
+      captureDate: captureDate ?? this.captureDate,
+      cameraModel: cameraModel ?? this.cameraModel,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1107,6 +1682,42 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
     if (indexedAt.present) {
       map['indexed_at'] = Variable<int>(indexedAt.value);
     }
+    if (mediaTitle.present) {
+      map['media_title'] = Variable<String>(mediaTitle.value);
+    }
+    if (artist.present) {
+      map['artist'] = Variable<String>(artist.value);
+    }
+    if (album.present) {
+      map['album'] = Variable<String>(album.value);
+    }
+    if (genre.present) {
+      map['genre'] = Variable<String>(genre.value);
+    }
+    if (trackNumber.present) {
+      map['track_number'] = Variable<int>(trackNumber.value);
+    }
+    if (bitrate.present) {
+      map['bitrate'] = Variable<int>(bitrate.value);
+    }
+    if (sampleRate.present) {
+      map['sample_rate'] = Variable<int>(sampleRate.value);
+    }
+    if (author.present) {
+      map['author'] = Variable<String>(author.value);
+    }
+    if (publisher.present) {
+      map['publisher'] = Variable<String>(publisher.value);
+    }
+    if (pageCount.present) {
+      map['page_count'] = Variable<int>(pageCount.value);
+    }
+    if (captureDate.present) {
+      map['capture_date'] = Variable<String>(captureDate.value);
+    }
+    if (cameraModel.present) {
+      map['camera_model'] = Variable<String>(cameraModel.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1136,6 +1747,18 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
           ..write('fileCreatedAt: $fileCreatedAt, ')
           ..write('fileModifiedAt: $fileModifiedAt, ')
           ..write('indexedAt: $indexedAt, ')
+          ..write('mediaTitle: $mediaTitle, ')
+          ..write('artist: $artist, ')
+          ..write('album: $album, ')
+          ..write('genre: $genre, ')
+          ..write('trackNumber: $trackNumber, ')
+          ..write('bitrate: $bitrate, ')
+          ..write('sampleRate: $sampleRate, ')
+          ..write('author: $author, ')
+          ..write('publisher: $publisher, ')
+          ..write('pageCount: $pageCount, ')
+          ..write('captureDate: $captureDate, ')
+          ..write('cameraModel: $cameraModel, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3494,6 +4117,18 @@ typedef $$AssetsTableCreateCompanionBuilder =
       Value<int?> fileCreatedAt,
       Value<int?> fileModifiedAt,
       required int indexedAt,
+      Value<String?> mediaTitle,
+      Value<String?> artist,
+      Value<String?> album,
+      Value<String?> genre,
+      Value<int?> trackNumber,
+      Value<int?> bitrate,
+      Value<int?> sampleRate,
+      Value<String?> author,
+      Value<String?> publisher,
+      Value<int?> pageCount,
+      Value<String?> captureDate,
+      Value<String?> cameraModel,
       Value<int> rowid,
     });
 typedef $$AssetsTableUpdateCompanionBuilder =
@@ -3518,6 +4153,18 @@ typedef $$AssetsTableUpdateCompanionBuilder =
       Value<int?> fileCreatedAt,
       Value<int?> fileModifiedAt,
       Value<int> indexedAt,
+      Value<String?> mediaTitle,
+      Value<String?> artist,
+      Value<String?> album,
+      Value<String?> genre,
+      Value<int?> trackNumber,
+      Value<int?> bitrate,
+      Value<int?> sampleRate,
+      Value<String?> author,
+      Value<String?> publisher,
+      Value<int?> pageCount,
+      Value<String?> captureDate,
+      Value<String?> cameraModel,
       Value<int> rowid,
     });
 
@@ -3690,6 +4337,66 @@ class $$AssetsTableFilterComposer
 
   ColumnFilters<int> get indexedAt => $composableBuilder(
     column: $table.indexedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mediaTitle => $composableBuilder(
+    column: $table.mediaTitle,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get artist => $composableBuilder(
+    column: $table.artist,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get album => $composableBuilder(
+    column: $table.album,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get genre => $composableBuilder(
+    column: $table.genre,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get trackNumber => $composableBuilder(
+    column: $table.trackNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get bitrate => $composableBuilder(
+    column: $table.bitrate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sampleRate => $composableBuilder(
+    column: $table.sampleRate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get author => $composableBuilder(
+    column: $table.author,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get publisher => $composableBuilder(
+    column: $table.publisher,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get pageCount => $composableBuilder(
+    column: $table.pageCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get captureDate => $composableBuilder(
+    column: $table.captureDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get cameraModel => $composableBuilder(
+    column: $table.cameraModel,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3877,6 +4584,66 @@ class $$AssetsTableOrderingComposer
     column: $table.indexedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get mediaTitle => $composableBuilder(
+    column: $table.mediaTitle,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get artist => $composableBuilder(
+    column: $table.artist,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get album => $composableBuilder(
+    column: $table.album,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get genre => $composableBuilder(
+    column: $table.genre,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get trackNumber => $composableBuilder(
+    column: $table.trackNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get bitrate => $composableBuilder(
+    column: $table.bitrate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sampleRate => $composableBuilder(
+    column: $table.sampleRate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get author => $composableBuilder(
+    column: $table.author,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get publisher => $composableBuilder(
+    column: $table.publisher,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get pageCount => $composableBuilder(
+    column: $table.pageCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get captureDate => $composableBuilder(
+    column: $table.captureDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get cameraModel => $composableBuilder(
+    column: $table.cameraModel,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$AssetsTableAnnotationComposer
@@ -3959,6 +4726,52 @@ class $$AssetsTableAnnotationComposer
 
   GeneratedColumn<int> get indexedAt =>
       $composableBuilder(column: $table.indexedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get mediaTitle => $composableBuilder(
+    column: $table.mediaTitle,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get artist =>
+      $composableBuilder(column: $table.artist, builder: (column) => column);
+
+  GeneratedColumn<String> get album =>
+      $composableBuilder(column: $table.album, builder: (column) => column);
+
+  GeneratedColumn<String> get genre =>
+      $composableBuilder(column: $table.genre, builder: (column) => column);
+
+  GeneratedColumn<int> get trackNumber => $composableBuilder(
+    column: $table.trackNumber,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get bitrate =>
+      $composableBuilder(column: $table.bitrate, builder: (column) => column);
+
+  GeneratedColumn<int> get sampleRate => $composableBuilder(
+    column: $table.sampleRate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get author =>
+      $composableBuilder(column: $table.author, builder: (column) => column);
+
+  GeneratedColumn<String> get publisher =>
+      $composableBuilder(column: $table.publisher, builder: (column) => column);
+
+  GeneratedColumn<int> get pageCount =>
+      $composableBuilder(column: $table.pageCount, builder: (column) => column);
+
+  GeneratedColumn<String> get captureDate => $composableBuilder(
+    column: $table.captureDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get cameraModel => $composableBuilder(
+    column: $table.cameraModel,
+    builder: (column) => column,
+  );
 
   Expression<T> assetTagsRefs<T extends Object>(
     Expression<T> Function($$AssetTagsTableAnnotationComposer a) f,
@@ -4088,6 +4901,18 @@ class $$AssetsTableTableManager
                 Value<int?> fileCreatedAt = const Value.absent(),
                 Value<int?> fileModifiedAt = const Value.absent(),
                 Value<int> indexedAt = const Value.absent(),
+                Value<String?> mediaTitle = const Value.absent(),
+                Value<String?> artist = const Value.absent(),
+                Value<String?> album = const Value.absent(),
+                Value<String?> genre = const Value.absent(),
+                Value<int?> trackNumber = const Value.absent(),
+                Value<int?> bitrate = const Value.absent(),
+                Value<int?> sampleRate = const Value.absent(),
+                Value<String?> author = const Value.absent(),
+                Value<String?> publisher = const Value.absent(),
+                Value<int?> pageCount = const Value.absent(),
+                Value<String?> captureDate = const Value.absent(),
+                Value<String?> cameraModel = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => AssetsCompanion(
                 id: id,
@@ -4110,6 +4935,18 @@ class $$AssetsTableTableManager
                 fileCreatedAt: fileCreatedAt,
                 fileModifiedAt: fileModifiedAt,
                 indexedAt: indexedAt,
+                mediaTitle: mediaTitle,
+                artist: artist,
+                album: album,
+                genre: genre,
+                trackNumber: trackNumber,
+                bitrate: bitrate,
+                sampleRate: sampleRate,
+                author: author,
+                publisher: publisher,
+                pageCount: pageCount,
+                captureDate: captureDate,
+                cameraModel: cameraModel,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4134,6 +4971,18 @@ class $$AssetsTableTableManager
                 Value<int?> fileCreatedAt = const Value.absent(),
                 Value<int?> fileModifiedAt = const Value.absent(),
                 required int indexedAt,
+                Value<String?> mediaTitle = const Value.absent(),
+                Value<String?> artist = const Value.absent(),
+                Value<String?> album = const Value.absent(),
+                Value<String?> genre = const Value.absent(),
+                Value<int?> trackNumber = const Value.absent(),
+                Value<int?> bitrate = const Value.absent(),
+                Value<int?> sampleRate = const Value.absent(),
+                Value<String?> author = const Value.absent(),
+                Value<String?> publisher = const Value.absent(),
+                Value<int?> pageCount = const Value.absent(),
+                Value<String?> captureDate = const Value.absent(),
+                Value<String?> cameraModel = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => AssetsCompanion.insert(
                 id: id,
@@ -4156,6 +5005,18 @@ class $$AssetsTableTableManager
                 fileCreatedAt: fileCreatedAt,
                 fileModifiedAt: fileModifiedAt,
                 indexedAt: indexedAt,
+                mediaTitle: mediaTitle,
+                artist: artist,
+                album: album,
+                genre: genre,
+                trackNumber: trackNumber,
+                bitrate: bitrate,
+                sampleRate: sampleRate,
+                author: author,
+                publisher: publisher,
+                pageCount: pageCount,
+                captureDate: captureDate,
+                cameraModel: cameraModel,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

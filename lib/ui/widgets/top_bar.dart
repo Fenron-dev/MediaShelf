@@ -96,6 +96,21 @@ class _TopBarState extends ConsumerState<TopBar> {
           ),
         ),
 
+        // View mode toggle
+        IconButton(
+          icon: Icon(ref.watch(viewModeProvider) == ViewMode.grid
+              ? Icons.view_list_outlined
+              : Icons.grid_view_outlined),
+          tooltip: ref.watch(viewModeProvider) == ViewMode.grid
+              ? 'Listenansicht'
+              : 'Rasteransicht',
+          onPressed: () {
+            final mode = ref.read(viewModeProvider);
+            ref.read(viewModeProvider.notifier).state =
+                mode == ViewMode.grid ? ViewMode.list : ViewMode.grid;
+          },
+        ),
+
         // Import button (folder or files)
         PopupMenuButton<_ImportMode>(
           icon: const Icon(Icons.file_download_outlined),
@@ -142,18 +157,27 @@ class _TopBarState extends ConsumerState<TopBar> {
                   height: 16,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    value: scanState.phase == ScanPhase.scanning
-                        ? (scanState.total > 0 ? scanState.progress : null)
-                        : (scanState.thumbsTotal > 0
-                            ? scanState.thumbProgress
-                            : null),
+                    value: switch (scanState.phase) {
+                      ScanPhase.scanning =>
+                        scanState.total > 0 ? scanState.progress : null,
+                      ScanPhase.thumbnails =>
+                        scanState.thumbsTotal > 0 ? scanState.thumbProgress : null,
+                      ScanPhase.metadata =>
+                        scanState.total > 0 ? scanState.progress : null,
+                      _ => null,
+                    },
                   ),
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  scanState.phase == ScanPhase.scanning
-                      ? '${scanState.processed} / ${scanState.total}'
-                      : '🖼 ${scanState.thumbsDone}',
+                  switch (scanState.phase) {
+                    ScanPhase.scanning =>
+                      '${scanState.processed} / ${scanState.total}',
+                    ScanPhase.thumbnails => '🖼 ${scanState.thumbsDone}',
+                    ScanPhase.metadata =>
+                      'Meta ${scanState.processed} / ${scanState.total}',
+                    _ => '',
+                  },
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/mime_resolver.dart';
 import '../../data/database/app_database.dart';
 import '../../providers/asset_filter_provider.dart';
 import '../../providers/asset_list_provider.dart';
@@ -174,15 +175,8 @@ class _AssetDetailState extends ConsumerState<_AssetDetail> {
 
         const Divider(height: 24),
 
-        // Metadata
-        if (asset.mimeType != null)
-          _MetaRow('Type', asset.mimeType!),
-        if (asset.size != null)
-          _MetaRow('Size', _formatSize(asset.size!)),
-        if (asset.width != null && asset.height != null)
-          _MetaRow('Dimensions', '${asset.width} × ${asset.height}'),
-        if (asset.durationMs != null)
-          _MetaRow('Duration', _formatDuration(asset.durationMs!)),
+        // Type-specific metadata template
+        _MediaTemplate(asset: asset),
 
         // Locations (collections this asset belongs to)
         _LocationsSection(assetId: asset.id, assetPath: asset.path),
@@ -255,22 +249,6 @@ class _AssetDetailState extends ConsumerState<_AssetDetail> {
     _bumpMeta();
   }
 
-  String _formatSize(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    if (bytes < 1024 * 1024 * 1024) {
-      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-    }
-    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
-  }
-
-  String _formatDuration(int ms) {
-    final d = Duration(milliseconds: ms);
-    final h = d.inHours;
-    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return h > 0 ? '$h:$m:$s' : '$m:$s';
-  }
 }
 
 // ── Sub-widgets ────────────────────────────────────────────────────────────
@@ -325,6 +303,96 @@ class _MetaRow extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+// ── Media-type template ───────────────────────────────────────────────────────
+
+class _MediaTemplate extends StatelessWidget {
+  final Asset asset;
+  const _MediaTemplate({required this.asset});
+
+  @override
+  Widget build(BuildContext context) {
+    final mime = asset.mimeType ?? '';
+    final cat = categoryFromMime(mime);
+
+    final rows = <Widget>[];
+
+    // Always show type + size
+    rows.add(_MetaRow('Typ', mime));
+    if (asset.size != null) rows.add(_MetaRow('Größe', _fmtSize(asset.size!)));
+
+    switch (cat) {
+      case MimeCategory.audio:
+        if (asset.mediaTitle != null) rows.add(_MetaRow('Titel', asset.mediaTitle!));
+        if (asset.artist != null) rows.add(_MetaRow('Künstler', asset.artist!));
+        if (asset.album != null) rows.add(_MetaRow('Album', asset.album!));
+        if (asset.genre != null) rows.add(_MetaRow('Genre', asset.genre!));
+        if (asset.trackNumber != null) rows.add(_MetaRow('Track', '${asset.trackNumber}'));
+        if (asset.captureDate != null) rows.add(_MetaRow('Jahr', asset.captureDate!));
+        if (asset.durationMs != null) rows.add(_MetaRow('Dauer', _fmtDuration(asset.durationMs!)));
+        if (asset.bitrate != null) rows.add(_MetaRow('Bitrate', '${asset.bitrate} kbps'));
+        if (asset.sampleRate != null) rows.add(_MetaRow('Sample-Rate', '${asset.sampleRate} Hz'));
+
+      case MimeCategory.video:
+        if (asset.mediaTitle != null) rows.add(_MetaRow('Titel', asset.mediaTitle!));
+        if (asset.artist != null) rows.add(_MetaRow('Regisseur', asset.artist!));
+        if (asset.durationMs != null) rows.add(_MetaRow('Dauer', _fmtDuration(asset.durationMs!)));
+        if (asset.width != null && asset.height != null) {
+          rows.add(_MetaRow('Auflösung', '${asset.width} × ${asset.height}'));
+        }
+        if (asset.bitrate != null) rows.add(_MetaRow('Bitrate', '${asset.bitrate} kbps'));
+        if (asset.captureDate != null) rows.add(_MetaRow('Jahr', asset.captureDate!));
+
+      case MimeCategory.image:
+        if (asset.width != null && asset.height != null) {
+          rows.add(_MetaRow('Abmessungen', '${asset.width} × ${asset.height}'));
+        }
+        if (asset.cameraModel != null) rows.add(_MetaRow('Kamera', asset.cameraModel!));
+        if (asset.captureDate != null) rows.add(_MetaRow('Aufnahmedatum', asset.captureDate!));
+
+      case MimeCategory.document:
+        if (mime == 'application/pdf' || mime.contains('epub')) {
+          if (asset.mediaTitle != null) rows.add(_MetaRow('Titel', asset.mediaTitle!));
+          if (asset.author != null) rows.add(_MetaRow('Autor', asset.author!));
+          if (asset.publisher != null) rows.add(_MetaRow('Verlag', asset.publisher!));
+          if (asset.pageCount != null) rows.add(_MetaRow('Seiten', '${asset.pageCount}'));
+          if (asset.captureDate != null) rows.add(_MetaRow('Jahr', asset.captureDate!));
+        } else {
+          if (asset.author != null) rows.add(_MetaRow('Autor', asset.author!));
+        }
+
+      case MimeCategory.text:
+      case MimeCategory.archive:
+      case MimeCategory.font:
+      case MimeCategory.model:
+      case MimeCategory.other:
+        break;
+    }
+
+    if (rows.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: rows,
+    );
+  }
+
+  static String _fmtSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
+  }
+
+  static String _fmtDuration(int ms) {
+    final d = Duration(milliseconds: ms);
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return h > 0 ? '$h:$m:$s' : '$m:$s';
   }
 }
 

@@ -5,6 +5,7 @@ import '../../core/constants.dart';
 import '../../providers/active_player_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../widgets/asset_grid.dart';
+import '../widgets/asset_list_view.dart';
 import '../widgets/bulk_toolbar.dart';
 import '../widgets/detail_panel.dart';
 import '../widgets/drop_zone.dart';
@@ -46,7 +47,11 @@ class DesktopShell extends ConsumerWidget {
                               .set(sidebarWidth + dx),
                         ),
                       ],
-                      const Expanded(child: AssetGrid()),
+                      Expanded(
+                        child: ref.watch(viewModeProvider) == ViewMode.grid
+                            ? const AssetGrid()
+                            : const AssetListView(),
+                      ),
                       if (showDetailPanel) ...[
                         _ResizeDivider(
                           onDrag: (dx) => ref

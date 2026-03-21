@@ -214,6 +214,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           _player.state.playing ? _player.pause() : _player.play();
           return KeyEventResult.handled;
         }
+        if (event.logicalKey == LogicalKeyboardKey.keyF && _isVideo) {
+          toggleFullscreen(context);
+          return KeyEventResult.handled;
+        }
         return KeyEventResult.ignored;
       },
       child: Scaffold(
@@ -268,10 +272,15 @@ class _VideoPlayerView extends StatelessWidget {
         topButtonBar: [
           const Spacer(),
           _SpeedButton(player: player),
-          _TracksButton(player: player),
         ],
         bottomButtonBar: [
-          const MaterialDesktopSkipPreviousButton(),
+          MaterialDesktopCustomButton(
+            onPressed: () {
+              final pos = player.state.position;
+              player.seek(pos - const Duration(seconds: 10));
+            },
+            icon: const Icon(Icons.replay_10, color: Colors.white),
+          ),
           const MaterialDesktopPlayOrPauseButton(),
           MaterialDesktopCustomButton(
             onPressed: () async {
@@ -280,7 +289,13 @@ class _VideoPlayerView extends StatelessWidget {
             },
             icon: const Icon(Icons.stop, color: Colors.white),
           ),
-          const MaterialDesktopSkipNextButton(),
+          MaterialDesktopCustomButton(
+            onPressed: () {
+              final pos = player.state.position;
+              player.seek(pos + const Duration(seconds: 30));
+            },
+            icon: const Icon(Icons.forward_30, color: Colors.white),
+          ),
           const MaterialDesktopVolumeButton(),
           const MaterialDesktopPositionIndicator(),
           const Spacer(),
@@ -291,10 +306,15 @@ class _VideoPlayerView extends StatelessWidget {
         topButtonBar: [
           const Spacer(),
           _SpeedButton(player: player),
-          _TracksButton(player: player),
         ],
         bottomButtonBar: [
-          const MaterialDesktopSkipPreviousButton(),
+          MaterialDesktopCustomButton(
+            onPressed: () {
+              final pos = player.state.position;
+              player.seek(pos - const Duration(seconds: 10));
+            },
+            icon: const Icon(Icons.replay_10, color: Colors.white),
+          ),
           const MaterialDesktopPlayOrPauseButton(),
           MaterialDesktopCustomButton(
             onPressed: () async {
@@ -303,7 +323,13 @@ class _VideoPlayerView extends StatelessWidget {
             },
             icon: const Icon(Icons.stop, color: Colors.white),
           ),
-          const MaterialDesktopSkipNextButton(),
+          MaterialDesktopCustomButton(
+            onPressed: () {
+              final pos = player.state.position;
+              player.seek(pos + const Duration(seconds: 30));
+            },
+            icon: const Icon(Icons.forward_30, color: Colors.white),
+          ),
           const MaterialDesktopVolumeButton(),
           const MaterialDesktopPositionIndicator(),
           const Spacer(),
@@ -379,143 +405,149 @@ class _AudioPlayerViewState extends State<_AudioPlayerView> {
         : _position.inMilliseconds / _duration.inMilliseconds;
     final primary = Theme.of(context).colorScheme.primary;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const SizedBox(height: 24),
-
-          // Album art placeholder
-          Container(
-            width: 220,
-            height: 220,
-            decoration: BoxDecoration(
-              color: Colors.white12,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child:
-                const Icon(Icons.music_note, size: 80, color: Colors.white38),
-          ),
-          const SizedBox(height: 32),
-
-          Text(
-            widget.asset.filename,
-            style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w600),
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 24),
-
-          // Progress bar
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              trackHeight: 4,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
-              activeTrackColor: primary,
-              inactiveTrackColor: Colors.white24,
-              thumbColor: primary,
-              overlayColor: primary.withValues(alpha: 0.2),
-            ),
-            child: Slider(
-              value: progress.clamp(0.0, 1.0),
-              onChanged: (v) {
-                final ms = (v * _duration.inMilliseconds).round();
-                widget.player.seek(Duration(milliseconds: ms));
-              },
-            ),
-          ),
-
-          // Time labels
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(_fmt(_position),
+    return Column(
+      children: [
+        // Album art + title — centred in available space
+        Expanded(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 220,
+                    height: 220,
+                    decoration: BoxDecoration(
+                      color: Colors.white12,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(Icons.music_note,
+                        size: 80, color: Colors.white38),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    widget.asset.filename,
                     style: const TextStyle(
-                        color: Colors.white54, fontSize: 12)),
-                Text(_fmt(_duration),
-                    style: const TextStyle(
-                        color: Colors.white54, fontSize: 12)),
-              ],
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 24),
+        ),
 
-          // Transport controls
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+        // Controls anchored at the bottom
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              IconButton(
-                icon: const Icon(Icons.replay_10,
-                    color: Colors.white, size: 32),
-                onPressed: () => widget.player
-                    .seek(_position - const Duration(seconds: 10)),
-              ),
-              const SizedBox(width: 16),
-              IconButton(
-                iconSize: 56,
-                icon: Icon(
-                  _playing
-                      ? Icons.pause_circle_filled
-                      : Icons.play_circle_filled,
-                  color: Colors.white,
+              // Progress bar
+              SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 4,
+                  thumbShape:
+                      const RoundSliderThumbShape(enabledThumbRadius: 8),
+                  activeTrackColor: primary,
+                  inactiveTrackColor: Colors.white24,
+                  thumbColor: primary,
+                  overlayColor: primary.withValues(alpha: 0.2),
                 ),
-                onPressed: () =>
-                    _playing ? widget.player.pause() : widget.player.play(),
+                child: Slider(
+                  value: progress.clamp(0.0, 1.0),
+                  onChanged: (v) {
+                    final ms = (v * _duration.inMilliseconds).round();
+                    widget.player.seek(Duration(milliseconds: ms));
+                  },
+                ),
               ),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(Icons.stop, color: Colors.white, size: 32),
-                onPressed: () async {
-                  await widget.player.pause();
-                  await widget.player.seek(Duration.zero);
-                },
+
+              // Time labels
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(_fmt(_position),
+                        style: const TextStyle(
+                            color: Colors.white54, fontSize: 12)),
+                    Text(_fmt(_duration),
+                        style: const TextStyle(
+                            color: Colors.white54, fontSize: 12)),
+                  ],
+                ),
               ),
-              const SizedBox(width: 16),
-              IconButton(
-                icon: const Icon(Icons.forward_30,
-                    color: Colors.white, size: 32),
-                onPressed: () => widget.player
-                    .seek(_position + const Duration(seconds: 30)),
+              const SizedBox(height: 12),
+
+              // Transport controls + speed dropdown
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.replay_10,
+                        color: Colors.white, size: 32),
+                    onPressed: () => widget.player
+                        .seek(_position - const Duration(seconds: 10)),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    iconSize: 56,
+                    icon: Icon(
+                      _playing
+                          ? Icons.pause_circle_filled
+                          : Icons.play_circle_filled,
+                      color: Colors.white,
+                    ),
+                    onPressed: () =>
+                        _playing ? widget.player.pause() : widget.player.play(),
+                  ),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    icon:
+                        const Icon(Icons.stop, color: Colors.white, size: 32),
+                    onPressed: () async {
+                      await widget.player.pause();
+                      await widget.player.seek(Duration.zero);
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.forward_30,
+                        color: Colors.white, size: 32),
+                    onPressed: () => widget.player
+                        .seek(_position + const Duration(seconds: 30)),
+                  ),
+                  const SizedBox(width: 16),
+                  // Speed dropdown
+                  DropdownButton<double>(
+                    value: _speeds.reduce((a, b) =>
+                        (a - _rate).abs() < (b - _rate).abs() ? a : b),
+                    dropdownColor: Colors.grey[900],
+                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    underline: const SizedBox.shrink(),
+                    icon: const Icon(Icons.speed, color: Colors.white54, size: 18),
+                    items: _speeds
+                        .map((s) => DropdownMenuItem(
+                              value: s,
+                              child: Text('${s}x'),
+                            ))
+                        .toList(),
+                    onChanged: (s) {
+                      if (s != null) widget.player.setRate(s);
+                    },
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 20),
-
-          // Playback speed
-          Text('Speed', style: const TextStyle(color: Colors.white54, fontSize: 12)),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            alignment: WrapAlignment.center,
-            children: _speeds.map((s) {
-              final selected = (_rate - s).abs() < 0.01;
-              return ChoiceChip(
-                label: Text('${s}x'),
-                selected: selected,
-                selectedColor: primary,
-                labelStyle: TextStyle(
-                  color: selected ? Colors.white : Colors.white70,
-                  fontSize: 12,
-                ),
-                backgroundColor: Colors.white12,
-                onSelected: (_) => widget.player.setRate(s),
-              );
-            }).toList(),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Audio track selection (shown when file has multiple tracks)
-          _AudioTracksRow(player: widget.player),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -576,27 +608,6 @@ class _SpeedButtonState extends State<_SpeedButton> {
                 ),
               ))
           .toList(),
-    );
-  }
-}
-
-class _TracksButton extends StatelessWidget {
-  final Player player;
-  const _TracksButton({required this.player});
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      tooltip: 'Audio & subtitle tracks',
-      icon: const Icon(Icons.tune, color: Colors.white),
-      onPressed: () => _showDialog(context),
-    );
-  }
-
-  void _showDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => _TracksDialog(player: player),
     );
   }
 }
@@ -703,66 +714,3 @@ class _TracksDialogState extends State<_TracksDialog> {
   }
 }
 
-class _AudioTracksRow extends StatefulWidget {
-  final Player player;
-  const _AudioTracksRow({required this.player});
-
-  @override
-  State<_AudioTracksRow> createState() => _AudioTracksRowState();
-}
-
-class _AudioTracksRowState extends State<_AudioTracksRow> {
-  late AudioTrack _current;
-  StreamSubscription? _sub;
-
-  @override
-  void initState() {
-    super.initState();
-    _current = widget.player.state.track.audio;
-    _sub = widget.player.stream.track.listen((t) {
-      if (mounted) setState(() => _current = t.audio);
-    });
-  }
-
-  @override
-  void dispose() {
-    _sub?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final tracks = widget.player.state.tracks.audio;
-    if (tracks.length <= 1) return const SizedBox.shrink();
-
-    return Column(
-      children: [
-        const Text('Audio Track',
-            style: TextStyle(color: Colors.white54, fontSize: 12)),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          alignment: WrapAlignment.center,
-          children: tracks.map((t) {
-            final label = t.title ?? t.language ?? 'Track ${t.id}';
-            final selected = t.id == _current.id;
-            final primary = Theme.of(context).colorScheme.primary;
-            return ChoiceChip(
-              label: Text(label),
-              selected: selected,
-              selectedColor: primary,
-              labelStyle: TextStyle(
-                  color: selected ? Colors.white : Colors.white70,
-                  fontSize: 12),
-              backgroundColor: Colors.white12,
-              onSelected: (_) {
-                widget.player.setAudioTrack(t);
-                setState(() => _current = t);
-              },
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-}

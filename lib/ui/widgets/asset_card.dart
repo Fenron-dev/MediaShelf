@@ -111,12 +111,26 @@ class AssetCard extends ConsumerWidget {
                   ),
                 ),
 
-              if ((asset.playbackPositionMs ?? 0) > 0)
+              if ((asset.playbackPositionMs ?? 0) > 0 &&
+                  (asset.durationMs ?? 0) > 0) ...[
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: LinearProgressIndicator(
+                    value: (asset.playbackPositionMs! / asset.durationMs!)
+                        .clamp(0.0, 1.0),
+                    minHeight: 3,
+                    backgroundColor: Colors.white24,
+                    color: Colors.red,
+                  ),
+                ),
                 const Positioned(
                   top: 8,
                   left: 8,
                   child: _ResumeBadge(),
                 ),
+              ],
             ],
           ),
         ),
@@ -148,6 +162,14 @@ class _BottomBar extends StatelessWidget {
   final Asset asset;
   const _BottomBar({required this.asset});
 
+  static String _fmtMs(int ms) {
+    final d = Duration(milliseconds: ms);
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return h > 0 ? '$h:$m:$s' : '$m:$s';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -173,15 +195,31 @@ class _BottomBar extends StatelessWidget {
                 (_) => const Icon(Icons.star, size: 10, color: Colors.amber),
               ),
             ),
-          Text(
-            asset.filename,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 11,
-              shadows: [Shadow(color: Colors.black, blurRadius: 2)],
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  asset.filename,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    shadows: [Shadow(color: Colors.black, blurRadius: 2)],
+                  ),
+                ),
+              ),
+              if ((asset.playbackPositionMs ?? 0) > 0 &&
+                  (asset.durationMs ?? 0) > 0)
+                Text(
+                  '${_fmtMs(asset.playbackPositionMs!)} / ${_fmtMs(asset.durationMs!)}',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 9,
+                    shadows: [Shadow(color: Colors.black, blurRadius: 2)],
+                  ),
+                ),
+            ],
           ),
         ],
       ),

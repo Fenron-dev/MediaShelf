@@ -78,6 +78,55 @@ class AssetsDao extends DatabaseAccessor<AppDatabase> with _$AssetsDaoMixin {
         sourceUrl: sourceUrl,
       ));
 
+  Future<void> updateMediaMetadata({
+    required String id,
+    Value<String?> mediaTitle = const Value.absent(),
+    Value<String?> artist = const Value.absent(),
+    Value<String?> album = const Value.absent(),
+    Value<String?> genre = const Value.absent(),
+    Value<int?> trackNumber = const Value.absent(),
+    Value<int?> bitrate = const Value.absent(),
+    Value<int?> sampleRate = const Value.absent(),
+    Value<String?> author = const Value.absent(),
+    Value<String?> publisher = const Value.absent(),
+    Value<int?> pageCount = const Value.absent(),
+    Value<String?> captureDate = const Value.absent(),
+    Value<String?> cameraModel = const Value.absent(),
+    Value<int?> durationMs = const Value.absent(),
+    Value<int?> width = const Value.absent(),
+    Value<int?> height = const Value.absent(),
+  }) =>
+      (update(assets)..where((a) => a.id.equals(id))).write(AssetsCompanion(
+        mediaTitle: mediaTitle,
+        artist: artist,
+        album: album,
+        genre: genre,
+        trackNumber: trackNumber,
+        bitrate: bitrate,
+        sampleRate: sampleRate,
+        author: author,
+        publisher: publisher,
+        pageCount: pageCount,
+        captureDate: captureDate,
+        cameraModel: cameraModel,
+        durationMs: durationMs,
+        width: width,
+        height: height,
+      ));
+
+  /// Returns assets that have never had metadata extracted (mediaTitle, artist, etc. all null
+  /// and mimeType is non-null).
+  Future<List<Asset>> getAssetsNeedingMetadata() async {
+    final result = await customSelect(
+      "SELECT * FROM assets WHERE status = 'ok' AND mime_type IS NOT NULL "
+      "AND media_title IS NULL AND artist IS NULL AND author IS NULL "
+      "AND page_count IS NULL AND capture_date IS NULL "
+      "LIMIT 200",
+      readsFrom: {assets},
+    ).get();
+    return result.map((row) => assets.map(row.data)).toList();
+  }
+
   Future<void> savePlaybackPosition(String id, int positionMs) =>
       (update(assets)..where((a) => a.id.equals(id))).write(
         AssetsCompanion(playbackPositionMs: Value(positionMs)),
