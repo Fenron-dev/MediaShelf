@@ -60,6 +60,17 @@ class _AssetGridState extends ConsumerState<AssetGrid> {
     final mime = asset.mimeType ?? '';
     if (isVideo(mime) || isAudio(mime)) {
       context.push('/library/player/${asset.id}');
+    } else if (mime.startsWith('image/')) {
+      context.push('/library/image/${asset.id}');
+    } else {
+      final cat = categoryFromMime(mime);
+      if (cat == MimeCategory.document ||
+          cat == MimeCategory.text ||
+          mime == 'application/json' ||
+          mime == 'application/xml' ||
+          mime == 'application/sql') {
+        context.push('/library/document/${asset.id}');
+      }
     }
   }
 

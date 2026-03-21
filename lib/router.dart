@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 
 import 'providers/library_provider.dart';
 import 'ui/screens/activity_screen.dart';
+import 'ui/screens/document_viewer_screen.dart';
+import 'ui/screens/image_viewer_screen.dart';
 import 'ui/screens/library_screen.dart';
 import 'ui/screens/player_screen.dart';
 import 'ui/screens/welcome_screen.dart';
@@ -33,6 +35,16 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'player/:assetId',
             builder: (context, state) =>
                 PlayerScreen(assetId: state.pathParameters['assetId']!),
+          ),
+          GoRoute(
+            path: 'image/:assetId',
+            builder: (context, state) =>
+                ImageViewerScreen(assetId: state.pathParameters['assetId']!),
+          ),
+          GoRoute(
+            path: 'document/:assetId',
+            builder: (context, state) =>
+                DocumentViewerScreen(assetId: state.pathParameters['assetId']!),
           ),
           GoRoute(
             path: 'activity',

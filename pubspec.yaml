@@ -42,6 +42,12 @@ dependencies:
   media_kit_video: ^1.2.4
   media_kit_libs_video: ^1.0.4   # bundles libmpv + all codecs, no system deps needed
 
+  # ── Viewer ──────────────────────────────────────────────────────────────────
+  photo_view: ^0.15.0          # full-screen image zoom/pan
+  pdfrx: ^1.0.0                # PDF rendering (Linux/Win/macOS/iOS/Android)
+  flutter_markdown_plus: ^1.0.7 # Markdown + plain-text rendering (successor to flutter_markdown)
+  url_launcher: ^6.3.1         # open unsupported files with the system default app
+
   # ── Grid / Virtual Scroll ───────────────────────────────────────────────────
   flutter_staggered_grid_view: ^0.7.0
 
