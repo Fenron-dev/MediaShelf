@@ -9,6 +9,8 @@ import '../../providers/scan_provider.dart';
 import '../../providers/settings_provider.dart';
 import 'import_dialog.dart';
 
+enum _ImportMode { folder, files }
+
 class TopBar extends ConsumerStatefulWidget {
   const TopBar({super.key});
 
@@ -93,11 +95,30 @@ class _TopBarState extends ConsumerState<TopBar> {
           ),
         ),
 
-        // Import button
-        IconButton(
+        // Import button (folder or files)
+        PopupMenuButton<_ImportMode>(
           icon: const Icon(Icons.file_download_outlined),
-          tooltip: 'Import files',
-          onPressed: libraryPath == null ? null : _pickAndImport,
+          tooltip: 'Import',
+          enabled: libraryPath != null,
+          onSelected: (mode) => _pickAndImport(mode),
+          itemBuilder: (_) => [
+            const PopupMenuItem(
+              value: _ImportMode.folder,
+              child: ListTile(
+                leading: Icon(Icons.folder_outlined),
+                title: Text('Ordner importieren…'),
+                dense: true,
+              ),
+            ),
+            const PopupMenuItem(
+              value: _ImportMode.files,
+              child: ListTile(
+                leading: Icon(Icons.insert_drive_file_outlined),
+                title: Text('Dateien importieren…'),
+                dense: true,
+              ),
+            ),
+          ],
         ),
 
         // Detail panel toggle
@@ -154,13 +175,20 @@ class _TopBarState extends ConsumerState<TopBar> {
     );
   }
 
-  Future<void> _pickAndImport() async {
-    final result = await FilePicker.platform.pickFiles(
-      allowMultiple: true,
-      type: FileType.any,
-    );
-    final paths = result?.files.map((f) => f.path).whereType<String>().toList();
-    if (paths == null || paths.isEmpty || !mounted) return;
+  Future<void> _pickAndImport(_ImportMode mode) async {
+    List<String> paths;
+    if (mode == _ImportMode.folder) {
+      final dir = await FilePicker.platform.getDirectoryPath();
+      if (dir == null || !mounted) return;
+      paths = [dir];
+    } else {
+      final result = await FilePicker.platform.pickFiles(
+        allowMultiple: true,
+        type: FileType.any,
+      );
+      paths = result?.files.map((f) => f.path).whereType<String>().toList() ?? [];
+    }
+    if (paths.isEmpty || !mounted) return;
     await showImportDialog(context, ref, paths);
   }
 

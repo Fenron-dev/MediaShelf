@@ -74,7 +74,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     setState(() => _asset = asset);
 
     if (alreadyLoaded) {
-      // Audio is still playing in background — offer to restart
+      // Media still loaded in background — offer to restart or continue
       final currentPos = _player.state.position;
       if (currentPos.inMilliseconds > 500 && mounted) {
         final restart = await showDialog<bool>(
@@ -94,10 +94,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             ],
           ),
         );
-        if (restart == true && mounted) {
-          await _player.seek(Duration.zero);
-        }
+        if (!mounted) return;
+        if (restart == true) await _player.seek(Duration.zero);
       }
+      // Ensure playback is running (may have been paused)
+      if (mounted && !_player.state.playing) await _player.play();
     } else {
       await _player.open(Media(filePath), play: false);
       if (!mounted) return;
@@ -207,7 +208,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           context.pop();
           return KeyEventResult.handled;
         }
-        if (!_isVideo && event.logicalKey == LogicalKeyboardKey.space) {
+        if (event.logicalKey == LogicalKeyboardKey.space) {
           _player.state.playing ? _player.pause() : _player.play();
           return KeyEventResult.handled;
         }

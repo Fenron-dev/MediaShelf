@@ -13,7 +13,7 @@ void main() async {
 
   if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
     await windowManager.ensureInitialized();
-    await windowManager.setFullScreen(true);
+    await windowManager.maximize();
   }
 
   runApp(const ProviderScope(child: MediaShelfApp()));

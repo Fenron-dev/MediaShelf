@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -47,25 +48,36 @@ class _DocumentViewerScreenState extends ConsumerState<DocumentViewerScreen> {
     final asset = _asset;
     final path = _filePath;
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+    return Focus(
+      autofocus: true,
+      onKeyEvent: (_, event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.escape) {
+          context.pop();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.pop(),
+          ),
+          title: Text(asset?.filename ?? ''),
+          actions: [
+            if (path != null)
+              IconButton(
+                icon: const Icon(Icons.open_in_new),
+                tooltip: 'Open with system app',
+                onPressed: () => _openExternal(path),
+              ),
+          ],
         ),
-        title: Text(asset?.filename ?? ''),
-        actions: [
-          if (path != null)
-            IconButton(
-              icon: const Icon(Icons.open_in_new),
-              tooltip: 'Open with system app',
-              onPressed: () => _openExternal(path),
-            ),
-        ],
+        body: path == null
+            ? const Center(child: CircularProgressIndicator())
+            : _buildBody(asset!, path),
       ),
-      body: path == null
-          ? const Center(child: CircularProgressIndicator())
-          : _buildBody(asset!, path),
     );
   }
 

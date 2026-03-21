@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:photo_view/photo_view.dart';
@@ -41,7 +42,17 @@ class _ImageViewerScreenState extends ConsumerState<ImageViewerScreen> {
   @override
   Widget build(BuildContext context) {
     final path = _filePath;
-    return Scaffold(
+    return Focus(
+      autofocus: true,
+      onKeyEvent: (_, event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.escape) {
+          context.pop();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: Scaffold(
       backgroundColor: Colors.black,
       extendBodyBehindAppBar: true,
       appBar: _showControls
@@ -91,6 +102,7 @@ class _ImageViewerScreenState extends ConsumerState<ImageViewerScreen> {
                 ),
               ),
             ),
+      ),
     );
   }
 }
