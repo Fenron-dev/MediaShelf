@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +7,7 @@ import '../../providers/asset_filter_provider.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/scan_provider.dart';
 import '../../providers/settings_provider.dart';
+import 'import_dialog.dart';
 
 class TopBar extends ConsumerStatefulWidget {
   const TopBar({super.key});
@@ -91,6 +93,13 @@ class _TopBarState extends ConsumerState<TopBar> {
           ),
         ),
 
+        // Import button
+        IconButton(
+          icon: const Icon(Icons.file_download_outlined),
+          tooltip: 'Import files',
+          onPressed: libraryPath == null ? null : _pickAndImport,
+        ),
+
         // Detail panel toggle
         IconButton(
           icon: Icon(showDetail ? Icons.view_sidebar : Icons.view_sidebar_outlined),
@@ -143,6 +152,16 @@ class _TopBarState extends ConsumerState<TopBar> {
         const SizedBox(width: 4),
       ],
     );
+  }
+
+  Future<void> _pickAndImport() async {
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
+      type: FileType.any,
+    );
+    final paths = result?.files.map((f) => f.path).whereType<String>().toList();
+    if (paths == null || paths.isEmpty || !mounted) return;
+    await showImportDialog(context, ref, paths);
   }
 
   void _showMenu(BuildContext context) {

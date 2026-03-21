@@ -2,8 +2,10 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/database/app_database.dart';
 import '../../providers/asset_list_provider.dart';
 import '../../providers/library_provider.dart';
+import 'export_dialog.dart';
 
 /// Animated toolbar that appears at the bottom of the screen during
 /// multi-select mode. Provides bulk tag, rating, color, collection, and
@@ -66,6 +68,13 @@ class BulkToolbar extends ConsumerWidget {
                     onPressed: () => _showTagDialog(context, ref, selectedIds),
                   ),
 
+                  // Export
+                  IconButton(
+                    icon: const Icon(Icons.file_upload_outlined),
+                    tooltip: 'Export selected',
+                    onPressed: () => _showExportDialog(context, ref, selectedIds),
+                  ),
+
                   // Delete
                   IconButton(
                     icon: Icon(Icons.delete_outline,
@@ -84,6 +93,22 @@ class BulkToolbar extends ConsumerWidget {
   }
 
   // ── Dialogs ────────────────────────────────────────────────────────────────
+
+  Future<void> _showExportDialog(
+    BuildContext ctx,
+    WidgetRef ref,
+    Set<String> ids,
+  ) async {
+    final dao = ref.read(assetsDaoProvider);
+    final assets = (await Future.wait(ids.map((id) => dao.getById(id))))
+        .whereType<Asset>()
+        .toList();
+    if (assets.isEmpty || !ctx.mounted) return;
+    await showDialog<void>(
+      context: ctx,
+      builder: (_) => ExportDialog(assets: assets),
+    );
+  }
 
   Future<void> _showRatingDialog(
     BuildContext ctx,

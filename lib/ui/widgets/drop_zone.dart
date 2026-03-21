@@ -5,13 +5,13 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/mime_resolver.dart';
 import '../../providers/library_provider.dart';
-import '../../providers/scan_provider.dart';
+import 'import_dialog.dart';
 
 /// Wraps [child] with a drag-and-drop target that accepts files and folders.
-/// Dropped media files are copied into the library root and a partial scan
-/// is triggered. Only available on desktop (Linux / Windows / macOS).
+/// Dropped items are routed through [showImportDialog] so the full import
+/// flow (duplicate detection, collection mirror, etc.) is triggered.
+/// Only available on desktop (Linux / Windows / macOS).
 class DropZoneOverlay extends ConsumerStatefulWidget {
   final Widget child;
   const DropZoneOverlay({super.key, required this.child});
@@ -25,7 +25,6 @@ class _DropZoneOverlayState extends ConsumerState<DropZoneOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    // desktop_drop is not supported on mobile — skip wrapper
     if (!_isDesktop) return widget.child;
 
     return DropTarget(
@@ -63,8 +62,11 @@ class _DropZoneOverlayState extends ConsumerState<DropZoneOverlay> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Drop files to add to library',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        'Dateien zum Import ablegen',
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(
                               color: Theme.of(context).colorScheme.primary,
                             ),
                       ),
@@ -79,42 +81,17 @@ class _DropZoneOverlayState extends ConsumerState<DropZoneOverlay> {
   }
 
   Future<void> _handleDrop(List<XFile> files) async {
-    final libraryPath = ref.read(libraryPathProvider);
-    if (libraryPath == null) return;
+    if (ref.read(libraryPathProvider) == null) return;
+    if (files.isEmpty || !mounted) return;
 
-    int copied = 0;
-    for (final xfile in files) {
-      final src = File(xfile.path);
-      if (!src.existsSync()) continue;
+    final sourcePaths = files
+        .map((f) => f.path)
+        .where((p) => File(p).existsSync() || Directory(p).existsSync())
+        .toList();
 
-      final mime = mimeTypeFromExtension(
-        xfile.path.split('.').last.toLowerCase(),
-      );
-      // Only copy known media/document files
-      final cat = categoryFromMime(mime);
-      if (cat == MimeCategory.other) continue;
+    if (sourcePaths.isEmpty) return;
 
-      final dest = File('$libraryPath/${xfile.name}');
-      if (dest.existsSync()) continue; // skip duplicates
-
-      try {
-        await src.copy(dest.path);
-        copied++;
-      } catch (e) {
-        debugPrint('Drop copy error: $e');
-      }
-    }
-
-    if (copied > 0 && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Added $copied file${copied == 1 ? '' : 's'} — scanning…'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-      // Trigger a library scan to index the dropped files
-      ref.read(scanProvider.notifier).startScan();
-    }
+    await showImportDialog(context, ref, sourcePaths);
   }
 
   bool get _isDesktop =>

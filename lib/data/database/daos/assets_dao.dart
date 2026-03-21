@@ -490,4 +490,20 @@ class AssetsDao extends DatabaseAccessor<AppDatabase> with _$AssetsDaoMixin {
       await (delete(assets)..where((a) => a.id.equals(id))).go();
     }
   }
+
+  // ── Directory tree ─────────────────────────────────────────────────────────
+
+  /// Returns all unique directory path prefixes from indexed assets.
+  /// Each entry ends with '/' and is relative to the library root.
+  /// e.g. ["Fotos/", "Fotos/Urlaub/", "Natur/"]
+  Future<List<String>> getDirPaths() async {
+    final rows = await customSelect(
+      'SELECT DISTINCT substr(path, 1, length(path) - length(filename)) AS dir '
+      'FROM assets '
+      "WHERE status = 'ok' AND length(path) > length(filename) "
+      'ORDER BY dir',
+      readsFrom: {assets},
+    ).get();
+    return rows.map((r) => r.read<String>('dir')).toList();
+  }
 }

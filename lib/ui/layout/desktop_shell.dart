@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants.dart';
+import '../../providers/active_player_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../widgets/asset_grid.dart';
 import '../widgets/bulk_toolbar.dart';
 import '../widgets/detail_panel.dart';
 import '../widgets/drop_zone.dart';
+import '../widgets/mini_player_bar.dart';
 import '../widgets/sidebar.dart';
 import '../widgets/top_bar.dart';
 
@@ -21,6 +23,7 @@ class DesktopShell extends ConsumerWidget {
     final detailWidth = ref.watch(detailPanelWidthProvider);
     final screenWidth = MediaQuery.sizeOf(context).width;
     final showDetailPanel = showDetail && screenWidth >= kDetailPanelBreakpoint;
+    final hasActivePlayer = ref.watch(activePlayerProvider).hasMedia;
 
     return Scaffold(
       body: Column(
@@ -66,6 +69,7 @@ class DesktopShell extends ConsumerWidget {
               ),
             ),
           ),
+          if (hasActivePlayer) const MiniPlayerBar(),
         ],
       ),
     );
@@ -82,8 +86,8 @@ class _ResizeDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return MouseRegion(
       cursor: SystemMouseCursors.resizeColumn,
-      child: GestureDetector(
-        onHorizontalDragUpdate: (details) => onDrag(details.delta.dx),
+      child: Listener(
+        onPointerMove: (event) => onDrag(event.delta.dx),
         child: SizedBox(
           width: 8,
           child: Center(

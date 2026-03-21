@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +8,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 
 import '../../core/mime_resolver.dart';
 import '../../data/database/app_database.dart';
+import '../../providers/active_player_provider.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/playback_provider.dart';
 
@@ -19,15 +22,21 @@ class PlayerScreen extends ConsumerStatefulWidget {
 
 class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Asset? _asset;
-  late final Player _player;
-  late final PlaybackNotifier _playbackNotifier;
+  bool _isVideo = false;
   VideoController? _videoController;
+
+  late final Player _player;
+  late final ActivePlayerNotifier _activeNotifier;
+  late final PlaybackNotifier _playbackNotifier;
+
+  final _subs = <StreamSubscription>[];
 
   @override
   void initState() {
     super.initState();
-    _player = Player();
+    _activeNotifier = ref.read(activePlayerProvider.notifier);
     _playbackNotifier = ref.read(playbackProvider.notifier);
+    _player = _activeNotifier.player;
     _loadAsset();
   }
 
@@ -41,54 +50,93 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
     final mime = asset.mimeType ?? '';
     final filePath = '$libraryPath/${asset.path}';
+    final isVid = isVideo(mime);
+    final alreadyLoaded =
+        ref.read(activePlayerProvider).assetId == widget.assetId;
 
-    if (isVideo(mime)) {
-      // Disable hardware decoding: system libmpv may return YUV frames in a
-      // colour space that the texture compositor can't convert → blue image.
+    if (isVid) {
       final ctrl = VideoController(
         _player,
         configuration: const VideoControllerConfiguration(
           enableHardwareAcceleration: false,
         ),
       );
-      if (mounted) setState(() => _videoController = ctrl);
+      if (!mounted) return;
+      setState(() {
+        _videoController = ctrl;
+        _isVideo = true;
+      });
     }
 
     setState(() => _asset = asset);
 
-    await _player.open(Media(filePath), play: false);
+    if (!alreadyLoaded) {
+      await _player.open(Media(filePath), play: false);
+      if (!mounted) return;
 
-    // Resume: open() may have already completed and the duration is known;
-    // in that case skip the stream wait to avoid a missed-emission deadlock.
-    final resumeMs = asset.playbackPositionMs ?? 0;
-    if (resumeMs > 500) {
-      if (_player.state.duration == Duration.zero) {
-        await _player.stream.duration
-            .firstWhere((d) => d > Duration.zero)
-            .timeout(
-              const Duration(seconds: 10),
-              onTimeout: () => Duration.zero,
-            );
+      _activeNotifier.setMeta(
+        assetId: widget.assetId,
+        assetName: asset.filename,
+        isVideo: isVid,
+      );
+
+      final resumeMs = asset.playbackPositionMs ?? 0;
+      if (resumeMs > 500) {
+        // Wait until duration is known
+        if (_player.state.duration == Duration.zero) {
+          await _player.stream.duration
+              .firstWhere((d) => d > Duration.zero)
+              .timeout(
+                const Duration(seconds: 10),
+                onTimeout: () => Duration.zero,
+              );
+        }
+        if (!mounted) return;
+
+        final resume = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Resume Playback'),
+            content: Text(
+                'Continue from ${_fmt(Duration(milliseconds: resumeMs))}?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Start from beginning'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('Resume'),
+              ),
+            ],
+          ),
+        );
+        if (!mounted) return;
+        if (resume ?? false) {
+          await _player.seek(Duration(milliseconds: resumeMs));
+        }
       }
-      await _player.seek(Duration(milliseconds: resumeMs));
-    }
-    await _player.play();
 
-    _player.stream.position.listen((pos) {
+      await _player.play();
+    }
+
+    if (!mounted) return;
+
+    _playbackNotifier.setAsset(widget.assetId);
+    _subs.add(_player.stream.position.listen((pos) {
       if (!mounted) return;
       _playbackNotifier.updatePosition(pos);
       _savePosition(pos.inMilliseconds);
-    });
-    _player.stream.duration.listen((dur) {
+    }));
+    _subs.add(_player.stream.duration.listen((dur) {
       if (!mounted) return;
       _playbackNotifier.updateDuration(dur);
-    });
-    _player.stream.playing.listen((playing) {
+    }));
+    _subs.add(_player.stream.playing.listen((playing) {
       if (!mounted) return;
       _playbackNotifier.setPlaying(playing);
-    });
-
-    _playbackNotifier.setAsset(widget.assetId);
+    }));
   }
 
   void _savePosition(int ms) {
@@ -97,12 +145,25 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     ref.read(assetsDaoProvider).savePlaybackPosition(asset.id, ms);
   }
 
+  String _fmt(Duration d) {
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return h > 0 ? '$h:$m:$s' : '$m:$s';
+  }
+
   @override
   void dispose() {
+    for (final s in _subs) { s.cancel(); }
     _savePosition(_player.state.position.inMilliseconds);
-    _player.stop(); // ensure audio/video output stops before the handle is freed
-    _playbackNotifier.clear();
-    _player.dispose();
+
+    if (_isVideo) {
+      // No background video — stop player and clear active state
+      _activeNotifier.stop();
+      _playbackNotifier.clear();
+    }
+    // For audio: player keeps running; MiniPlayerBar will show in DesktopShell
+
     super.dispose();
   }
 
@@ -196,6 +257,8 @@ class _AudioPlayerViewState extends State<_AudioPlayerView> {
   bool _playing = false;
   double _rate = 1.0;
 
+  final _subs = <StreamSubscription>[];
+
   static const _speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
 
   @override
@@ -206,14 +269,24 @@ class _AudioPlayerViewState extends State<_AudioPlayerView> {
     _playing = widget.player.state.playing;
     _rate = widget.player.state.rate;
 
-    widget.player.stream.position
-        .listen((p) { if (mounted) setState(() => _position = p); });
-    widget.player.stream.duration
-        .listen((d) { if (mounted) setState(() => _duration = d); });
-    widget.player.stream.playing
-        .listen((pl) { if (mounted) setState(() => _playing = pl); });
-    widget.player.stream.rate
-        .listen((r) { if (mounted) setState(() => _rate = r); });
+    _subs.add(widget.player.stream.position.listen((p) {
+      if (mounted) setState(() => _position = p);
+    }));
+    _subs.add(widget.player.stream.duration.listen((d) {
+      if (mounted) setState(() => _duration = d);
+    }));
+    _subs.add(widget.player.stream.playing.listen((pl) {
+      if (mounted) setState(() => _playing = pl);
+    }));
+    _subs.add(widget.player.stream.rate.listen((r) {
+      if (mounted) setState(() => _rate = r);
+    }));
+  }
+
+  @override
+  void dispose() {
+    for (final s in _subs) { s.cancel(); }
+    super.dispose();
   }
 
   @override
@@ -325,7 +398,7 @@ class _AudioPlayerViewState extends State<_AudioPlayerView> {
           const SizedBox(height: 20),
 
           // Playback speed
-          Text('Speed', style: TextStyle(color: Colors.white54, fontSize: 12)),
+          Text('Speed', style: const TextStyle(color: Colors.white54, fontSize: 12)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -376,13 +449,21 @@ class _SpeedButton extends StatefulWidget {
 class _SpeedButtonState extends State<_SpeedButton> {
   static const _speeds = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
   double _rate = 1.0;
+  StreamSubscription<double>? _sub;
 
   @override
   void initState() {
     super.initState();
     _rate = widget.player.state.rate;
-    widget.player.stream.rate
-        .listen((r) { if (mounted) setState(() => _rate = r); });
+    _sub = widget.player.stream.rate.listen((r) {
+      if (mounted) setState(() => _rate = r);
+    });
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
   }
 
   @override
@@ -541,14 +622,21 @@ class _AudioTracksRow extends StatefulWidget {
 
 class _AudioTracksRowState extends State<_AudioTracksRow> {
   late AudioTrack _current;
+  StreamSubscription? _sub;
 
   @override
   void initState() {
     super.initState();
     _current = widget.player.state.track.audio;
-    widget.player.stream.track.listen((t) {
+    _sub = widget.player.stream.track.listen((t) {
       if (mounted) setState(() => _current = t.audio);
     });
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
   }
 
   @override
@@ -558,8 +646,8 @@ class _AudioTracksRowState extends State<_AudioTracksRow> {
 
     return Column(
       children: [
-        Text('Audio Track',
-            style: const TextStyle(color: Colors.white54, fontSize: 12)),
+        const Text('Audio Track',
+            style: TextStyle(color: Colors.white54, fontSize: 12)),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
