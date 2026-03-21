@@ -47,7 +47,8 @@ class _AssetGridState extends ConsumerState<AssetGrid> {
     }
   }
 
-  void _onTap(BuildContext context, Asset asset) {
+  // Fires on pointer-down — no 300 ms double-tap disambiguation delay.
+  void _onTapDown(BuildContext context, Asset asset) {
     if (ref.read(isMultiSelectProvider)) {
       ref.read(multiSelectProvider.notifier).toggle(asset.id);
       return;
@@ -126,7 +127,7 @@ class _AssetGridState extends ConsumerState<AssetGrid> {
         return AssetCard(
           asset: asset,
           isSelected: selectedIds.contains(asset.id) || selectedId == asset.id,
-          onTap: () => _onTap(context, asset),
+          onTapDown: () => _onTapDown(context, asset),
           onDoubleTap: () => _onDoubleTap(context, asset),
           onLongPress: () =>
               ref.read(multiSelectProvider.notifier).toggle(asset.id),

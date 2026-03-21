@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -9,15 +10,26 @@ import 'ui/screens/library_screen.dart';
 import 'ui/screens/player_screen.dart';
 import 'ui/screens/welcome_screen.dart';
 
+// MaterialApp.router ignores changes to routerConfig after initial build.
+// Solution: keep the GoRouter instance stable and use refreshListenable so
+// the router re-evaluates its redirect when the library path changes —
+// without recreating the router object itself.
+class _LibraryNotifier extends ChangeNotifier {
+  _LibraryNotifier(Ref ref) {
+    ref.listen<String?>(libraryPathProvider, (prev, next) => notifyListeners());
+  }
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
-  final libraryPath = ref.watch(libraryPathProvider);
+  final notifier = _LibraryNotifier(ref);
+  ref.onDispose(notifier.dispose);
 
   return GoRouter(
     initialLocation: '/',
+    refreshListenable: notifier,
     redirect: (context, state) {
+      final hasLibrary = ref.read(libraryPathProvider) != null;
       final isAtRoot = state.matchedLocation == '/';
-      final hasLibrary = libraryPath != null;
-
       if (!hasLibrary && !isAtRoot) return '/';
       if (hasLibrary && isAtRoot) return '/library';
       return null;
@@ -44,7 +56,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'document/:assetId',
             builder: (context, state) =>
-                DocumentViewerScreen(assetId: state.pathParameters['assetId']!),
+                DocumentViewerScreen(
+                    assetId: state.pathParameters['assetId']!),
           ),
           GoRoute(
             path: 'activity',

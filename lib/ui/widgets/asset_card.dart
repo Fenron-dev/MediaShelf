@@ -8,7 +8,7 @@ import 'thumbnail_image.dart';
 class AssetCard extends ConsumerWidget {
   final Asset asset;
   final bool isSelected;
-  final VoidCallback? onTap;
+  final VoidCallback? onTapDown;
   final VoidCallback? onDoubleTap;
   final VoidCallback? onLongPress;
 
@@ -16,7 +16,7 @@ class AssetCard extends ConsumerWidget {
     super.key,
     required this.asset,
     this.isSelected = false,
-    this.onTap,
+    this.onTapDown,
     this.onDoubleTap,
     this.onLongPress,
   });
@@ -27,7 +27,7 @@ class AssetCard extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return GestureDetector(
-      onTap: onTap,
+      onTapDown: onTapDown != null ? (_) => onTapDown!() : null,
       onDoubleTap: onDoubleTap,
       onLongPress: onLongPress,
       child: AnimatedContainer(
