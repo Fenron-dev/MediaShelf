@@ -363,6 +363,19 @@ class _RuleRowState extends State<_RuleRow> {
   }
 
   Widget _buildValueInput(_Rule rule) {
+    // Normalize defaults so rule.value is always in sync with what's shown
+    if (rule.field == 'rating' && (rule.value.isEmpty || int.tryParse(rule.value) == null)) {
+      rule.value = '1';
+    }
+    if (rule.field == 'mime_type' && rule.op == 'startswith') {
+      if (rule.value.isEmpty || !_mimePresets.any((p) => p.$1 == rule.value)) {
+        rule.value = _mimePresets.first.$1; // 'image/'
+      }
+    }
+    if (rule.field == 'color_label' && rule.op == 'eq' && rule.value.isEmpty) {
+      rule.value = _colorPresets.first; // 'red'
+    }
+
     // Rating → numeric stepper via dropdown
     if (rule.field == 'rating') {
       return DropdownButtonFormField<String>(

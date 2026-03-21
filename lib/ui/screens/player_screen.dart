@@ -76,7 +76,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     if (alreadyLoaded) {
       // Media still loaded in background — offer to restart or continue
       final currentPos = _player.state.position;
-      if (currentPos.inMilliseconds > 500 && mounted) {
+      // Only offer restart if paused/stopped at a significant position
+      if (!_player.state.playing && currentPos.inMilliseconds > 500 && mounted) {
         final restart = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
@@ -97,10 +98,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         if (!mounted) return;
         if (restart == true) await _player.seek(Duration.zero);
       }
-      // Ensure playback is running (may have been paused)
+      // Ensure playback is running
       if (mounted && !_player.state.playing) await _player.play();
     } else {
       await _player.open(Media(filePath), play: false);
+      await _player.setVolume(100.0); // re-ensure volume after open
       if (!mounted) return;
 
       _activeNotifier.setMeta(
@@ -276,9 +278,13 @@ class _VideoPlayerView extends StatelessWidget {
           _TracksButton(player: player),
         ],
       ),
-      child: Video(
-        controller: controller,
-        controls: MaterialDesktopVideoControls,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => player.state.playing ? player.pause() : player.play(),
+        child: Video(
+          controller: controller,
+          controls: MaterialDesktopVideoControls,
+        ),
       ),
     );
   }

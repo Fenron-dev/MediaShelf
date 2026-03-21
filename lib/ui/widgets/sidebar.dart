@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../data/database/app_database.dart';
 import '../../domain/models/asset_filter.dart';
 import '../../providers/asset_filter_provider.dart';
 import '../../providers/collection_provider.dart';
@@ -333,13 +334,17 @@ class _SmartFiltersSection extends ConsumerWidget {
         return Column(
           children: smart.map((c) {
             final selected = filter.collectionId == c.id;
-            return _SidebarTile(
-              icon: Icons.auto_awesome_outlined,
-              label: c.name,
-              selected: selected,
-              onTap: () => notifier.setCollectionId(selected ? null : c.id),
-              onLongPress: () =>
+            return GestureDetector(
+              onSecondaryTap: () =>
                   showSmartFilterEditor(context, ref, existing: c),
+              child: _SidebarTile(
+                icon: Icons.auto_awesome_outlined,
+                label: c.name,
+                selected: selected,
+                onTap: () => notifier.setCollectionId(selected ? null : c.id),
+                onLongPress: () =>
+                    showSmartFilterEditor(context, ref, existing: c),
+              ),
             );
           }).toList(),
         );
@@ -365,20 +370,111 @@ class _ManualCollectionsSection extends ConsumerWidget {
       data: (cols) {
         final manual = cols.where((c) => !c.isSmartFilter).toList();
         if (manual.isEmpty) return const SizedBox.shrink();
+        final roots = manual.where((c) => c.parentId == null).toList();
+        final colMap = {for (final c in manual) c.id: c};
+        final childrenOf = <String, List<Collection>>{};
+        for (final c in manual) {
+          if (c.parentId != null) {
+            childrenOf.putIfAbsent(c.parentId!, () => []).add(c);
+          }
+        }
         return Column(
-          children: manual.map((c) {
-            final selected = filter.collectionId == c.id;
-            return _SidebarTile(
-              icon: Icons.folder_outlined,
-              label: c.name,
-              selected: selected,
-              onTap: () => notifier.setCollectionId(selected ? null : c.id),
-            );
-          }).toList(),
+          children: roots
+              .map((c) => _CollectionTile(
+                    collection: c,
+                    depth: 0,
+                    colMap: colMap,
+                    childrenOf: childrenOf,
+                    activeId: filter.collectionId,
+                    onTap: (id) => notifier
+                        .setCollectionId(filter.collectionId == id ? null : id),
+                  ))
+              .toList(),
         );
       },
       loading: () => const SizedBox.shrink(),
       error: (e, _) => const SizedBox.shrink(),
+    );
+  }
+}
+
+class _CollectionTile extends ConsumerStatefulWidget {
+  const _CollectionTile({
+    required this.collection,
+    required this.depth,
+    required this.colMap,
+    required this.childrenOf,
+    required this.activeId,
+    required this.onTap,
+  });
+
+  final Collection collection;
+  final int depth;
+  final Map<String, Collection> colMap;
+  final Map<String, List<Collection>> childrenOf;
+  final String? activeId;
+  final void Function(String id) onTap;
+
+  @override
+  ConsumerState<_CollectionTile> createState() => _CollectionTileState();
+}
+
+class _CollectionTileState extends ConsumerState<_CollectionTile> {
+  bool _expanded = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final children = widget.childrenOf[widget.collection.id] ?? [];
+    final hasChildren = children.isNotEmpty;
+    final selected = widget.activeId == widget.collection.id;
+    final indent = 12.0 + widget.depth * 14.0;
+
+    return Column(
+      children: [
+        ListTile(
+          dense: true,
+          contentPadding: EdgeInsets.only(left: indent, right: 4),
+          leading: Icon(
+            hasChildren
+                ? (_expanded
+                    ? Icons.folder_open_outlined
+                    : Icons.folder_outlined)
+                : Icons.folder_outlined,
+            size: 18,
+            color: selected ? cs.primary : null,
+          ),
+          title: Text(
+            widget.collection.name,
+            style: TextStyle(
+              fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+              color: selected ? cs.primary : null,
+            ),
+          ),
+          trailing: hasChildren
+              ? IconButton(
+                  icon: Icon(
+                      _expanded ? Icons.expand_less : Icons.expand_more,
+                      size: 16),
+                  onPressed: () => setState(() => _expanded = !_expanded),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                )
+              : null,
+          selected: selected,
+          selectedTileColor: cs.primaryContainer.withValues(alpha: 0.3),
+          onTap: () => widget.onTap(widget.collection.id),
+        ),
+        if (hasChildren && _expanded)
+          ...children.map((child) => _CollectionTile(
+                collection: child,
+                depth: widget.depth + 1,
+                colMap: widget.colMap,
+                childrenOf: widget.childrenOf,
+                activeId: widget.activeId,
+                onTap: widget.onTap,
+              )),
+      ],
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../../providers/asset_filter_provider.dart';
 import '../../providers/library_provider.dart';
@@ -189,6 +190,9 @@ class _TopBarState extends ConsumerState<TopBar> {
       paths = result?.files.map((f) => f.path).whereType<String>().toList() ?? [];
     }
     if (paths.isEmpty || !mounted) return;
+    // Bring window to front after file picker closed
+    await windowManager.focus();
+    if (!mounted) return;
     await showImportDialog(context, ref, paths);
   }
 

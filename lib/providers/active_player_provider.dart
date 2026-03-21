@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
 
@@ -23,9 +25,22 @@ class ActivePlayerNotifier extends StateNotifier<ActivePlayerState> {
   ActivePlayerNotifier() : super(const ActivePlayerState()) {
     _player = Player();
     _player.setVolume(100.0);
+    _initPlayer();
   }
 
   late final Player _player;
+
+  Future<void> _initPlayer() async {
+    // On Linux, try to explicitly configure audio output via libmpv
+    if (Platform.isLinux) {
+      try {
+        final native = _player.platform as NativePlayer;
+        await native.setProperty('ao', 'pulse');
+      } catch (_) {
+        // Fallback: let mpv choose automatically
+      }
+    }
+  }
   Player get player => _player;
 
   void setMeta({
