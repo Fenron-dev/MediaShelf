@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import '../../data/database/app_database.dart';
 import '../../domain/models/asset_filter.dart';
 import '../../providers/asset_filter_provider.dart';
+import '../../providers/asset_list_provider.dart';
 import '../../providers/collection_provider.dart';
 import '../../providers/folder_tree_provider.dart';
 import '../../providers/library_provider.dart';
@@ -72,29 +75,40 @@ class _LibrarySidebarState extends ConsumerState<LibrarySidebar> {
           trailing: Consumer(
             builder: (context, ref, _) {
               final includeSubdirs = ref.watch(assetFilterProvider.select((f) => f.includeSubdirs));
-              return IconButton(
-                icon: Icon(
-                  includeSubdirs
-                      ? Icons.account_tree_outlined
-                      : Icons.folder_outlined,
-                  size: 16,
-                  color: includeSubdirs
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-                tooltip: includeSubdirs ? 'Unterordner eingeschlossen' : 'Nur dieser Ordner',
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                onPressed: () {
-                  final currentIncludeSubdirs = ref.read(assetFilterProvider).includeSubdirs;
-                  final notifier = ref.read(assetFilterProvider.notifier);
-                  notifier.toggleIncludeSubdirs();
-                  // Re-apply dir filter with new subdir setting if one is active
-                  final current = ref.read(assetFilterProvider);
-                  if (current.dirFilter.isNotEmpty) {
-                    notifier.setDirFilter(current.dirFilter, includeSubdirs: !currentIncludeSubdirs);
-                  }
-                },
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.create_new_folder_outlined, size: 16),
+                    tooltip: 'Neuer Ordner',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                    onPressed: () => _createFolder(context, ref, null),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      includeSubdirs
+                          ? Icons.account_tree_outlined
+                          : Icons.folder_outlined,
+                      size: 16,
+                      color: includeSubdirs
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    tooltip: includeSubdirs ? 'Unterordner eingeschlossen' : 'Nur dieser Ordner',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                    onPressed: () {
+                      final currentIncludeSubdirs = ref.read(assetFilterProvider).includeSubdirs;
+                      final notifier = ref.read(assetFilterProvider.notifier);
+                      notifier.toggleIncludeSubdirs();
+                      final current = ref.read(assetFilterProvider);
+                      if (current.dirFilter.isNotEmpty) {
+                        notifier.setDirFilter(current.dirFilter, includeSubdirs: !currentIncludeSubdirs);
+                      }
+                    },
+                  ),
+                ],
               );
             },
           ),
@@ -142,6 +156,13 @@ class _LibrarySidebarState extends ConsumerState<LibrarySidebar> {
           expanded: _expandTags,
           onToggle: () => setState(() =>
               _toggle(_kExpandTags, _expandTags, (v) => _expandTags = v)),
+          trailing: IconButton(
+            icon: const Icon(Icons.add, size: 16),
+            tooltip: 'Neuer Tag',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+            onPressed: () => _createTag(context, ref),
+          ),
           child: const _TagsSection(),
         ),
       ],
@@ -174,6 +195,70 @@ class _LibrarySidebarState extends ConsumerState<LibrarySidebar> {
     if (name == null || name.trim().isEmpty) return;
     final dao = ref.read(collectionsDaoProvider);
     await dao.createCollection(id: const Uuid().v4(), name: name.trim());
+  }
+
+  Future<void> _createTag(BuildContext ctx, WidgetRef ref) async {
+    final ctrl = TextEditingController();
+    final name = await showDialog<String>(
+      context: ctx,
+      builder: (context) => AlertDialog(
+        title: const Text('Neuer Tag'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'Tag-Name (z.B. bilder/strand)',
+          ),
+          onSubmitted: (v) => Navigator.pop(context, v),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Abbrechen')),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, ctrl.text),
+            child: const Text('Erstellen'),
+          ),
+        ],
+      ),
+    );
+    if (name == null || name.trim().isEmpty) return;
+    await ref.read(tagsDaoProvider).upsertTag(name.trim());
+    ref.invalidate(allTagsProvider);
+  }
+
+  Future<void> _createFolder(BuildContext ctx, WidgetRef ref, String? parentPath) async {
+    final ctrl = TextEditingController();
+    final name = await showDialog<String>(
+      context: ctx,
+      builder: (context) => AlertDialog(
+        title: Text(parentPath != null ? 'Unterordner in "$parentPath"' : 'Neuer Ordner'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'Ordnername'),
+          onSubmitted: (v) => Navigator.pop(context, v),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Abbrechen')),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, ctrl.text),
+            child: const Text('Erstellen'),
+          ),
+        ],
+      ),
+    );
+    if (name == null || name.trim().isEmpty) return;
+    final libraryPath = ref.read(libraryPathProvider);
+    if (libraryPath == null) return;
+    final relPath = parentPath != null
+        ? '$parentPath/${name.trim()}'
+        : name.trim();
+    final dir = Directory('$libraryPath/$relPath');
+    await dir.create(recursive: true);
+    ref.read(scanVersionProvider.notifier).state++;
   }
 }
 
@@ -271,6 +356,56 @@ class _FolderTile extends ConsumerStatefulWidget {
 class _FolderTileState extends ConsumerState<_FolderTile> {
   bool _expanded = false;
 
+  Future<void> _showFolderMenu(BuildContext context) async {
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+    final pos = renderBox.localToGlobal(Offset(renderBox.size.width, 0));
+    final result = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(pos.dx - 200, pos.dy, pos.dx, pos.dy + 60),
+      items: [
+        const PopupMenuItem(
+          value: 'new_subfolder',
+          child: ListTile(
+            leading: Icon(Icons.create_new_folder_outlined),
+            title: Text('Unterordner erstellen'),
+            dense: true,
+          ),
+        ),
+      ],
+    );
+    if (!mounted || result == null) return;
+    final dir = widget.node.fullPath.endsWith('/')
+        ? widget.node.fullPath.substring(0, widget.node.fullPath.length - 1)
+        : widget.node.fullPath;
+    await _createSubfolder(context, dir);
+  }
+
+  Future<void> _createSubfolder(BuildContext context, String parentPath) async {
+    final libraryPath = ref.read(libraryPathProvider);
+    if (libraryPath == null) return;
+    final ctrl = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Unterordner in "$parentPath"'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'Ordnername'),
+          onSubmitted: (v) => Navigator.pop(ctx, v),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Abbrechen')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, ctrl.text), child: const Text('Erstellen')),
+        ],
+      ),
+    );
+    if (!mounted || name == null || name.trim().isEmpty) return;
+    await Directory('$libraryPath/$parentPath/${name.trim()}').create(recursive: true);
+    ref.read(scanVersionProvider.notifier).state++;
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -280,10 +415,14 @@ class _FolderTileState extends ConsumerState<_FolderTile> {
         : widget.node.fullPath;
     final selected = widget.activeDir == nodeDir;
     final indent = 12.0 + widget.depth * 14.0;
+    final includeSubdirs = ref.watch(assetFilterProvider.select((f) => f.includeSubdirs));
+    final displayCount = includeSubdirs ? widget.node.totalCount : widget.node.fileCount;
 
     return Column(
       children: [
-        ListTile(
+        GestureDetector(
+          onSecondaryTap: () => _showFolderMenu(context),
+          child: ListTile(
           dense: true,
           contentPadding: EdgeInsets.only(left: indent, right: 4),
           leading: Icon(
@@ -305,11 +444,8 @@ class _FolderTileState extends ConsumerState<_FolderTile> {
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (widget.node.fileCount > 0)
-                Text(
-                  '${widget.node.fileCount}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
+              if (displayCount > 0)
+                Text('$displayCount', style: Theme.of(context).textTheme.bodySmall),
               if (hasChildren)
                 IconButton(
                   icon: Icon(
@@ -335,10 +471,11 @@ class _FolderTileState extends ConsumerState<_FolderTile> {
                   ? widget.node.fullPath.substring(
                       0, widget.node.fullPath.length - 1)
                   : widget.node.fullPath;
-              final includeSubdirs = ref.read(assetFilterProvider).includeSubdirs;
-              notifier.setDirFilter(dir, includeSubdirs: includeSubdirs);
+              final currentIncludeSubdirs = ref.read(assetFilterProvider).includeSubdirs;
+              notifier.setDirFilter(dir, includeSubdirs: currentIncludeSubdirs);
             }
           },
+        ),
         ),
         if (_expanded && hasChildren)
           ...widget.node.children.map((child) => _FolderTile(
@@ -527,9 +664,10 @@ class _CollectionTileState extends ConsumerState<_CollectionTile> {
 // ── Tags ──────────────────────────────────────────────────────────────────────
 
 class _TagNode {
-  _TagNode({required this.name, required this.fullName});
+  _TagNode({required this.name, required this.fullName, this.tagId});
   final String name;       // display segment (e.g. "strand")
   final String fullName;   // full tag name (e.g. "bilder/strand")
+  String? tagId;           // null for virtual parent nodes
   int count = 0;
   final List<_TagNode> children = [];
 }
@@ -594,6 +732,7 @@ class _TagsSection extends ConsumerWidget {
         // Accumulate count: actual tags contribute their count
         if (i == parts.length - 1) {
           byFullName[fullName]!.count = twc.count;
+          byFullName[fullName]!.tagId = twc.tag.id;
         }
       }
     }
@@ -645,46 +784,49 @@ class _TagTileState extends ConsumerState<_TagTile> {
         final isDragOver = candidateData.isNotEmpty;
         return Column(
           children: [
-            ListTile(
-              dense: true,
-              contentPadding: EdgeInsets.only(left: indent, right: 4),
-              tileColor: isDragOver
-                  ? cs.primaryContainer.withValues(alpha: 0.5)
-                  : null,
-              leading: Icon(
-                Icons.label_outline,
-                size: 18,
-                color: (selected || isAncestor) ? cs.primary : null,
-              ),
-              title: Text(
-                widget.node.name,
-                style: TextStyle(
-                  fontWeight: (selected || isAncestor) ? FontWeight.w600 : FontWeight.normal,
+            GestureDetector(
+              onSecondaryTap: () => _showTagMenu(context),
+              child: ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.only(left: indent, right: 4),
+                tileColor: isDragOver
+                    ? cs.primaryContainer.withValues(alpha: 0.5)
+                    : null,
+                leading: Icon(
+                  Icons.label_outline,
+                  size: 18,
                   color: (selected || isAncestor) ? cs.primary : null,
                 ),
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (widget.node.count > 0)
-                    Text('${widget.node.count}',
-                        style: Theme.of(context).textTheme.bodySmall),
-                  if (hasChildren)
-                    IconButton(
-                      icon: Icon(
-                        _expanded ? Icons.expand_less : Icons.expand_more,
-                        size: 16,
+                title: Text(
+                  widget.node.name,
+                  style: TextStyle(
+                    fontWeight: (selected || isAncestor) ? FontWeight.w600 : FontWeight.normal,
+                    color: (selected || isAncestor) ? cs.primary : null,
+                  ),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.node.count > 0)
+                      Text('${widget.node.count}',
+                          style: Theme.of(context).textTheme.bodySmall),
+                    if (hasChildren)
+                      IconButton(
+                        icon: Icon(
+                          _expanded ? Icons.expand_less : Icons.expand_more,
+                          size: 16,
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                        onPressed: () => setState(() => _expanded = !_expanded),
                       ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                      onPressed: () => setState(() => _expanded = !_expanded),
-                    ),
-                ],
+                  ],
+                ),
+                selected: selected,
+                selectedTileColor: cs.primaryContainer.withValues(alpha: 0.3),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                onTap: () => widget.onTap(widget.node.fullName),
               ),
-              selected: selected,
-              selectedTileColor: cs.primaryContainer.withValues(alpha: 0.3),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              onTap: () => widget.onTap(widget.node.fullName),
             ),
             if (_expanded && hasChildren)
               ...widget.node.children.map((child) => _TagTile(
@@ -697,6 +839,71 @@ class _TagTileState extends ConsumerState<_TagTile> {
         );
       },
     );
+  }
+
+  Future<void> _showTagMenu(BuildContext context) async {
+    final tagId = widget.node.tagId;
+    if (tagId == null) return; // virtual parent — no menu
+
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+    final pos = renderBox.localToGlobal(Offset(renderBox.size.width, 0));
+
+    final result = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(pos.dx - 160, pos.dy, pos.dx, pos.dy + 100),
+      items: [
+        const PopupMenuItem(value: 'rename', child: ListTile(leading: Icon(Icons.edit_outlined), title: Text('Umbenennen'), dense: true)),
+        const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_outline), title: Text('Löschen'), dense: true)),
+      ],
+    );
+
+    if (!mounted || result == null) return;
+
+    if (result == 'rename') {
+      final ctrl = TextEditingController(text: widget.node.name);
+      final newName = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Tag umbenennen'),
+          content: TextField(
+            controller: ctrl,
+            autofocus: true,
+            decoration: const InputDecoration(hintText: 'Neuer Name'),
+            onSubmitted: (v) => Navigator.pop(ctx, v),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Abbrechen')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, ctrl.text), child: const Text('Speichern')),
+          ],
+        ),
+      );
+      if (!mounted || newName == null || newName.trim().isEmpty) return;
+      final parts = widget.node.fullName.split('/');
+      parts[parts.length - 1] = newName.trim();
+      final newFullName = parts.join('/');
+      await ref.read(tagsDaoProvider).renameTag(tagId, newFullName);
+      ref.invalidate(allTagsProvider);
+    } else if (result == 'delete') {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Tag löschen'),
+          content: Text('Tag "${widget.node.fullName}" wirklich löschen?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Abbrechen')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Löschen')),
+          ],
+        ),
+      );
+      if (!mounted || confirm != true) return;
+      await ref.read(tagsDaoProvider).deleteTag(tagId);
+      ref.invalidate(allTagsProvider);
+      final filter = ref.read(assetFilterProvider);
+      if (filter.tagFilter == widget.node.fullName) {
+        ref.read(assetFilterProvider.notifier).setTagFilter(null);
+      }
+    }
   }
 }
 

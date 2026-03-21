@@ -267,6 +267,12 @@ class _VideoPlayerView extends StatelessWidget {
       normal: MaterialDesktopVideoControlsThemeData(
         topButtonBar: [
           const Spacer(),
+          _SpeedButton(player: player),
+          _TracksButton(player: player),
+        ],
+        bottomButtonBar: [
+          const MaterialDesktopSkipPreviousButton(),
+          const MaterialDesktopPlayOrPauseButton(),
           MaterialDesktopCustomButton(
             onPressed: () async {
               await player.pause();
@@ -274,13 +280,22 @@ class _VideoPlayerView extends StatelessWidget {
             },
             icon: const Icon(Icons.stop, color: Colors.white),
           ),
-          _SpeedButton(player: player),
-          _TracksButton(player: player),
+          const MaterialDesktopSkipNextButton(),
+          const MaterialDesktopVolumeButton(),
+          const MaterialDesktopPositionIndicator(),
+          const Spacer(),
+          const MaterialDesktopFullscreenButton(),
         ],
       ),
       fullscreen: MaterialDesktopVideoControlsThemeData(
         topButtonBar: [
           const Spacer(),
+          _SpeedButton(player: player),
+          _TracksButton(player: player),
+        ],
+        bottomButtonBar: [
+          const MaterialDesktopSkipPreviousButton(),
+          const MaterialDesktopPlayOrPauseButton(),
           MaterialDesktopCustomButton(
             onPressed: () async {
               await player.pause();
@@ -288,8 +303,11 @@ class _VideoPlayerView extends StatelessWidget {
             },
             icon: const Icon(Icons.stop, color: Colors.white),
           ),
-          _SpeedButton(player: player),
-          _TracksButton(player: player),
+          const MaterialDesktopSkipNextButton(),
+          const MaterialDesktopVolumeButton(),
+          const MaterialDesktopPositionIndicator(),
+          const Spacer(),
+          const MaterialDesktopFullscreenButton(),
         ],
       ),
       child: GestureDetector(
@@ -441,14 +459,6 @@ class _AudioPlayerViewState extends State<_AudioPlayerView> {
               ),
               const SizedBox(width: 16),
               IconButton(
-                icon: const Icon(Icons.stop, color: Colors.white, size: 32),
-                onPressed: () async {
-                  await widget.player.pause();
-                  await widget.player.seek(Duration.zero);
-                },
-              ),
-              const SizedBox(width: 8),
-              IconButton(
                 iconSize: 56,
                 icon: Icon(
                   _playing
@@ -458,6 +468,14 @@ class _AudioPlayerViewState extends State<_AudioPlayerView> {
                 ),
                 onPressed: () =>
                     _playing ? widget.player.pause() : widget.player.play(),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.stop, color: Colors.white, size: 32),
+                onPressed: () async {
+                  await widget.player.pause();
+                  await widget.player.seek(Duration.zero);
+                },
               ),
               const SizedBox(width: 16),
               IconButton(

@@ -21,6 +21,10 @@ class FolderNode {
 
   final List<FolderNode> children;
   final int fileCount;
+
+  /// Total count including all descendant directories.
+  int get totalCount =>
+      fileCount + children.fold(0, (sum, c) => sum + c.totalCount);
 }
 
 // ── Provider ──────────────────────────────────────────────────────────────────

@@ -29,8 +29,10 @@ class TagsDao extends DatabaseAccessor<AppDatabase> with _$TagsDaoMixin {
     return id;
   }
 
-  Future<void> deleteTag(String id) =>
-      (delete(tags)..where((t) => t.id.equals(id))).go();
+  Future<void> deleteTag(String id) async {
+    await (delete(assetTags)..where((at) => at.tagId.equals(id))).go();
+    await (delete(tags)..where((t) => t.id.equals(id))).go();
+  }
 
   Future<void> renameTag(String id, String newName) =>
       (update(tags)..where((t) => t.id.equals(id)))
