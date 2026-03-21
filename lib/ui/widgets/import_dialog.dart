@@ -66,10 +66,13 @@ class _ImportDialogState extends ConsumerState<ImportDialog> {
 
   String get _currentStripPrefix {
     if (_prefixSegments.isEmpty) return '';
-    // Keep the last _stripDepth segments as part of the dest path
     final keepCount = _prefixSegments.length - _stripDepth;
-    if (keepCount <= 0) return _stripPrefix; // strip all → flat-ish
-    return p.joinAll(_prefixSegments.sublist(0, keepCount)) + p.separator;
+    // Rebuild absolute path: p.split preserves the root '/' as first element
+    final allParts = p.split(_stripPrefix); // e.g. ['/', 'home', 'fenron', 'MediaShelf_Test_1']
+    if (keepCount <= 0) return p.joinAll(allParts) + p.separator;
+    // +1 to include the root element ('/')
+    final kept = allParts.sublist(0, 1 + keepCount.clamp(0, _prefixSegments.length));
+    return p.joinAll(kept) + p.separator;
   }
 
   String get _previewPath {

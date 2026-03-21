@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
@@ -30,6 +31,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   late final PlaybackNotifier _playbackNotifier;
 
   final _subs = <StreamSubscription>[];
+  final _focusNode = FocusNode();
 
   @override
   void initState() {
@@ -53,6 +55,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final isVid = isVideo(mime);
     final alreadyLoaded =
         ref.read(activePlayerProvider).assetId == widget.assetId;
+    final resumeMs = asset.playbackPositionMs ?? 0;
 
     if (isVid) {
       final ctrl = VideoController(
@@ -70,7 +73,32 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
     setState(() => _asset = asset);
 
-    if (!alreadyLoaded) {
+    if (alreadyLoaded) {
+      // Audio is still playing in background — offer to restart
+      final currentPos = _player.state.position;
+      if (currentPos.inMilliseconds > 500 && mounted) {
+        final restart = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Playback'),
+            content: Text('Playing from ${_fmt(currentPos)}. Start from the beginning?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Continue'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('From beginning'),
+              ),
+            ],
+          ),
+        );
+        if (restart == true && mounted) {
+          await _player.seek(Duration.zero);
+        }
+      }
+    } else {
       await _player.open(Media(filePath), play: false);
       if (!mounted) return;
 
@@ -80,7 +108,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         isVideo: isVid,
       );
 
-      final resumeMs = asset.playbackPositionMs ?? 0;
       if (resumeMs > 500) {
         // Wait until duration is known
         if (_player.state.duration == Duration.zero) {
@@ -154,6 +181,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   @override
   void dispose() {
+    _focusNode.dispose();
     for (final s in _subs) { s.cancel(); }
     _savePosition(_player.state.position.inMilliseconds);
 
@@ -170,23 +198,39 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   @override
   Widget build(BuildContext context) {
     final asset = _asset;
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
+    return Focus(
+      focusNode: _focusNode,
+      autofocus: true,
+      onKeyEvent: (_, event) {
+        if (event is! KeyDownEvent) return KeyEventResult.ignored;
+        if (event.logicalKey == LogicalKeyboardKey.escape) {
+          context.pop();
+          return KeyEventResult.handled;
+        }
+        if (!_isVideo && event.logicalKey == LogicalKeyboardKey.space) {
+          _player.state.playing ? _player.pause() : _player.play();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: Scaffold(
         backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.pop(),
+          ),
+          title: Text(
+            asset?.filename ?? '',
+            style: const TextStyle(color: Colors.white),
+          ),
         ),
-        title: Text(
-          asset?.filename ?? '',
-          style: const TextStyle(color: Colors.white),
-        ),
+        body: asset == null
+            ? const Center(child: CircularProgressIndicator())
+            : _buildPlayer(asset),
       ),
-      body: asset == null
-          ? const Center(child: CircularProgressIndicator())
-          : _buildPlayer(asset),
     );
   }
 
