@@ -25,7 +25,30 @@ class AssetCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isMultiSelect = ref.watch(isMultiSelectProvider);
     final colorScheme = Theme.of(context).colorScheme;
+    final card = _buildCard(colorScheme, isMultiSelect);
 
+    return Draggable<Asset>(
+      data: asset,
+      feedback: Material(
+        color: Colors.transparent,
+        child: Opacity(
+          opacity: 0.75,
+          child: SizedBox(
+            width: 80,
+            height: 80,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: ThumbnailImage(asset: asset),
+            ),
+          ),
+        ),
+      ),
+      childWhenDragging: Opacity(opacity: 0.4, child: card),
+      child: card,
+    );
+  }
+
+  Widget _buildCard(ColorScheme colorScheme, bool isMultiSelect) {
     return GestureDetector(
       onTapDown: onTapDown != null ? (_) => onTapDown!() : null,
       onDoubleTap: onDoubleTap,

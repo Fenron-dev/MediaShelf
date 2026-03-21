@@ -267,6 +267,13 @@ class _VideoPlayerView extends StatelessWidget {
       normal: MaterialDesktopVideoControlsThemeData(
         topButtonBar: [
           const Spacer(),
+          MaterialDesktopCustomButton(
+            onPressed: () async {
+              await player.pause();
+              await player.seek(Duration.zero);
+            },
+            icon: const Icon(Icons.stop, color: Colors.white),
+          ),
           _SpeedButton(player: player),
           _TracksButton(player: player),
         ],
@@ -274,6 +281,13 @@ class _VideoPlayerView extends StatelessWidget {
       fullscreen: MaterialDesktopVideoControlsThemeData(
         topButtonBar: [
           const Spacer(),
+          MaterialDesktopCustomButton(
+            onPressed: () async {
+              await player.pause();
+              await player.seek(Duration.zero);
+            },
+            icon: const Icon(Icons.stop, color: Colors.white),
+          ),
           _SpeedButton(player: player),
           _TracksButton(player: player),
         ],
@@ -426,6 +440,14 @@ class _AudioPlayerViewState extends State<_AudioPlayerView> {
                     .seek(_position - const Duration(seconds: 10)),
               ),
               const SizedBox(width: 16),
+              IconButton(
+                icon: const Icon(Icons.stop, color: Colors.white, size: 32),
+                onPressed: () async {
+                  await widget.player.pause();
+                  await widget.player.seek(Duration.zero);
+                },
+              ),
+              const SizedBox(width: 8),
               IconButton(
                 iconSize: 56,
                 icon: Icon(

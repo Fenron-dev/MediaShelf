@@ -15,7 +15,7 @@
 .swiftpm/
 migrate_working_dir/
 .claude/
-.~lock.MediaShelf_Research_Feature-Analyse.docx
+*.docx
 # IntelliJ related
 *.iml
 *.ipr

@@ -1,8 +1,10 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../data/database/app_database.dart';
+import '../../providers/asset_filter_provider.dart';
 import '../../providers/asset_list_provider.dart';
 import '../../providers/collection_provider.dart';
 import '../../providers/library_provider.dart';
@@ -183,7 +185,7 @@ class _AssetDetailState extends ConsumerState<_AssetDetail> {
           _MetaRow('Duration', _formatDuration(asset.durationMs!)),
 
         // Locations (collections this asset belongs to)
-        _LocationsSection(assetId: asset.id),
+        _LocationsSection(assetId: asset.id, assetPath: asset.path),
       ],
     );
   }
@@ -352,25 +354,30 @@ class _StarRating extends StatelessWidget {
 // ── Locations (collections this asset belongs to) ─────────────────────────────
 
 class _LocationsSection extends ConsumerWidget {
-  const _LocationsSection({required this.assetId});
+  const _LocationsSection({required this.assetId, required this.assetPath});
   final String assetId;
+  final String assetPath;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final collectionsAsync = ref.watch(collectionsProvider);
     final dao = ref.watch(collectionsDaoProvider);
 
+    final parts = assetPath.split('/');
+    final dirPath = parts.length > 1
+        ? parts.sublist(0, parts.length - 1).join('/')
+        : '';
+
     return FutureBuilder<List<Collection>>(
       future: dao.getCollectionsForAsset(assetId),
       builder: (context, snap) {
         final cols = snap.data ?? [];
-        if (cols.isEmpty) return const SizedBox.shrink();
+        if (cols.isEmpty && dirPath.isEmpty) return const SizedBox.shrink();
 
         return collectionsAsync.when(
           data: (allCols) {
             final colMap = {for (final c in allCols) c.id: c};
 
-            // Build breadcrumb path for each collection
             String buildPath(Collection col) {
               final segments = <String>[];
               Collection? current = col;
@@ -387,25 +394,45 @@ class _LocationsSection extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Divider(height: 24),
-                Text('Orte',
-                    style: Theme.of(context).textTheme.labelMedium),
+                Text('Orte', style: Theme.of(context).textTheme.labelMedium),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
-                  children: cols.map((c) {
-                    return Chip(
-                      avatar: const Icon(Icons.folder_outlined, size: 14),
+                  children: [
+                    if (dirPath.isNotEmpty)
+                      ActionChip(
+                        avatar: const Icon(Icons.folder_outlined, size: 14),
+                        label: Text(
+                          dirPath.split('/').last,
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                        tooltip: dirPath,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        padding: EdgeInsets.zero,
+                        labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+                        onPressed: () {
+                          ref.read(assetFilterProvider.notifier)
+                              .setDirFilter(dirPath, includeSubdirs: true);
+                          context.pop();
+                        },
+                      ),
+                    ...cols.map((c) => ActionChip(
+                      avatar: const Icon(Icons.collections_bookmark_outlined, size: 14),
                       label: Text(
                         buildPath(c),
                         style: const TextStyle(fontSize: 11),
                       ),
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       padding: EdgeInsets.zero,
-                      labelPadding:
-                          const EdgeInsets.symmetric(horizontal: 4),
-                    );
-                  }).toList(),
+                      labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+                      onPressed: () {
+                        ref.read(assetFilterProvider.notifier)
+                            .setCollectionId(c.id);
+                        context.pop();
+                      },
+                    )),
+                  ],
                 ),
               ],
             );

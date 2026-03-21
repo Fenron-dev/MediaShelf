@@ -8,19 +8,43 @@ class AssetFilterNotifier extends StateNotifier<AssetFilter> {
   void setSearchQuery(String query) =>
       state = state.copyWith(searchQuery: query);
 
-  void setDirFilter(String dir, {bool includeSubdirs = true}) =>
-      state = state.copyWith(dirFilter: dir, includeSubdirs: includeSubdirs);
+  void setDirFilter(String dir, {bool includeSubdirs = true}) {
+    if (dir.isEmpty) {
+      state = state.copyWith(dirFilter: '', includeSubdirs: includeSubdirs);
+    } else {
+      state = state.copyWith(
+        dirFilter: dir,
+        includeSubdirs: includeSubdirs,
+        clearCollectionId: true,
+        clearTagFilter: true,
+      );
+    }
+  }
 
   void clearDirFilter() =>
       state = state.copyWith(dirFilter: '');
 
   void setCollectionId(String? id) => id == null
       ? state = state.copyWith(clearCollectionId: true)
-      : state = state.copyWith(collectionId: id);
+      : state = state.copyWith(
+          collectionId: id,
+          dirFilter: '',
+          clearTagFilter: true,
+        );
 
   void setTagFilter(String? tag) => tag == null
       ? state = state.copyWith(clearTagFilter: true)
-      : state = state.copyWith(tagFilter: tag);
+      : state = state.copyWith(
+          tagFilter: tag,
+          dirFilter: '',
+          clearCollectionId: true,
+        );
+
+  void toggleIncludeSubdirs() =>
+      state = state.copyWith(includeSubdirs: !state.includeSubdirs);
+
+  void setIncludeSubdirs(bool v) =>
+      state = state.copyWith(includeSubdirs: v);
 
   void setRatingMin(int rating) =>
       state = state.copyWith(ratingMin: rating);

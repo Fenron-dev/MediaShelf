@@ -10,6 +10,7 @@ class FolderNode {
     required this.name,
     required this.fullPath,
     required this.children,
+    this.fileCount = 0,
   });
 
   /// Display name (the last path segment).
@@ -19,6 +20,7 @@ class FolderNode {
   final String fullPath;
 
   final List<FolderNode> children;
+  final int fileCount;
 }
 
 // ── Provider ──────────────────────────────────────────────────────────────────
@@ -31,12 +33,13 @@ final folderTreeProvider = FutureProvider<List<FolderNode>>((ref) async {
 
   final dao = ref.watch(assetsDaoProvider);
   final paths = await dao.getDirPaths();
-  return _buildTree(paths);
+  final counts = await dao.getDirCounts();
+  return _buildTree(paths, counts);
 });
 
 // ── Tree builder ──────────────────────────────────────────────────────────────
 
-List<FolderNode> _buildTree(List<String> dirPaths) {
+List<FolderNode> _buildTree(List<String> dirPaths, Map<String, int> counts) {
   // Build a map: fullPath → node (temporarily mutable children list)
   final Map<String, _MutableNode> nodes = {};
 
@@ -48,7 +51,11 @@ List<FolderNode> _buildTree(List<String> dirPaths) {
           '${segments.sublist(0, i + 1).join('/')}/';
       nodes.putIfAbsent(
         cumPath,
-        () => _MutableNode(name: segments[i], fullPath: cumPath),
+        () => _MutableNode(
+          name: segments[i],
+          fullPath: cumPath,
+          fileCount: counts[cumPath] ?? 0,
+        ),
       );
     }
   }
@@ -76,6 +83,7 @@ FolderNode _toNode(_MutableNode m) {
     name: m.name,
     fullPath: m.fullPath,
     children: m.children.map(_toNode).toList(),
+    fileCount: m.fileCount,
   );
 }
 
@@ -88,8 +96,9 @@ String? _parentPath(String fullPath) {
 }
 
 class _MutableNode {
-  _MutableNode({required this.name, required this.fullPath});
+  _MutableNode({required this.name, required this.fullPath, this.fileCount = 0});
   final String name;
   final String fullPath;
+  int fileCount;
   final List<_MutableNode> children = [];
 }

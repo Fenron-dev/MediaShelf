@@ -69,6 +69,35 @@ class _LibrarySidebarState extends ConsumerState<LibrarySidebar> {
           expanded: _expandFolders,
           onToggle: () => setState(() =>
               _toggle(_kExpandFolders, _expandFolders, (v) => _expandFolders = v)),
+          trailing: Consumer(
+            builder: (context, ref, _) {
+              final includeSubdirs = ref.watch(assetFilterProvider.select((f) => f.includeSubdirs));
+              return IconButton(
+                icon: Icon(
+                  includeSubdirs
+                      ? Icons.account_tree_outlined
+                      : Icons.folder_outlined,
+                  size: 16,
+                  color: includeSubdirs
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                tooltip: includeSubdirs ? 'Unterordner eingeschlossen' : 'Nur dieser Ordner',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                onPressed: () {
+                  final currentIncludeSubdirs = ref.read(assetFilterProvider).includeSubdirs;
+                  final notifier = ref.read(assetFilterProvider.notifier);
+                  notifier.toggleIncludeSubdirs();
+                  // Re-apply dir filter with new subdir setting if one is active
+                  final current = ref.read(assetFilterProvider);
+                  if (current.dirFilter.isNotEmpty) {
+                    notifier.setDirFilter(current.dirFilter, includeSubdirs: !currentIncludeSubdirs);
+                  }
+                },
+              );
+            },
+          ),
           child: const _FolderTreeSection(),
         ),
         const Divider(height: 1),
@@ -273,20 +302,26 @@ class _FolderTileState extends ConsumerState<_FolderTile> {
               color: selected ? cs.primary : null,
             ),
           ),
-          trailing: hasChildren
-              ? IconButton(
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.node.fileCount > 0)
+                Text(
+                  '${widget.node.fileCount}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              if (hasChildren)
+                IconButton(
                   icon: Icon(
-                    _expanded
-                        ? Icons.expand_less
-                        : Icons.expand_more,
+                    _expanded ? Icons.expand_less : Icons.expand_more,
                     size: 16,
                   ),
                   padding: EdgeInsets.zero,
-                  constraints:
-                      const BoxConstraints(minWidth: 28, minHeight: 28),
+                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
                   onPressed: () => setState(() => _expanded = !_expanded),
-                )
-              : null,
+                ),
+            ],
+          ),
           selected: selected,
           selectedTileColor: cs.primaryContainer.withValues(alpha: 0.3),
           shape: RoundedRectangleBorder(
@@ -296,12 +331,12 @@ class _FolderTileState extends ConsumerState<_FolderTile> {
             if (selected) {
               notifier.clearDirFilter();
             } else {
-              // fullPath ends with '/', strip it for the filter
               final dir = widget.node.fullPath.endsWith('/')
                   ? widget.node.fullPath.substring(
                       0, widget.node.fullPath.length - 1)
                   : widget.node.fullPath;
-              notifier.setDirFilter(dir, includeSubdirs: true);
+              final includeSubdirs = ref.read(assetFilterProvider).includeSubdirs;
+              notifier.setDirFilter(dir, includeSubdirs: includeSubdirs);
             }
           },
         ),
@@ -430,43 +465,51 @@ class _CollectionTileState extends ConsumerState<_CollectionTile> {
     final selected = widget.activeId == widget.collection.id;
     final indent = 12.0 + widget.depth * 14.0;
 
-    return Column(
-      children: [
-        ListTile(
-          dense: true,
-          contentPadding: EdgeInsets.only(left: indent, right: 4),
-          leading: Icon(
-            hasChildren
-                ? (_expanded
-                    ? Icons.folder_open_outlined
-                    : Icons.folder_outlined)
-                : Icons.folder_outlined,
-            size: 18,
-            color: selected ? cs.primary : null,
-          ),
-          title: Text(
-            widget.collection.name,
-            style: TextStyle(
-              fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-              color: selected ? cs.primary : null,
+    return DragTarget<Asset>(
+      onWillAcceptWithDetails: (_) => true,
+      onAcceptWithDetails: (details) async {
+        final dao = ref.read(collectionsDaoProvider);
+        await dao.addAssetToCollection(widget.collection.id, details.data.id);
+        ref.invalidate(collectionsProvider);
+      },
+      builder: (context, candidateData, rejectedData) {
+        final isDragOver = candidateData.isNotEmpty;
+        return Column(
+          children: [
+            ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.only(left: indent, right: 4),
+              tileColor: isDragOver
+                  ? cs.primaryContainer.withValues(alpha: 0.5)
+                  : null,
+              leading: Icon(
+                hasChildren
+                    ? (_expanded ? Icons.folder_open_outlined : Icons.folder_outlined)
+                    : Icons.folder_outlined,
+                size: 18,
+                color: selected ? cs.primary : null,
+              ),
+              title: Text(
+                widget.collection.name,
+                style: TextStyle(
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                  color: selected ? cs.primary : null,
+                ),
+              ),
+              trailing: hasChildren
+                  ? IconButton(
+                      icon: Icon(_expanded ? Icons.expand_less : Icons.expand_more, size: 16),
+                      onPressed: () => setState(() => _expanded = !_expanded),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    )
+                  : null,
+              selected: selected,
+              selectedTileColor: cs.primaryContainer.withValues(alpha: 0.3),
+              onTap: () => widget.onTap(widget.collection.id),
             ),
-          ),
-          trailing: hasChildren
-              ? IconButton(
-                  icon: Icon(
-                      _expanded ? Icons.expand_less : Icons.expand_more,
-                      size: 16),
-                  onPressed: () => setState(() => _expanded = !_expanded),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                )
-              : null,
-          selected: selected,
-          selectedTileColor: cs.primaryContainer.withValues(alpha: 0.3),
-          onTap: () => widget.onTap(widget.collection.id),
-        ),
-        if (hasChildren && _expanded)
-          ...children.map((child) => _CollectionTile(
+            if (hasChildren && _expanded)
+              ...children.map((child) => _CollectionTile(
                 collection: child,
                 depth: widget.depth + 1,
                 colMap: widget.colMap,
@@ -474,12 +517,22 @@ class _CollectionTileState extends ConsumerState<_CollectionTile> {
                 activeId: widget.activeId,
                 onTap: widget.onTap,
               )),
-      ],
+          ],
+        );
+      },
     );
   }
 }
 
 // ── Tags ──────────────────────────────────────────────────────────────────────
+
+class _TagNode {
+  _TagNode({required this.name, required this.fullName});
+  final String name;       // display segment (e.g. "strand")
+  final String fullName;   // full tag name (e.g. "bilder/strand")
+  int count = 0;
+  final List<_TagNode> children = [];
+}
 
 class _TagsSection extends ConsumerWidget {
   const _TagsSection();
@@ -491,24 +544,158 @@ class _TagsSection extends ConsumerWidget {
     final notifier = ref.read(assetFilterProvider.notifier);
 
     return tagsAsync.when(
-      data: (tags) => Column(
-        children: tags.map((twc) {
-          final selected = filter.tagFilter == twc.tag.name;
-          return _SidebarTile(
-            icon: Icons.label_outline,
-            label: twc.tag.name,
-            trailing: Text('${twc.count}',
-                style: Theme.of(context).textTheme.bodySmall),
-            selected: selected,
-            onTap: () =>
-                notifier.setTagFilter(selected ? null : twc.tag.name),
-          );
-        }).toList(),
-      ),
+      data: (tags) {
+        // Build tree from tag names using '/' separator
+        final roots = _buildTagTree(tags);
+        if (roots.isEmpty) return const SizedBox.shrink();
+        return Column(
+          children: roots.map((node) => _TagTile(
+            node: node,
+            depth: 0,
+            activeTag: filter.tagFilter,
+            onTap: (tagName) =>
+                notifier.setTagFilter(filter.tagFilter == tagName ? null : tagName),
+          )).toList(),
+        );
+      },
       loading: () => const Padding(
-          padding: EdgeInsets.all(16),
-          child: LinearProgressIndicator()),
+        padding: EdgeInsets.all(16),
+        child: LinearProgressIndicator(),
+      ),
       error: (e, _) => const SizedBox.shrink(),
+    );
+  }
+
+  List<_TagNode> _buildTagTree(List<TagWithCount> tags) {
+    final Map<String, _TagNode> byFullName = {};
+    final roots = <_TagNode>[];
+
+    // Sort so parents come before children
+    final sorted = [...tags]..sort((a, b) =>
+        a.tag.name.toLowerCase().compareTo(b.tag.name.toLowerCase()));
+
+    for (final twc in sorted) {
+      final parts = twc.tag.name.split('/');
+      for (var i = 0; i < parts.length; i++) {
+        final fullName = parts.sublist(0, i + 1).join('/');
+        if (!byFullName.containsKey(fullName)) {
+          final node = _TagNode(
+            name: parts[i],
+            fullName: fullName,
+          );
+          byFullName[fullName] = node;
+          if (i == 0) {
+            roots.add(node);
+          } else {
+            final parentName = parts.sublist(0, i).join('/');
+            byFullName[parentName]?.children.add(node);
+          }
+        }
+        // Accumulate count: actual tags contribute their count
+        if (i == parts.length - 1) {
+          byFullName[fullName]!.count = twc.count;
+        }
+      }
+    }
+    return roots;
+  }
+}
+
+class _TagTile extends ConsumerStatefulWidget {
+  const _TagTile({
+    required this.node,
+    required this.depth,
+    required this.activeTag,
+    required this.onTap,
+  });
+
+  final _TagNode node;
+  final int depth;
+  final String? activeTag;
+  final void Function(String) onTap;
+
+  @override
+  ConsumerState<_TagTile> createState() => _TagTileState();
+}
+
+class _TagTileState extends ConsumerState<_TagTile> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final hasChildren = widget.node.children.isNotEmpty;
+    final selected = widget.activeTag == widget.node.fullName;
+    // Also highlight if active filter is a child of this node
+    final isAncestor = widget.activeTag != null &&
+        widget.activeTag!.startsWith('${widget.node.fullName}/');
+    final indent = 12.0 + widget.depth * 14.0;
+
+    return DragTarget<Asset>(
+      onWillAcceptWithDetails: (_) => true,
+      onAcceptWithDetails: (details) async {
+        final tagsDao = ref.read(tagsDaoProvider);
+        final assetsDao = ref.read(assetsDaoProvider);
+        final tagId = await tagsDao.upsertTag(widget.node.fullName);
+        await assetsDao.addTagToAsset(details.data.id, tagId);
+        ref.invalidate(assetTagsProvider(details.data.id));
+        ref.invalidate(allTagsProvider);
+      },
+      builder: (context, candidateData, rejectedData) {
+        final isDragOver = candidateData.isNotEmpty;
+        return Column(
+          children: [
+            ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.only(left: indent, right: 4),
+              tileColor: isDragOver
+                  ? cs.primaryContainer.withValues(alpha: 0.5)
+                  : null,
+              leading: Icon(
+                Icons.label_outline,
+                size: 18,
+                color: (selected || isAncestor) ? cs.primary : null,
+              ),
+              title: Text(
+                widget.node.name,
+                style: TextStyle(
+                  fontWeight: (selected || isAncestor) ? FontWeight.w600 : FontWeight.normal,
+                  color: (selected || isAncestor) ? cs.primary : null,
+                ),
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (widget.node.count > 0)
+                    Text('${widget.node.count}',
+                        style: Theme.of(context).textTheme.bodySmall),
+                  if (hasChildren)
+                    IconButton(
+                      icon: Icon(
+                        _expanded ? Icons.expand_less : Icons.expand_more,
+                        size: 16,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                      onPressed: () => setState(() => _expanded = !_expanded),
+                    ),
+                ],
+              ),
+              selected: selected,
+              selectedTileColor: cs.primaryContainer.withValues(alpha: 0.3),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              onTap: () => widget.onTap(widget.node.fullName),
+            ),
+            if (_expanded && hasChildren)
+              ...widget.node.children.map((child) => _TagTile(
+                node: child,
+                depth: widget.depth + 1,
+                activeTag: widget.activeTag,
+                onTap: widget.onTap,
+              )),
+          ],
+        );
+      },
     );
   }
 }
@@ -592,7 +779,6 @@ Widget _sectionLabel(BuildContext context, String title) {
 class _SidebarTile extends StatelessWidget {
   final IconData icon;
   final String label;
-  final Widget? trailing;
   final bool selected;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
@@ -600,7 +786,6 @@ class _SidebarTile extends StatelessWidget {
   const _SidebarTile({
     required this.icon,
     required this.label,
-    this.trailing,
     this.selected = false,
     this.onTap,
     this.onLongPress,
@@ -619,7 +804,6 @@ class _SidebarTile extends StatelessWidget {
           color: selected ? cs.primary : null,
         ),
       ),
-      trailing: trailing,
       selected: selected,
       selectedTileColor: cs.primaryContainer.withValues(alpha: 0.3),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),

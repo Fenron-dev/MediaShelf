@@ -222,14 +222,17 @@ class AssetsDao extends DatabaseAccessor<AppDatabase> with _$AssetsDaoMixin {
       }
     }
 
-    // Tag filter
+    // Tag filter — exact match OR any sub-tag (bilder matches bilder/strand)
     if (filter.tagFilter != null && filter.tagFilter!.isNotEmpty) {
       conditions.add(
         'EXISTS (SELECT 1 FROM asset_tags at2'
         ' JOIN tags t ON t.id = at2.tag_id'
-        ' WHERE at2.asset_id = a.id AND LOWER(t.name) = LOWER(?))',
+        ' WHERE at2.asset_id = a.id'
+        ' AND (LOWER(t.name) = LOWER(?) OR t.name LIKE ?))',
       );
-      params.add(Variable.withString(filter.tagFilter!));
+      params
+        ..add(Variable.withString(filter.tagFilter!))
+        ..add(Variable.withString('${filter.tagFilter!}/%'));
     }
 
     // Rating minimum
@@ -492,6 +495,22 @@ class AssetsDao extends DatabaseAccessor<AppDatabase> with _$AssetsDaoMixin {
   }
 
   // ── Directory tree ─────────────────────────────────────────────────────────
+
+  /// Returns a map of dir_path → direct file count (not recursive).
+  Future<Map<String, int>> getDirCounts() async {
+    final rows = await customSelect(
+      "SELECT substr(path, 1, length(path) - length(filename)) as dir,"
+      " COUNT(*) as cnt"
+      " FROM assets WHERE status = 'ok'"
+      " AND length(path) > length(filename)"
+      " GROUP BY dir",
+      readsFrom: {assets},
+    ).get();
+    return {
+      for (final r in rows)
+        r.read<String>('dir'): r.read<int>('cnt'),
+    };
+  }
 
   /// Returns all unique directory path prefixes from indexed assets.
   /// Each entry ends with '/' and is relative to the library root.
