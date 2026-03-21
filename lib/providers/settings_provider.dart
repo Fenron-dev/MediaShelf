@@ -7,6 +7,8 @@ import '../core/constants.dart';
 const _kThumbSize = 'pref_thumb_size';
 const _kShowSidebar = 'pref_show_sidebar';
 const _kShowDetail = 'pref_show_detail';
+const _kSidebarWidth = 'pref_sidebar_width';
+const _kDetailPanelWidth = 'pref_detail_panel_width';
 
 enum ViewMode { grid, list }
 
@@ -69,4 +71,39 @@ final showSidebarProvider =
 final showDetailPanelProvider =
     StateNotifierProvider<_BoolPrefNotifier, bool>(
   (ref) => _BoolPrefNotifier(_kShowDetail, true),
+);
+
+// ── Panel widths (persistent, draggable) ──────────────────────────────────────
+
+class _DoublePrefNotifier extends StateNotifier<double> {
+  final String _key;
+  final double _min;
+  final double _max;
+
+  _DoublePrefNotifier(this._key, double defaultValue, this._min, this._max)
+      : super(defaultValue) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getDouble(_key);
+    if (saved != null) state = saved.clamp(_min, _max);
+  }
+
+  void set(double value) {
+    state = value.clamp(_min, _max);
+    SharedPreferences.getInstance().then((p) => p.setDouble(_key, state));
+  }
+}
+
+final sidebarWidthProvider =
+    StateNotifierProvider<_DoublePrefNotifier, double>(
+  (ref) => _DoublePrefNotifier(_kSidebarWidth, kSidebarWidth, 150.0, 520.0),
+);
+
+final detailPanelWidthProvider =
+    StateNotifierProvider<_DoublePrefNotifier, double>(
+  (ref) => _DoublePrefNotifier(
+      _kDetailPanelWidth, kDetailPanelWidth, 200.0, 600.0),
 );

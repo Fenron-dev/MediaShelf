@@ -17,8 +17,10 @@ class DesktopShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final showSidebar = ref.watch(showSidebarProvider);
     final showDetail = ref.watch(showDetailPanelProvider);
-    final width = MediaQuery.sizeOf(context).width;
-    final showDetailPanel = showDetail && width >= kDetailPanelBreakpoint;
+    final sidebarWidth = ref.watch(sidebarWidthProvider);
+    final detailWidth = ref.watch(detailPanelWidthProvider);
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final showDetailPanel = showDetail && screenWidth >= kDetailPanelBreakpoint;
 
     return Scaffold(
       body: Column(
@@ -31,16 +33,29 @@ class DesktopShell extends ConsumerWidget {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      if (showSidebar)
-                        SizedBox(width: kSidebarWidth, child: const LibrarySidebar()),
-                      if (showSidebar) const VerticalDivider(width: 1),
+                      if (showSidebar) ...[
+                        SizedBox(
+                            width: sidebarWidth,
+                            child: const LibrarySidebar()),
+                        _ResizeDivider(
+                          onDrag: (dx) => ref
+                              .read(sidebarWidthProvider.notifier)
+                              .set(sidebarWidth + dx),
+                        ),
+                      ],
                       const Expanded(child: AssetGrid()),
-                      if (showDetailPanel) const VerticalDivider(width: 1),
-                      if (showDetailPanel)
-                        SizedBox(width: kDetailPanelWidth, child: const DetailPanel()),
+                      if (showDetailPanel) ...[
+                        _ResizeDivider(
+                          onDrag: (dx) => ref
+                              .read(detailPanelWidthProvider.notifier)
+                              .set(detailWidth - dx),
+                        ),
+                        SizedBox(
+                            width: detailWidth,
+                            child: const DetailPanel()),
+                      ],
                     ],
                   ),
-                  // Bulk toolbar anchored to bottom
                   const Positioned(
                     bottom: 0,
                     left: 0,
@@ -52,6 +67,32 @@ class DesktopShell extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Draggable resize handle ───────────────────────────────────────────────────
+
+class _ResizeDivider extends StatelessWidget {
+  final void Function(double dx) onDrag;
+  const _ResizeDivider({required this.onDrag});
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.resizeColumn,
+      child: GestureDetector(
+        onHorizontalDragUpdate: (details) => onDrag(details.delta.dx),
+        child: SizedBox(
+          width: 8,
+          child: Center(
+            child: Container(
+              width: 1,
+              color: Theme.of(context).dividerColor,
+            ),
+          ),
+        ),
       ),
     );
   }
