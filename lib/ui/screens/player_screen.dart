@@ -27,7 +27,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   void initState() {
     super.initState();
     _player = Player();
-    _playbackNotifier = _playbackNotifier;
+    _playbackNotifier = ref.read(playbackProvider.notifier);
     _loadAsset();
   }
 
