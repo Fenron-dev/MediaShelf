@@ -369,46 +369,44 @@ MediaMetadata _readPdf(String path) {
   final raf = file.openSync();
   final size = raf.lengthSync();
   try {
-    // Read last 2 KB for xref/trailer
-    final tailSize = size < 2048 ? size : 2048;
-    raf.setPositionSync(size - tailSize);
-    final tail = raf.readSync(tailSize);
+    // Read head (first 64 KB) and tail (last 256 KB) — Info dict can be anywhere
+    final headSize = size < 65536 ? size : 65536;
+    raf.setPositionSync(0);
+    final head = raf.readSync(headSize);
+    final headStr = latin1.decode(head, allowInvalid: true);
+
+    final tailBytes = size < 262144 ? size : 262144;
+    final tailOffset = size - tailBytes;
+    raf.setPositionSync(tailOffset);
+    final tail = raf.readSync(tailBytes);
     final tailStr = latin1.decode(tail, allowInvalid: true);
 
-    // Count pages: find /Count in /Pages dict
+    // /Count — page count (largest match wins to avoid /Count in sub-dicts)
     int? pageCount;
-    final pageMatch = RegExp(r'/Count\s+(\d+)').firstMatch(tailStr);
-    if (pageMatch != null) {
-      pageCount = int.tryParse(pageMatch.group(1)!);
+    for (final src in [tailStr, headStr]) {
+      int best = 0;
+      for (final m in RegExp(r'/Count\s+(\d+)').allMatches(src)) {
+        final v = int.tryParse(m.group(1)!) ?? 0;
+        if (v > best) best = v;
+      }
+      if (best > 0) {
+        pageCount = best;
+        break;
+      }
     }
 
-    // If not found in tail, scan first 64KB
-    if (pageCount == null) {
-      final headSize = size < 65536 ? size : 65536;
-      raf.setPositionSync(0);
-      final head = raf.readSync(headSize);
-      final headStr = latin1.decode(head, allowInvalid: true);
-      final m = RegExp(r'/Count\s+(\d+)').firstMatch(headStr);
-      if (m != null) pageCount = int.tryParse(m.group(1)!);
-    }
-
-    // Read Info dictionary: title, author, creator
+    // /Title and /Author — check both head and tail, prefer non-empty result
     String? title;
     String? author;
-    final headSize2 = size < 65536 ? size : 65536;
-    raf.setPositionSync(0);
-    final head2 = raf.readSync(headSize2);
-    final headStr2 = latin1.decode(head2, allowInvalid: true);
-
-    final titleMatch = RegExp(r'/Title\s*\(([^)]+)\)').firstMatch(headStr2);
-    if (titleMatch != null) title = _decodePdfString(titleMatch.group(1)!);
-
-    final authorMatch = RegExp(r'/Author\s*\(([^)]+)\)').firstMatch(headStr2);
-    if (authorMatch != null) author = _decodePdfString(authorMatch.group(1)!);
+    for (final src in [headStr, tailStr]) {
+      title ??= _pdfInfoField(src, 'Title');
+      author ??= _pdfInfoField(src, 'Author');
+      if (title != null && author != null) break;
+    }
 
     return MediaMetadata(
-      mediaTitle: title,
-      author: author,
+      mediaTitle: title?.isEmpty == true ? null : title,
+      author: author?.isEmpty == true ? null : author,
       pageCount: pageCount,
     );
   } finally {
@@ -416,15 +414,57 @@ MediaMetadata _readPdf(String path) {
   }
 }
 
-String _decodePdfString(String s) {
-  // Remove PDF escape sequences
-  return s
-      .replaceAll(r'\n', '\n')
-      .replaceAll(r'\r', '\r')
-      .replaceAll(r'\\', '\\')
-      .replaceAll(r'\(', '(')
-      .replaceAll(r'\)', ')')
-      .trim();
+/// Extracts a PDF Info dictionary field value.
+/// Handles both literal strings `/Field (text)` and
+/// hex strings `/Field <FEFF...>` (UTF-16BE with BOM).
+String? _pdfInfoField(String src, String field) {
+  // Literal string: /Title (Some text)
+  final litMatch = RegExp('/$field\\s*\\(').firstMatch(src);
+  if (litMatch != null) {
+    // Read until unescaped closing paren
+    final start = litMatch.end;
+    final buf = StringBuffer();
+    var i = start;
+    var depth = 1;
+    while (i < src.length && depth > 0) {
+      final ch = src[i];
+      if (ch == '\\' && i + 1 < src.length) {
+        buf.write(src[i + 1]);
+        i += 2;
+        continue;
+      }
+      if (ch == '(') depth++;
+      else if (ch == ')') { depth--; if (depth == 0) break; }
+      if (depth > 0) buf.write(ch);
+      i++;
+    }
+    final text = buf.toString().trim();
+    if (text.isNotEmpty) return text;
+  }
+
+  // Hex string: /Title <FEFF0048...>
+  final hexMatch = RegExp('/$field\\s*<([0-9A-Fa-f\\s]+)>').firstMatch(src);
+  if (hexMatch != null) {
+    final hex = hexMatch.group(1)!.replaceAll(RegExp(r'\s'), '');
+    final bytes = <int>[];
+    for (var i = 0; i + 1 < hex.length; i += 2) {
+      bytes.add(int.parse(hex.substring(i, i + 2), radix: 16));
+    }
+    if (bytes.length >= 2 &&
+        ((bytes[0] == 0xFE && bytes[1] == 0xFF) ||
+         (bytes[0] == 0xFF && bytes[1] == 0xFE))) {
+      // UTF-16
+      final text = const Utf16Decoder().decodeUtf16(bytes).trim();
+      if (text.isNotEmpty) return text;
+    } else {
+      // Latin-1 hex
+      try {
+        final text = latin1.decode(bytes).trim();
+        if (text.isNotEmpty) return text;
+      } catch (_) {}
+    }
+  }
+  return null;
 }
 
 // ── EPUB ─────────────────────────────────────────────────────────────────────

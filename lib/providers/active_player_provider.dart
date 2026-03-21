@@ -55,6 +55,20 @@ class ActivePlayerNotifier extends StateNotifier<ActivePlayerState> {
     );
   }
 
+  /// Opens [filePath] in the player and updates the active-player meta.
+  /// Used by [QueueNotifier] for background (mini-player) track advancement.
+  Future<void> playAsset({
+    required String filePath,
+    required String assetId,
+    required String assetName,
+    required bool isVideo,
+  }) async {
+    await _player.open(Media(filePath), play: false);
+    await _player.setVolume(100.0);
+    setMeta(assetId: assetId, assetName: assetName, isVideo: isVideo);
+    await _player.play();
+  }
+
   Future<void> stop() async {
     await _player.stop();
     state = const ActivePlayerState();

@@ -32,6 +32,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   final _subs = <StreamSubscription>[];
   final _focusNode = FocusNode();
+  final _videoViewKey = GlobalKey<_VideoPlayerViewState>();
 
   @override
   void initState() {
@@ -215,7 +216,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           return KeyEventResult.handled;
         }
         if (event.logicalKey == LogicalKeyboardKey.keyF && _isVideo) {
-          toggleFullscreen(context);
+          _videoViewKey.currentState?.toggleFullscreen();
           return KeyEventResult.handled;
         }
         return KeyEventResult.ignored;
@@ -250,7 +251,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         return const Center(
             child: CircularProgressIndicator(color: Colors.white));
       }
-      return _VideoPlayerView(player: _player, controller: ctrl);
+      return _VideoPlayerView(key: _videoViewKey, player: _player, controller: ctrl);
     }
 
     return _AudioPlayerView(player: _player, asset: asset);
@@ -259,88 +260,83 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
 // ── Video Player ──────────────────────────────────────────────────────────────
 
-class _VideoPlayerView extends StatelessWidget {
+class _VideoPlayerView extends StatefulWidget {
   final Player player;
   final VideoController controller;
 
-  const _VideoPlayerView({required this.player, required this.controller});
+  const _VideoPlayerView({
+    super.key,
+    required this.player,
+    required this.controller,
+  });
+
+  @override
+  State<_VideoPlayerView> createState() => _VideoPlayerViewState();
+}
+
+class _VideoPlayerViewState extends State<_VideoPlayerView> {
+  final _videoKey = GlobalKey<VideoState>();
+
+  void toggleFullscreen() {
+    final vs = _videoKey.currentState;
+    if (vs == null) return;
+    if (vs.isFullscreen()) {
+      vs.exitFullscreen();
+    } else {
+      vs.enterFullscreen();
+    }
+  }
+
+  MaterialDesktopVideoControlsThemeData _buildControls() =>
+      MaterialDesktopVideoControlsThemeData(
+        topButtonBar: [
+          const Spacer(),
+          _SpeedButton(player: widget.player),
+        ],
+        bottomButtonBar: [
+          MaterialDesktopCustomButton(
+            onPressed: () {
+              final pos = widget.player.state.position;
+              widget.player.seek(pos - const Duration(seconds: 10));
+            },
+            icon: const Icon(Icons.replay_10, color: Colors.white),
+          ),
+          const MaterialDesktopPlayOrPauseButton(),
+          MaterialDesktopCustomButton(
+            onPressed: () async {
+              await widget.player.pause();
+              await widget.player.seek(Duration.zero);
+            },
+            icon: const Icon(Icons.stop, color: Colors.white),
+          ),
+          MaterialDesktopCustomButton(
+            onPressed: () {
+              final pos = widget.player.state.position;
+              widget.player.seek(pos + const Duration(seconds: 30));
+            },
+            icon: const Icon(Icons.forward_30, color: Colors.white),
+          ),
+          const MaterialDesktopVolumeButton(),
+          const MaterialDesktopPositionIndicator(),
+          const Spacer(),
+          const MaterialDesktopFullscreenButton(),
+        ],
+      );
 
   @override
   Widget build(BuildContext context) {
+    final controls = _buildControls();
     return MaterialDesktopVideoControlsTheme(
-      normal: MaterialDesktopVideoControlsThemeData(
-        topButtonBar: [
-          const Spacer(),
-          _SpeedButton(player: player),
-        ],
-        bottomButtonBar: [
-          MaterialDesktopCustomButton(
-            onPressed: () {
-              final pos = player.state.position;
-              player.seek(pos - const Duration(seconds: 10));
-            },
-            icon: const Icon(Icons.replay_10, color: Colors.white),
-          ),
-          const MaterialDesktopPlayOrPauseButton(),
-          MaterialDesktopCustomButton(
-            onPressed: () async {
-              await player.pause();
-              await player.seek(Duration.zero);
-            },
-            icon: const Icon(Icons.stop, color: Colors.white),
-          ),
-          MaterialDesktopCustomButton(
-            onPressed: () {
-              final pos = player.state.position;
-              player.seek(pos + const Duration(seconds: 30));
-            },
-            icon: const Icon(Icons.forward_30, color: Colors.white),
-          ),
-          const MaterialDesktopVolumeButton(),
-          const MaterialDesktopPositionIndicator(),
-          const Spacer(),
-          const MaterialDesktopFullscreenButton(),
-        ],
-      ),
-      fullscreen: MaterialDesktopVideoControlsThemeData(
-        topButtonBar: [
-          const Spacer(),
-          _SpeedButton(player: player),
-        ],
-        bottomButtonBar: [
-          MaterialDesktopCustomButton(
-            onPressed: () {
-              final pos = player.state.position;
-              player.seek(pos - const Duration(seconds: 10));
-            },
-            icon: const Icon(Icons.replay_10, color: Colors.white),
-          ),
-          const MaterialDesktopPlayOrPauseButton(),
-          MaterialDesktopCustomButton(
-            onPressed: () async {
-              await player.pause();
-              await player.seek(Duration.zero);
-            },
-            icon: const Icon(Icons.stop, color: Colors.white),
-          ),
-          MaterialDesktopCustomButton(
-            onPressed: () {
-              final pos = player.state.position;
-              player.seek(pos + const Duration(seconds: 30));
-            },
-            icon: const Icon(Icons.forward_30, color: Colors.white),
-          ),
-          const MaterialDesktopVolumeButton(),
-          const MaterialDesktopPositionIndicator(),
-          const Spacer(),
-          const MaterialDesktopFullscreenButton(),
-        ],
-      ),
+      normal: controls,
+      fullscreen: controls,
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
-        onTap: () => player.state.playing ? player.pause() : player.play(),
+        onTap: () => widget.player.state.playing
+            ? widget.player.pause()
+            : widget.player.play(),
         child: Video(
-          controller: controller,
+          key: _videoKey,
+          controller: widget.controller,
           controls: MaterialDesktopVideoControls,
         ),
       ),

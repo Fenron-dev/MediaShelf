@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +11,7 @@ import '../../providers/asset_filter_provider.dart';
 import '../../providers/asset_list_provider.dart';
 import '../../providers/collection_provider.dart';
 import '../../providers/library_provider.dart';
+import '../../providers/properties_provider.dart';
 import '../../providers/tag_provider.dart';
 import 'thumbnail_image.dart';
 
@@ -177,6 +180,9 @@ class _AssetDetailState extends ConsumerState<_AssetDetail> {
 
         // Type-specific metadata template
         _MediaTemplate(asset: asset),
+
+        // Custom properties
+        _CustomPropertiesSection(assetId: asset.id),
 
         // Locations (collections this asset belongs to)
         _LocationsSection(assetId: asset.id, assetPath: asset.path),
@@ -510,6 +516,201 @@ class _LocationsSection extends ConsumerWidget {
         );
       },
     );
+  }
+}
+
+// ── Custom Properties ─────────────────────────────────────────────────────────
+
+class _CustomPropertiesSection extends ConsumerWidget {
+  const _CustomPropertiesSection({required this.assetId});
+  final String assetId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final defsAsync = ref.watch(propertyDefsProvider);
+    final valuesAsync = ref.watch(assetPropertiesProvider(assetId));
+
+    return defsAsync.when(
+      data: (defs) {
+        if (defs.isEmpty) return const SizedBox.shrink();
+        return valuesAsync.when(
+          data: (values) {
+            final valueMap = {
+              for (final v in values) v.propertyId: v.valueText ?? '',
+            };
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Divider(height: 24),
+                Text('Eigenschaften',
+                    style: Theme.of(context).textTheme.labelMedium),
+                const SizedBox(height: 8),
+                ...defs.map((def) => _PropertyValueRow(
+                      def: def,
+                      assetId: assetId,
+                      currentValue: valueMap[def.id] ?? '',
+                    )),
+              ],
+            );
+          },
+          loading: () => const SizedBox.shrink(),
+          error: (e, s) => const SizedBox.shrink(),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (e, s) => const SizedBox.shrink(),
+    );
+  }
+}
+
+class _PropertyValueRow extends ConsumerStatefulWidget {
+  const _PropertyValueRow({
+    required this.def,
+    required this.assetId,
+    required this.currentValue,
+  });
+  final PropertyDefinition def;
+  final String assetId;
+  final String currentValue;
+
+  @override
+  ConsumerState<_PropertyValueRow> createState() => _PropertyValueRowState();
+}
+
+class _PropertyValueRowState extends ConsumerState<_PropertyValueRow> {
+  late TextEditingController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.currentValue);
+  }
+
+  @override
+  void didUpdateWidget(_PropertyValueRow old) {
+    super.didUpdateWidget(old);
+    if (old.currentValue != widget.currentValue &&
+        !_ctrl.value.composing.isValid) {
+      _ctrl.text = widget.currentValue;
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save(String value) async {
+    await ref
+        .read(propertiesDaoProvider)
+        .setPropertyValue(widget.assetId, widget.def.id, value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final def = widget.def;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              def.name,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Expanded(child: _buildEditor(def)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEditor(PropertyDefinition def) {
+    switch (def.fieldType) {
+      case 'boolean':
+        return Checkbox(
+          value: widget.currentValue == 'true',
+          onChanged: (v) => _save(v == true ? 'true' : ''),
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        );
+
+      case 'select':
+        final options = _parseOptions(def.optionsJson);
+        return DropdownButtonFormField<String>(
+          initialValue: widget.currentValue.isEmpty ? null : widget.currentValue,
+          isDense: true,
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            isDense: true,
+          ),
+          items: [
+            const DropdownMenuItem(value: '', child: Text('—')),
+            ...options.map((o) => DropdownMenuItem(value: o, child: Text(o))),
+          ],
+          onChanged: (v) => _save(v ?? ''),
+        );
+
+      case 'multiselect':
+        final options = _parseOptions(def.optionsJson);
+        final selected =
+            widget.currentValue.isEmpty ? <String>[] : widget.currentValue.split(',');
+        return Wrap(
+          spacing: 4,
+          runSpacing: 4,
+          children: options.map((o) {
+            final on = selected.contains(o);
+            return FilterChip(
+              label: Text(o, style: const TextStyle(fontSize: 11)),
+              selected: on,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              padding: EdgeInsets.zero,
+              labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+              onSelected: (v) {
+                final next = {...selected};
+                if (v) { next.add(o); } else { next.remove(o); }
+                _save(next.join(','));
+              },
+            );
+          }).toList(),
+        );
+
+      default:
+        // text, number, date, url
+        return TextField(
+          controller: _ctrl,
+          decoration: InputDecoration(
+            isDense: true,
+            border: const OutlineInputBorder(),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            suffixIcon: def.fieldType == 'url' && _ctrl.text.isNotEmpty
+                ? const Icon(Icons.open_in_new, size: 16)
+                : null,
+          ),
+          keyboardType: def.fieldType == 'number'
+              ? TextInputType.number
+              : TextInputType.text,
+          style: Theme.of(context).textTheme.bodySmall,
+          onSubmitted: _save,
+          onEditingComplete: () => _save(_ctrl.text),
+        );
+    }
+  }
+
+  List<String> _parseOptions(String? json) {
+    if (json == null) return [];
+    try {
+      return (jsonDecode(json) as List).cast<String>();
+    } catch (_) {
+      return [];
+    }
   }
 }
 

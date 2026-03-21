@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/active_player_provider.dart';
+import '../../providers/queue_provider.dart';
 
 class MiniPlayerBar extends ConsumerStatefulWidget {
   const MiniPlayerBar({super.key});
@@ -58,6 +59,7 @@ class _MiniPlayerBarState extends ConsumerState<MiniPlayerBar> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(activePlayerProvider);
+    final queue = ref.watch(queueProvider);
     final progress = _duration.inMilliseconds == 0
         ? 0.0
         : (_position.inMilliseconds / _duration.inMilliseconds)
@@ -87,42 +89,73 @@ class _MiniPlayerBarState extends ConsumerState<MiniPlayerBar> {
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Row(
                     children: [
+                      // Previous
+                      IconButton(
+                        icon: Icon(Icons.skip_previous, color: queue.hasPrevious ? cs.onSurface : cs.onSurface.withValues(alpha: 0.3)),
+                        tooltip: 'Previous',
+                        onPressed: queue.hasPrevious
+                            ? () => ref.read(queueProvider.notifier).skipToPrevious()
+                            : null,
+                      ),
+
+                      // Play / Pause
                       IconButton(
                         icon: Icon(
                           _playing ? Icons.pause : Icons.play_arrow,
                           color: cs.onSurface,
                         ),
                         onPressed: () {
-                          final p =
-                              ref.read(activePlayerProvider.notifier).player;
+                          final p = ref.read(activePlayerProvider.notifier).player;
                           _playing ? p.pause() : p.play();
                         },
                       ),
-                      const SizedBox(width: 8),
+
+                      // Next
+                      IconButton(
+                        icon: Icon(Icons.skip_next, color: queue.hasNext ? cs.onSurface : cs.onSurface.withValues(alpha: 0.3)),
+                        tooltip: 'Next',
+                        onPressed: queue.hasNext
+                            ? () => ref.read(queueProvider.notifier).skipToNext()
+                            : null,
+                      ),
+
+                      const SizedBox(width: 4),
+
+                      // Track title
                       Expanded(
                         child: Text(
                           state.assetName ?? '',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: cs.onSurface,
-                          ),
+                          style: TextStyle(fontSize: 13, color: cs.onSurface),
                         ),
                       ),
                       const SizedBox(width: 8),
+
+                      // Queue position (e.g. "2 / 5")
+                      if (queue.hasQueue && queue.total > 1)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: Text(
+                            '${queue.displayPosition} / ${queue.total}',
+                            style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
+                          ),
+                        ),
+
+                      // Time
                       Text(
                         '${_fmt(_position)} / ${_fmt(_duration)}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: cs.onSurfaceVariant,
-                        ),
+                        style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
                       ),
+
+                      // Stop
                       IconButton(
                         icon: Icon(Icons.stop, color: cs.onSurface),
                         tooltip: 'Stop',
-                        onPressed: () =>
-                            ref.read(activePlayerProvider.notifier).stop(),
+                        onPressed: () {
+                          ref.read(activePlayerProvider.notifier).stop();
+                          ref.read(queueProvider.notifier).clear();
+                        },
                       ),
                     ],
                   ),

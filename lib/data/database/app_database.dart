@@ -4,6 +4,7 @@ import 'package:drift_flutter/drift_flutter.dart';
 import 'daos/activity_dao.dart';
 import 'daos/assets_dao.dart';
 import 'daos/collections_dao.dart';
+import 'daos/properties_dao.dart';
 import 'daos/tags_dao.dart';
 import 'tables/activity_log_table.dart';
 import 'tables/assets_table.dart';
@@ -14,6 +15,7 @@ import 'tables/tags_table.dart';
 export 'daos/activity_dao.dart';
 export 'daos/assets_dao.dart';
 export 'daos/collections_dao.dart';
+export 'daos/properties_dao.dart';
 export 'daos/tags_dao.dart';
 export 'tables/activity_log_table.dart';
 export 'tables/assets_table.dart';
@@ -34,7 +36,7 @@ part 'app_database.g.dart';
     AssetProperties,
     ActivityLog,
   ],
-  daos: [AssetsDao, TagsDao, CollectionsDao, ActivityDao],
+  daos: [AssetsDao, TagsDao, CollectionsDao, ActivityDao, PropertiesDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(String dbPath)
@@ -50,9 +52,10 @@ class AppDatabase extends _$AppDatabase {
   TagsDao get tagsDao => TagsDao(this);
   CollectionsDao get collectionsDao => CollectionsDao(this);
   ActivityDao get activityDao => ActivityDao(this);
+  PropertiesDao get propertiesDao => PropertiesDao(this);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -101,6 +104,10 @@ class AppDatabase extends _$AppDatabase {
             await customStatement(
               'ALTER TABLE assets ADD COLUMN camera_model TEXT',
             );
+          }
+          if (from < 3) {
+            await m.createTable(propertyDefinitions);
+            await m.createTable(assetProperties);
           }
         },
         beforeOpen: (details) async {

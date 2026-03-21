@@ -11,6 +11,7 @@ import '../../data/database/app_database.dart';
 import '../../providers/asset_list_provider.dart';
 import '../../providers/folder_tree_provider.dart';
 import '../../providers/library_provider.dart';
+import '../../providers/queue_provider.dart';
 import '../../providers/settings_provider.dart';
 import 'asset_card.dart';
 
@@ -53,6 +54,20 @@ class _AssetGridState extends ConsumerState<AssetGrid> {
   }
 
   // Fires on pointer-down — no 300 ms double-tap disambiguation delay.
+  void _setQueue(Asset tapped, List<Asset> all) {
+    final playableIds = all
+        .where((a) {
+          final m = a.mimeType ?? '';
+          return isVideo(m) || isAudio(m);
+        })
+        .map((a) => a.id)
+        .toList();
+    final startIdx = playableIds.indexOf(tapped.id);
+    if (playableIds.isNotEmpty && startIdx >= 0) {
+      ref.read(queueProvider.notifier).setQueue(playableIds, startIdx);
+    }
+  }
+
   void _onTapDown(BuildContext context, Asset asset) {
     if (ref.read(isMultiSelectProvider)) {
       ref.read(multiSelectProvider.notifier).toggle(asset.id);
@@ -61,10 +76,11 @@ class _AssetGridState extends ConsumerState<AssetGrid> {
     ref.read(selectedAssetIdProvider.notifier).state = asset.id;
   }
 
-  void _onDoubleTap(BuildContext context, Asset asset) {
+  void _onDoubleTap(BuildContext context, Asset asset, List<Asset> allAssets) {
     if (ref.read(isMultiSelectProvider)) return;
     final mime = asset.mimeType ?? '';
     if (isVideo(mime) || isAudio(mime)) {
+      _setQueue(asset, allAssets);
       context.push('/library/player/${asset.id}');
     } else if (mime.startsWith('image/')) {
       context.push('/library/image/${asset.id}');
@@ -136,7 +152,7 @@ class _AssetGridState extends ConsumerState<AssetGrid> {
             asset: asset,
             isSelected: selectedIds.contains(asset.id) || selectedId == asset.id,
             onTapDown: () => _onTapDown(context, asset),
-            onDoubleTap: () => _onDoubleTap(context, asset),
+            onDoubleTap: () => _onDoubleTap(context, asset, allAssets),
             onLongPress: () =>
                 ref.read(multiSelectProvider.notifier).toggle(asset.id),
           ),

@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../data/database/app_database.dart';
 import '../../providers/library_provider.dart';
+import '../../providers/properties_provider.dart';
 
 // ── Rule model ────────────────────────────────────────────────────────────────
 
@@ -66,23 +67,21 @@ Future<void> showSmartFilterEditor(
 }) {
   return showDialog(
     context: context,
-    builder: (ctx) => _SmartFilterDialog(ref: ref, existing: existing),
+    builder: (ctx) => _SmartFilterDialog(existing: existing),
   );
 }
 
 // ── Dialog ────────────────────────────────────────────────────────────────────
 
-class _SmartFilterDialog extends StatefulWidget {
-  final WidgetRef ref;
+class _SmartFilterDialog extends ConsumerStatefulWidget {
   final Collection? existing;
-
-  const _SmartFilterDialog({required this.ref, this.existing});
+  const _SmartFilterDialog({this.existing});
 
   @override
-  State<_SmartFilterDialog> createState() => _SmartFilterDialogState();
+  ConsumerState<_SmartFilterDialog> createState() => _SmartFilterDialogState();
 }
 
-class _SmartFilterDialogState extends State<_SmartFilterDialog> {
+class _SmartFilterDialogState extends ConsumerState<_SmartFilterDialog> {
   late final TextEditingController _nameCtrl;
   String _logic = 'AND';
   final List<_Rule> _rules = [];
@@ -128,7 +127,7 @@ class _SmartFilterDialogState extends State<_SmartFilterDialog> {
     if (name.isEmpty) return;
     setState(() => _saving = true);
     try {
-      final dao = widget.ref.read(collectionsDaoProvider);
+      final dao = ref.read(collectionsDaoProvider);
       final json = _buildJson();
       if (widget.existing != null) {
         await dao.updateCollection(
@@ -157,6 +156,14 @@ class _SmartFilterDialogState extends State<_SmartFilterDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final propDefs = ref.watch(propertyDefsProvider).valueOrNull ?? [];
+
+    // Combined field list: static + custom properties
+    final allFields = [
+      ..._fields,
+      ...propDefs.map((d) => ('prop:${d.id}', d.name)),
+    ];
+
     return AlertDialog(
       title: Text(widget.existing != null ? 'Edit Smart Filter' : 'New Smart Filter'),
       contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
@@ -203,15 +210,18 @@ class _SmartFilterDialogState extends State<_SmartFilterDialog> {
                     ..._rules.asMap().entries.map((entry) => _RuleRow(
                           index: entry.key,
                           rule: entry.value,
+                          allFields: allFields,
                           onChanged: () => setState(() {}),
-                          onRemove: () => setState(() => _rules.removeAt(entry.key)),
+                          onRemove: () =>
+                              setState(() => _rules.removeAt(entry.key)),
                         )),
                     const SizedBox(height: 8),
                     TextButton.icon(
                       icon: const Icon(Icons.add, size: 18),
                       label: const Text('Add rule'),
                       onPressed: () => setState(
-                        () => _rules.add(_Rule(field: 'rating', op: 'gte', value: '1')),
+                        () => _rules
+                            .add(_Rule(field: 'rating', op: 'gte', value: '1')),
                       ),
                     ),
                   ],
@@ -230,7 +240,8 @@ class _SmartFilterDialogState extends State<_SmartFilterDialog> {
           onPressed: _saving ? null : _save,
           child: _saving
               ? const SizedBox(
-                  width: 16, height: 16,
+                  width: 16,
+                  height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Text('Save'),
@@ -245,12 +256,14 @@ class _SmartFilterDialogState extends State<_SmartFilterDialog> {
 class _RuleRow extends StatefulWidget {
   final int index;
   final _Rule rule;
+  final List<(String, String)> allFields;
   final VoidCallback onChanged;
   final VoidCallback onRemove;
 
   const _RuleRow({
     required this.index,
     required this.rule,
+    required this.allFields,
     required this.onChanged,
     required this.onRemove,
   });
@@ -279,10 +292,22 @@ class _RuleRowState extends State<_RuleRow> {
     return op != 'isset' && op != 'notset';
   }
 
+  List<(String, String)> _opsForField(String field) {
+    if (field.startsWith('prop:')) {
+      return [
+        ('contains', 'contains'),
+        ('eq', 'equals'),
+        ('isset', 'is set'),
+        ('notset', 'not set'),
+      ];
+    }
+    return _opsFor[field] ?? [('eq', 'equals')];
+  }
+
   @override
   Widget build(BuildContext context) {
     final rule = widget.rule;
-    final ops = _opsFor[rule.field] ?? [('eq', 'equals')];
+    final ops = _opsForField(rule.field);
 
     // Ensure op is valid for current field
     if (!ops.any((o) => o.$1 == rule.op)) {
@@ -303,14 +328,14 @@ class _RuleRowState extends State<_RuleRow> {
                 contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 isDense: true,
               ),
-              items: _fields
+              items: widget.allFields
                   .map((f) => DropdownMenuItem(value: f.$1, child: Text(f.$2)))
                   .toList(),
               onChanged: (v) {
                 if (v == null) return;
                 setState(() {
                   rule.field = v;
-                  rule.op = (_opsFor[v] ?? [('eq', 'eq')]).first.$1;
+                  rule.op = _opsForField(v).first.$1;
                   rule.value = '';
                   _valueCtrl.text = '';
                 });
@@ -324,7 +349,8 @@ class _RuleRowState extends State<_RuleRow> {
           Expanded(
             flex: 2,
             child: DropdownButtonFormField<String>(
-              initialValue: rule.op,
+              key: ValueKey('${rule.field}_op'),
+              initialValue: ops.any((o) => o.$1 == rule.op) ? rule.op : ops.first.$1,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -474,6 +500,7 @@ class _RuleRowState extends State<_RuleRow> {
   }
 
   String _hintFor(String field) {
+    if (field.startsWith('prop:')) return 'Value';
     switch (field) {
       case 'tag':
         return 'Tag name';

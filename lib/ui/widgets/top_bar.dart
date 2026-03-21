@@ -9,6 +9,7 @@ import '../../providers/library_provider.dart';
 import '../../providers/scan_provider.dart';
 import '../../providers/settings_provider.dart';
 import 'import_dialog.dart';
+import 'manage_properties_dialog.dart';
 
 enum _ImportMode { folder, files }
 
@@ -238,6 +239,14 @@ class _TopBarState extends ConsumerState<TopBar> {
             dense: true,
           ),
           onTap: () => context.push('/library/activity'),
+        ),
+        PopupMenuItem(
+          child: const ListTile(
+            leading: Icon(Icons.tune_outlined),
+            title: Text('Custom Properties'),
+            dense: true,
+          ),
+          onTap: () => showManagePropertiesDialog(context, ref),
         ),
         const PopupMenuDivider(),
         PopupMenuItem(

@@ -386,6 +386,18 @@ class AssetsDao extends DatabaseAccessor<AppDatabase> with _$AssetsDaoMixin {
         fileCreatedAt: row.readNullable<int>('file_created_at'),
         fileModifiedAt: row.readNullable<int>('file_modified_at'),
         indexedAt: row.read<int>('indexed_at'),
+        mediaTitle: row.readNullable<String>('media_title'),
+        artist: row.readNullable<String>('artist'),
+        album: row.readNullable<String>('album'),
+        genre: row.readNullable<String>('genre'),
+        trackNumber: row.readNullable<int>('track_number'),
+        bitrate: row.readNullable<int>('bitrate'),
+        sampleRate: row.readNullable<int>('sample_rate'),
+        author: row.readNullable<String>('author'),
+        publisher: row.readNullable<String>('publisher'),
+        pageCount: row.readNullable<int>('page_count'),
+        captureDate: row.readNullable<String>('capture_date'),
+        cameraModel: row.readNullable<String>('camera_model'),
       );
     }).toList();
 
