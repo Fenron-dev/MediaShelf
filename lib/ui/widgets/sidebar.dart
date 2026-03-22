@@ -1029,9 +1029,7 @@ class _PlaylistsSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final playlistsAsync = ref.watch(
-      StreamProvider((ref) => ref.read(playlistsDaoProvider).watchAll()),
-    );
+    final playlistsAsync = ref.watch(playlistsProvider);
 
     return playlistsAsync.when(
       data: (playlists) {

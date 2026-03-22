@@ -35,6 +35,11 @@ final activityDaoProvider = Provider((ref) => ref.watch(databaseProvider).activi
 final propertiesDaoProvider = Provider((ref) => ref.watch(databaseProvider).propertiesDao);
 final playlistsDaoProvider = Provider((ref) => ref.watch(databaseProvider).playlistsDao);
 
+/// Live stream of all playlists, ordered by creation time.
+final playlistsProvider = StreamProvider<List<Playlist>>((ref) {
+  return ref.watch(playlistsDaoProvider).watchAll();
+});
+
 // ── Library Repository ───────────────────────────────────────────────────────
 
 final libraryRepositoryProvider = Provider<LibraryRepository>((ref) {

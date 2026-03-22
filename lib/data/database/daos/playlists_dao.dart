@@ -46,6 +46,17 @@ class PlaylistsDao extends DatabaseAccessor<AppDatabase>
   Future<void> deletePlaylist(String id) =>
       (delete(playlists)..where((p) => p.id.equals(id))).go();
 
+  /// Returns all playlists that contain [assetId].
+  Future<List<Playlist>> getPlaylistsForAsset(String assetId) async {
+    final rows = await (select(playlists).join([
+      innerJoin(
+          playlistItems, playlistItems.playlistId.equalsExp(playlists.id)),
+    ])
+          ..where(playlistItems.assetId.equals(assetId)))
+        .get();
+    return rows.map((r) => r.readTable(playlists)).toList();
+  }
+
   // ── Playlist items ─────────────────────────────────────────────────────────
 
   /// Returns the ordered items of a playlist, joined with their Asset data.

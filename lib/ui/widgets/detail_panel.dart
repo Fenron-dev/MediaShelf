@@ -186,6 +186,11 @@ class _AssetDetailState extends ConsumerState<_AssetDetail> {
 
         // Locations (collections this asset belongs to)
         _LocationsSection(assetId: asset.id, assetPath: asset.path),
+
+        // Playlists (only for audio / video)
+        if (categoryFromMime(asset.mimeType ?? '') == MimeCategory.audio ||
+            categoryFromMime(asset.mimeType ?? '') == MimeCategory.video)
+          _AssetPlaylistsSection(assetId: asset.id),
       ],
     );
   }
@@ -513,6 +518,54 @@ class _LocationsSection extends ConsumerWidget {
           },
           loading: () => const SizedBox.shrink(),
           error: (e, _) => const SizedBox.shrink(),
+        );
+      },
+    );
+  }
+}
+
+// ── Playlists this asset belongs to ──────────────────────────────────────────
+
+class _AssetPlaylistsSection extends ConsumerWidget {
+  const _AssetPlaylistsSection({required this.assetId});
+  final String assetId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return FutureBuilder<List<Playlist>>(
+      future: ref.watch(playlistsDaoProvider).getPlaylistsForAsset(assetId),
+      builder: (context, snap) {
+        final playlists = snap.data ?? [];
+        if (playlists.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Divider(height: 24),
+            Text('Playlists', style: Theme.of(context).textTheme.labelMedium),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: playlists.map((p) {
+                final isAudio = p.mediaType == 'audio';
+                return ActionChip(
+                  avatar: Icon(
+                    isAudio
+                        ? Icons.queue_music
+                        : Icons.video_library_outlined,
+                    size: 14,
+                  ),
+                  label: Text(p.name, style: const TextStyle(fontSize: 11)),
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  padding: EdgeInsets.zero,
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+                  onPressed: () =>
+                      context.push('/library/playlist/${p.id}'),
+                );
+              }).toList(),
+            ),
+          ],
         );
       },
     );

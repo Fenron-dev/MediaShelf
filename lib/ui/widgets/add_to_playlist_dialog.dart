@@ -60,9 +60,7 @@ class _AddToPlaylistDialogState extends ConsumerState<_AddToPlaylistDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final allAsync = ref.watch(
-      StreamProvider((ref) => ref.read(playlistsDaoProvider).watchAll()),
-    );
+    final allAsync = ref.watch(playlistsProvider);
     final playlists = (allAsync.valueOrNull ?? [])
         .where((p) => p.mediaType == widget.mediaType)
         .toList();
