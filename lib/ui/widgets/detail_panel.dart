@@ -681,6 +681,75 @@ class _PropertyValueRowState extends ConsumerState<_PropertyValueRow> {
           }).toList(),
         );
 
+      case 'tags':
+        final selectedTags = _parseJsonList(widget.currentValue);
+        final allTagsAsync = ref.watch(allTagsProvider);
+        final allTagNames = allTagsAsync.valueOrNull
+                ?.map((t) => t.tag.name)
+                .toList() ??
+            [];
+        return Wrap(
+          spacing: 4,
+          runSpacing: 4,
+          children: [
+            ...selectedTags.map((tag) => Chip(
+                  label: Text(tag, style: const TextStyle(fontSize: 11)),
+                  onDeleted: () {
+                    final next = [...selectedTags]..remove(tag);
+                    _save(jsonEncode(next));
+                  },
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  padding: EdgeInsets.zero,
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+                )),
+            ActionChip(
+              avatar: const Icon(Icons.add, size: 14),
+              label: const Text('Tag', style: TextStyle(fontSize: 11)),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              padding: EdgeInsets.zero,
+              labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+              onPressed: () => _addTagDialog(selectedTags, allTagNames),
+            ),
+          ],
+        );
+
+      case 'list':
+        final items = _parseJsonList(widget.currentValue);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ...items.asMap().entries.map((entry) {
+              return Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      entry.value,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 14),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onPressed: () {
+                      final next = [...items]..removeAt(entry.key);
+                      _save(jsonEncode(next));
+                    },
+                  ),
+                ],
+              );
+            }),
+            ActionChip(
+              avatar: const Icon(Icons.add, size: 14),
+              label: const Text('Hinzufügen', style: TextStyle(fontSize: 11)),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              padding: EdgeInsets.zero,
+              labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+              onPressed: () => _addListItemDialog(items),
+            ),
+          ],
+        );
+
       default:
         // text, number, date, url
         return TextField(
@@ -711,6 +780,111 @@ class _PropertyValueRowState extends ConsumerState<_PropertyValueRow> {
     } catch (_) {
       return [];
     }
+  }
+
+  List<String> _parseJsonList(String value) {
+    if (value.isEmpty) return [];
+    try {
+      return (jsonDecode(value) as List).cast<String>();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> _addTagDialog(
+      List<String> current, List<String> allTags) async {
+    final ctrl = TextEditingController();
+    final available = allTags.where((t) => !current.contains(t)).toList();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSt) {
+          final query = ctrl.text.toLowerCase();
+          final filtered = query.isEmpty
+              ? available
+              : available.where((t) => t.toLowerCase().contains(query)).toList();
+          return AlertDialog(
+            title: const Text('Tag hinzufügen'),
+            content: SizedBox(
+              width: 280,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: ctrl,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      hintText: 'Tag-Name',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (_) => setSt(() {}),
+                    onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+                  ),
+                  if (filtered.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 200),
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: filtered
+                            .map((t) => ListTile(
+                                  dense: true,
+                                  title: Text(t),
+                                  onTap: () => Navigator.pop(ctx, t),
+                                ))
+                            .toList(),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Abbrechen'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    if (result == null || result.isEmpty) return;
+    if (current.contains(result)) return;
+    _save(jsonEncode([...current, result]));
+  }
+
+  Future<void> _addListItemDialog(List<String> current) async {
+    final ctrl = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eintrag hinzufügen'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'Eintrag',
+            isDense: true,
+            border: OutlineInputBorder(),
+          ),
+          onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            child: const Text('Hinzufügen'),
+          ),
+        ],
+      ),
+    );
+    if (result == null || result.isEmpty) return;
+    _save(jsonEncode([...current, result]));
   }
 }
 

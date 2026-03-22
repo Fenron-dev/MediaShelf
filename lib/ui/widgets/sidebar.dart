@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
+import 'package:go_router/go_router.dart';
+
 import '../../data/database/app_database.dart';
 import '../../domain/models/asset_filter.dart';
 import '../../providers/asset_filter_provider.dart';
@@ -20,6 +22,7 @@ const _kExpandFolders = 'sidebar_expand_folders';
 const _kExpandSmart = 'sidebar_expand_smart';
 const _kExpandCollections = 'sidebar_expand_collections';
 const _kExpandTags = 'sidebar_expand_tags';
+const _kExpandPlaylists = 'sidebar_expand_playlists';
 
 class LibrarySidebar extends ConsumerStatefulWidget {
   const LibrarySidebar({super.key});
@@ -33,6 +36,7 @@ class _LibrarySidebarState extends ConsumerState<LibrarySidebar> {
   bool _expandSmart = true;
   bool _expandCollections = true;
   bool _expandTags = true;
+  bool _expandPlaylists = true;
 
   @override
   void initState() {
@@ -48,6 +52,7 @@ class _LibrarySidebarState extends ConsumerState<LibrarySidebar> {
       _expandSmart = prefs.getBool(_kExpandSmart) ?? true;
       _expandCollections = prefs.getBool(_kExpandCollections) ?? true;
       _expandTags = prefs.getBool(_kExpandTags) ?? true;
+      _expandPlaylists = prefs.getBool(_kExpandPlaylists) ?? true;
     });
   }
 
@@ -169,6 +174,24 @@ class _LibrarySidebarState extends ConsumerState<LibrarySidebar> {
           ),
           child: const _TagsSection(),
         ),
+        const Divider(height: 1),
+
+        // ── Playlists ─────────────────────────────────────────────────────
+        _CollapsibleSection(
+          title: 'Playlists',
+          color: Colors.orange,
+          expanded: _expandPlaylists,
+          onToggle: () => setState(() => _toggle(
+              _kExpandPlaylists, _expandPlaylists, (v) => _expandPlaylists = v)),
+          trailing: IconButton(
+            icon: const Icon(Icons.playlist_add_outlined, size: 16),
+            tooltip: 'Neue Playlist',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+            onPressed: () => _createPlaylist(context, ref),
+          ),
+          child: const _PlaylistsSection(),
+        ),
       ],
     );
   }
@@ -229,6 +252,76 @@ class _LibrarySidebarState extends ConsumerState<LibrarySidebar> {
     if (name == null || name.trim().isEmpty) return;
     await ref.read(tagsDaoProvider).upsertTag(name.trim());
     ref.invalidate(allTagsProvider);
+  }
+
+  Future<void> _createPlaylist(BuildContext ctx, WidgetRef ref) async {
+    final ctrl = TextEditingController();
+    String mediaType = 'audio';
+
+    final result = await showDialog<Map<String, String>>(
+      context: ctx,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSt) => AlertDialog(
+          title: const Text('Neue Playlist'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: ctrl,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: 'Playlist-Name',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                onSubmitted: (_) => Navigator.pop(
+                  context,
+                  {'name': ctrl.text, 'type': mediaType},
+                ),
+              ),
+              const SizedBox(height: 12),
+              SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(
+                    value: 'audio',
+                    icon: Icon(Icons.queue_music, size: 16),
+                    label: Text('Audio'),
+                  ),
+                  ButtonSegment(
+                    value: 'video',
+                    icon: Icon(Icons.video_library_outlined, size: 16),
+                    label: Text('Video'),
+                  ),
+                ],
+                selected: {mediaType},
+                onSelectionChanged: (s) =>
+                    setSt(() => mediaType = s.first),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Abbrechen')),
+            FilledButton(
+              onPressed: () => Navigator.pop(
+                context,
+                {'name': ctrl.text, 'type': mediaType},
+              ),
+              child: const Text('Erstellen'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == null) return;
+    final name = result['name']?.trim() ?? '';
+    if (name.isEmpty) return;
+    await ref.read(playlistsDaoProvider).createPlaylist(
+          name: name,
+          mediaType: result['type'] ?? 'audio',
+        );
   }
 
   Future<void> _createFolder(BuildContext ctx, WidgetRef ref, String? parentPath) async {
@@ -926,6 +1019,158 @@ class _TagTileState extends ConsumerState<_TagTile> {
         ref.read(assetFilterProvider.notifier).setTagFilter(null);
       }
     }
+  }
+}
+
+// ── Playlists ─────────────────────────────────────────────────────────────────
+
+class _PlaylistsSection extends ConsumerWidget {
+  const _PlaylistsSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final playlistsAsync = ref.watch(
+      StreamProvider((ref) => ref.read(playlistsDaoProvider).watchAll()),
+    );
+
+    return playlistsAsync.when(
+      data: (playlists) {
+        if (playlists.isEmpty) return const SizedBox.shrink();
+        return Column(
+          children: playlists
+              .map((p) => _PlaylistTile(playlist: p))
+              .toList(),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (e, _) => const SizedBox.shrink(),
+    );
+  }
+}
+
+class _PlaylistTile extends ConsumerStatefulWidget {
+  const _PlaylistTile({required this.playlist});
+  final Playlist playlist;
+
+  @override
+  ConsumerState<_PlaylistTile> createState() => _PlaylistTileState();
+}
+
+class _PlaylistTileState extends ConsumerState<_PlaylistTile> {
+  Future<void> _showMenu(BuildContext context) async {
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+    final pos = renderBox.localToGlobal(Offset(renderBox.size.width, 0));
+
+    final result = await showMenu<String>(
+      context: context,
+      position:
+          RelativeRect.fromLTRB(pos.dx - 180, pos.dy, pos.dx, pos.dy + 60),
+      items: [
+        const PopupMenuItem(
+          value: 'rename',
+          child: ListTile(
+            leading: Icon(Icons.edit_outlined),
+            title: Text('Umbenennen'),
+            dense: true,
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'delete',
+          child: ListTile(
+            leading: Icon(Icons.delete_outline),
+            title: Text('Löschen'),
+            dense: true,
+          ),
+        ),
+      ],
+    );
+    if (!mounted || result == null) return;
+    final ctx = context;
+
+    if (result == 'rename') {
+      final ctrl = TextEditingController(text: widget.playlist.name);
+      final name = await showDialog<String>(
+        context: ctx,
+        builder: (dlgCtx) => AlertDialog(
+          title: const Text('Playlist umbenennen'),
+          content: TextField(
+            controller: ctrl,
+            autofocus: true,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+            onSubmitted: (v) => Navigator.pop(dlgCtx, v),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(dlgCtx),
+                child: const Text('Abbrechen')),
+            FilledButton(
+              onPressed: () => Navigator.pop(dlgCtx, ctrl.text),
+              child: const Text('Speichern'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted || name == null || name.trim().isEmpty) return;
+      await ref
+          .read(playlistsDaoProvider)
+          .renamePlaylist(widget.playlist.id, name.trim());
+    } else if (result == 'delete') {
+      final confirm = await showDialog<bool>(
+        context: ctx,
+        builder: (dlgCtx) => AlertDialog(
+          title: const Text('Playlist löschen'),
+          content: Text(
+              'Playlist "${widget.playlist.name}" wirklich löschen?'),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(dlgCtx, false),
+                child: const Text('Abbrechen')),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(dlgCtx).colorScheme.error),
+              onPressed: () => Navigator.pop(dlgCtx, true),
+              child: const Text('Löschen'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted || confirm != true) return;
+      await ref
+          .read(playlistsDaoProvider)
+          .deletePlaylist(widget.playlist.id);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isAudio = widget.playlist.mediaType == 'audio';
+
+    return GestureDetector(
+      onSecondaryTap: () => _showMenu(context),
+      child: ListTile(
+        dense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+        leading: Icon(
+          isAudio ? Icons.queue_music : Icons.video_library_outlined,
+          size: 18,
+          color: cs.onSurfaceVariant,
+        ),
+        title: Text(
+          widget.playlist.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        onTap: () =>
+            context.push('/library/playlist/${widget.playlist.id}'),
+      ),
+    );
   }
 }
 

@@ -14,6 +14,7 @@ import '../../providers/library_provider.dart';
 import '../../providers/queue_provider.dart';
 import '../../providers/settings_provider.dart';
 import 'asset_card.dart';
+import 'add_to_playlist_dialog.dart';
 
 /// Infinite-scrolling grid of [AssetCard]s backed by [assetPageProvider].
 class AssetGrid extends ConsumerStatefulWidget {
@@ -54,20 +55,6 @@ class _AssetGridState extends ConsumerState<AssetGrid> {
   }
 
   // Fires on pointer-down — no 300 ms double-tap disambiguation delay.
-  void _setQueue(Asset tapped, List<Asset> all) {
-    final playableIds = all
-        .where((a) {
-          final m = a.mimeType ?? '';
-          return isVideo(m) || isAudio(m);
-        })
-        .map((a) => a.id)
-        .toList();
-    final startIdx = playableIds.indexOf(tapped.id);
-    if (playableIds.isNotEmpty && startIdx >= 0) {
-      ref.read(queueProvider.notifier).setQueue(playableIds, startIdx);
-    }
-  }
-
   void _onTapDown(BuildContext context, Asset asset) {
     if (ref.read(isMultiSelectProvider)) {
       ref.read(multiSelectProvider.notifier).toggle(asset.id);
@@ -76,11 +63,10 @@ class _AssetGridState extends ConsumerState<AssetGrid> {
     ref.read(selectedAssetIdProvider.notifier).state = asset.id;
   }
 
-  void _onDoubleTap(BuildContext context, Asset asset, List<Asset> allAssets) {
+  void _onDoubleTap(BuildContext context, Asset asset) {
     if (ref.read(isMultiSelectProvider)) return;
     final mime = asset.mimeType ?? '';
     if (isVideo(mime) || isAudio(mime)) {
-      _setQueue(asset, allAssets);
       context.push('/library/player/${asset.id}');
     } else if (mime.startsWith('image/')) {
       context.push('/library/image/${asset.id}');
@@ -152,7 +138,7 @@ class _AssetGridState extends ConsumerState<AssetGrid> {
             asset: asset,
             isSelected: selectedIds.contains(asset.id) || selectedId == asset.id,
             onTapDown: () => _onTapDown(context, asset),
-            onDoubleTap: () => _onDoubleTap(context, asset, allAssets),
+            onDoubleTap: () => _onDoubleTap(context, asset),
             onLongPress: () =>
                 ref.read(multiSelectProvider.notifier).toggle(asset.id),
           ),
@@ -163,31 +149,75 @@ class _AssetGridState extends ConsumerState<AssetGrid> {
 
   Future<void> _showAssetContextMenu(
       BuildContext context, Asset asset, Offset globalPos) async {
+    final mime = asset.mimeType ?? '';
+    final isMedia = isVideo(mime) || isAudio(mime);
+    final mediaType = isAudio(mime) ? 'audio' : 'video';
+
+    final items = <PopupMenuEntry<String>>[];
+
+    if (isMedia) {
+      items.addAll([
+        const PopupMenuItem(
+          value: 'play_next',
+          child: ListTile(
+            leading: Icon(Icons.queue_play_next_outlined),
+            title: Text('Als nächstes abspielen'),
+            dense: true,
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'add_to_playlist',
+          child: ListTile(
+            leading: Icon(Icons.playlist_add_outlined),
+            title: Text('Zur Playlist hinzufügen…'),
+            dense: true,
+          ),
+        ),
+        const PopupMenuDivider(),
+      ]);
+    }
+
+    items.addAll([
+      const PopupMenuItem(
+        value: 'move',
+        child: ListTile(
+          leading: Icon(Icons.drive_file_move_outlined),
+          title: Text('Verschieben nach…'),
+          dense: true,
+        ),
+      ),
+      const PopupMenuItem(
+        value: 'copy',
+        child: ListTile(
+          leading: Icon(Icons.copy_outlined),
+          title: Text('Kopieren nach…'),
+          dense: true,
+        ),
+      ),
+    ]);
+
     final result = await showMenu<String>(
       context: context,
       position: RelativeRect.fromLTRB(
           globalPos.dx, globalPos.dy, globalPos.dx + 1, globalPos.dy + 1),
-      items: [
-        const PopupMenuItem(
-          value: 'move',
-          child: ListTile(
-            leading: Icon(Icons.drive_file_move_outlined),
-            title: Text('Verschieben nach…'),
-            dense: true,
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'copy',
-          child: ListTile(
-            leading: Icon(Icons.copy_outlined),
-            title: Text('Kopieren nach…'),
-            dense: true,
-          ),
-        ),
-      ],
+      items: items,
     );
     if (!mounted || result == null) return;
-    await _pickDestAndTransfer(context, asset, move: result == 'move');
+
+    switch (result) {
+      case 'play_next':
+        ref.read(queueProvider.notifier).insertNext(asset.id);
+      case 'add_to_playlist':
+        if (mounted) {
+          await showAddToPlaylistDialog(
+            context,
+            assetId: asset.id,
+            mediaType: mediaType,
+          );
+        }
+      case 'move' || 'copy':
+        await _pickDestAndTransfer(context, asset, move: result == 'move');
+    }
   }
 
   Future<void> _pickDestAndTransfer(

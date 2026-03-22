@@ -6,6 +6,21 @@ Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [0.3.1] – 2026-03-22
+
+### Neu
+- **Benannte Playlists** — Neben der automatischen Queue können jetzt dauerhaft gespeicherte
+  Playlists angelegt werden (Audio oder Video getrennt). Verwaltung über die Sidebar
+  (Abschnitt „Playlists"). Rechtsklick auf ein Asset → „Zur Playlist hinzufügen…" öffnet
+  einen Dialog zur Auswahl oder Neuerstellung einer Playlist. Die Playlist-Ansicht zeigt
+  eine reorder­bare Liste, Gesamtdauer und einen „Alle abspielen"-Button.
+  Datenbankschema Version 4: neue Tabellen `playlists` und `playlist_items`.
+- **Custom-Property-Typen `tags` und `list`** — Zwei neue Feldtypen für benutzerdefinierte
+  Eigenschaften: `tags` (Chip-Auswahl aus bestehenden Tags) und `list` (freie Eintrags­liste,
+  z. B. Stichworte). Beide Typen sind im Detail-Panel direkt bearbeitbar.
+
+---
+
 ## [0.3.0] – 2026-03-21
 
 ### Neu

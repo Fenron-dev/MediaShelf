@@ -8,6 +8,7 @@ import '../../core/mime_resolver.dart';
 import '../../data/database/app_database.dart';
 import '../../providers/asset_list_provider.dart';
 import '../../providers/queue_provider.dart';
+import 'add_to_playlist_dialog.dart';
 
 /// Compact list view of assets — alternative to [AssetGrid].
 class AssetListView extends ConsumerStatefulWidget {
@@ -57,25 +58,10 @@ class _AssetListViewState extends ConsumerState<AssetListView> {
     ref.read(selectedAssetIdProvider.notifier).state = asset.id;
   }
 
-  void _setQueue(Asset tapped, List<Asset> all) {
-    final playableIds = all
-        .where((a) {
-          final m = a.mimeType ?? '';
-          return isVideo(m) || isAudio(m);
-        })
-        .map((a) => a.id)
-        .toList();
-    final startIdx = playableIds.indexOf(tapped.id);
-    if (playableIds.isNotEmpty && startIdx >= 0) {
-      ref.read(queueProvider.notifier).setQueue(playableIds, startIdx);
-    }
-  }
-
-  void _onDoubleTap(BuildContext context, Asset asset, List<Asset> allAssets) {
+  void _onDoubleTap(BuildContext context, Asset asset) {
     if (ref.read(isMultiSelectProvider)) return;
     final mime = asset.mimeType ?? '';
     if (isVideo(mime) || isAudio(mime)) {
-      _setQueue(asset, allAssets);
       context.push('/library/player/${asset.id}');
     } else if (mime.startsWith('image/')) {
       context.push('/library/image/${asset.id}');
@@ -84,6 +70,64 @@ class _AssetListViewState extends ConsumerState<AssetListView> {
       if (cat == MimeCategory.document || cat == MimeCategory.text) {
         context.push('/library/document/${asset.id}');
       }
+    }
+  }
+
+  Future<void> _showContextMenu(
+      BuildContext context, Asset asset, Offset globalPos) async {
+    final mime = asset.mimeType ?? '';
+    final isMedia = isVideo(mime) || isAudio(mime);
+    final mediaType = isAudio(mime) ? 'audio' : 'video';
+
+    final items = <PopupMenuEntry<String>>[];
+    if (isMedia) {
+      items.addAll([
+        const PopupMenuItem(
+          value: 'play_next',
+          child: ListTile(
+            leading: Icon(Icons.queue_play_next_outlined),
+            title: Text('Als nächstes abspielen'),
+            dense: true,
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'add_to_playlist',
+          child: ListTile(
+            leading: Icon(Icons.playlist_add_outlined),
+            title: Text('Zur Playlist hinzufügen…'),
+            dense: true,
+          ),
+        ),
+        const PopupMenuDivider(),
+      ]);
+    }
+
+    final result = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+          globalPos.dx, globalPos.dy, globalPos.dx + 1, globalPos.dy + 1),
+      items: items.isEmpty
+          ? [
+              const PopupMenuItem(
+                enabled: false,
+                child: Text('Keine Aktionen verfügbar'),
+              )
+            ]
+          : items,
+    );
+    if (!mounted || result == null) return;
+
+    switch (result) {
+      case 'play_next':
+        ref.read(queueProvider.notifier).insertNext(asset.id);
+      case 'add_to_playlist':
+        if (mounted) {
+          await showAddToPlaylistDialog(
+            context,
+            assetId: asset.id,
+            mediaType: mediaType,
+          );
+        }
     }
   }
 
@@ -175,7 +219,8 @@ class _AssetListViewState extends ConsumerState<AssetListView> {
                 asset: asset,
                 isSelected: isSelected,
                 onTap: () => _onTap(asset),
-                onDoubleTap: () => _onDoubleTap(context, asset, allAssets),
+                onDoubleTap: () => _onDoubleTap(context, asset),
+                onContextMenu: (pos) => _showContextMenu(context, asset, pos),
                 dateFormat: _dateFormat,
               );
             },
@@ -191,6 +236,7 @@ class _AssetRow extends ConsumerWidget {
   final bool isSelected;
   final VoidCallback onTap;
   final VoidCallback onDoubleTap;
+  final void Function(Offset) onContextMenu;
   final String dateFormat;
 
   const _AssetRow({
@@ -198,6 +244,7 @@ class _AssetRow extends ConsumerWidget {
     required this.isSelected,
     required this.onTap,
     required this.onDoubleTap,
+    required this.onContextMenu,
     required this.dateFormat,
   });
 
@@ -210,6 +257,7 @@ class _AssetRow extends ConsumerWidget {
     return GestureDetector(
       onTap: onTap,
       onDoubleTap: onDoubleTap,
+      onSecondaryTapUp: (details) => onContextMenu(details.globalPosition),
       onLongPress: () => ref.read(multiSelectProvider.notifier).toggle(asset.id),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 120),

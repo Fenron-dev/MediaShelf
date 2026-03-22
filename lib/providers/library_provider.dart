@@ -33,6 +33,7 @@ final tagsDaoProvider = Provider((ref) => ref.watch(databaseProvider).tagsDao);
 final collectionsDaoProvider = Provider((ref) => ref.watch(databaseProvider).collectionsDao);
 final activityDaoProvider = Provider((ref) => ref.watch(databaseProvider).activityDao);
 final propertiesDaoProvider = Provider((ref) => ref.watch(databaseProvider).propertiesDao);
+final playlistsDaoProvider = Provider((ref) => ref.watch(databaseProvider).playlistsDao);
 
 // ── Library Repository ───────────────────────────────────────────────────────
 

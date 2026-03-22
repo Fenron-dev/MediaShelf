@@ -43,6 +43,8 @@ class _ManagePropertiesDialogState
     'date': 'Date',
     'select': 'Select (single)',
     'multiselect': 'Select (multi)',
+    'tags': 'Tags',
+    'list': 'List',
     'url': 'URL',
   };
 
