@@ -8,6 +8,7 @@ import '../../core/mime_resolver.dart';
 import '../../data/database/app_database.dart';
 import '../../providers/asset_list_provider.dart';
 import '../../providers/queue_provider.dart';
+import '../../providers/settings_provider.dart';
 import 'add_to_playlist_dialog.dart';
 
 /// Compact list view of assets — alternative to [AssetGrid].
@@ -131,6 +132,52 @@ class _AssetListViewState extends ConsumerState<AssetListView> {
     }
   }
 
+  Widget _headerCell(ListColumn col, TextStyle? style) {
+    switch (col) {
+      case ListColumn.name:
+        return Expanded(flex: 5, child: Text(col.label, style: style));
+      case ListColumn.type:
+        return Expanded(flex: 2, child: Text(col.label, style: style));
+      case ListColumn.size:
+        return SizedBox(width: 72, child: Text(col.label, style: style, textAlign: TextAlign.right));
+      case ListColumn.duration:
+        return SizedBox(width: 80, child: Text(col.label, style: style, textAlign: TextAlign.right));
+      case ListColumn.rating:
+        return SizedBox(width: 64, child: Text(col.label, style: style, textAlign: TextAlign.center));
+      case ListColumn.modified:
+        return SizedBox(width: 88, child: Text(col.label, style: style, textAlign: TextAlign.right));
+      default:
+        return SizedBox(width: 80, child: Text(col.label, style: style, textAlign: TextAlign.right));
+    }
+  }
+
+  void _showColumnMenu(BuildContext context, Offset pos) {
+    final columns = ref.read(listColumnsProvider);
+    showMenu(
+      context: context,
+      position: RelativeRect.fromLTRB(pos.dx, pos.dy, pos.dx + 1, pos.dy + 1),
+      items: ListColumn.values.map((col) {
+        final active = columns.contains(col);
+        return PopupMenuItem(
+          child: Row(
+            children: [
+              Icon(active ? Icons.check_box : Icons.check_box_outline_blank, size: 18),
+              const SizedBox(width: 8),
+              Text(col.label),
+            ],
+          ),
+          onTap: () {
+            if (active) {
+              ref.read(listColumnsProvider.notifier).removeColumn(col);
+            } else {
+              ref.read(listColumnsProvider.notifier).addColumn(col);
+            }
+          },
+        );
+      }).toList(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedId = ref.watch(selectedAssetIdProvider);
@@ -170,31 +217,22 @@ class _AssetListViewState extends ConsumerState<AssetListView> {
           color: cs.onSurfaceVariant,
           fontWeight: FontWeight.w700,
         );
+    final columns = ref.watch(listColumnsProvider);
 
     return Column(
       children: [
         // ── Header row ─────────────────────────────────────────────────────
-        Container(
-          color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: Row(
-            children: [
-              const SizedBox(width: 28), // icon column
-              Expanded(flex: 5, child: Text('Name', style: headerStyle)),
-              Expanded(flex: 2, child: Text('Typ', style: headerStyle)),
-              SizedBox(
-                  width: 72,
-                  child: Text('Größe', style: headerStyle, textAlign: TextAlign.right)),
-              SizedBox(
-                  width: 80,
-                  child: Text('Dauer / Seiten', style: headerStyle, textAlign: TextAlign.right)),
-              SizedBox(
-                  width: 64,
-                  child: Text('Bewertung', style: headerStyle, textAlign: TextAlign.center)),
-              SizedBox(
-                  width: 88,
-                  child: Text('Geändert', style: headerStyle, textAlign: TextAlign.right)),
-            ],
+        GestureDetector(
+          onSecondaryTapUp: (d) => _showColumnMenu(context, d.globalPosition),
+          child: Container(
+            color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Row(
+              children: [
+                const SizedBox(width: 28), // icon column
+                ...columns.map((col) => _headerCell(col, headerStyle)),
+              ],
+            ),
           ),
         ),
         const Divider(height: 1),
@@ -218,6 +256,7 @@ class _AssetListViewState extends ConsumerState<AssetListView> {
               return _AssetRow(
                 asset: asset,
                 isSelected: isSelected,
+                columns: columns,
                 onTap: () => _onTap(asset),
                 onDoubleTap: () => _onDoubleTap(context, asset),
                 onContextMenu: (pos) => _showContextMenu(context, asset, pos),
@@ -234,6 +273,7 @@ class _AssetListViewState extends ConsumerState<AssetListView> {
 class _AssetRow extends ConsumerWidget {
   final Asset asset;
   final bool isSelected;
+  final List<ListColumn> columns;
   final VoidCallback onTap;
   final VoidCallback onDoubleTap;
   final void Function(Offset) onContextMenu;
@@ -242,6 +282,7 @@ class _AssetRow extends ConsumerWidget {
   const _AssetRow({
     required this.asset,
     required this.isSelected,
+    required this.columns,
     required this.onTap,
     required this.onDoubleTap,
     required this.onContextMenu,
@@ -253,6 +294,7 @@ class _AssetRow extends ConsumerWidget {
     final cs = Theme.of(context).colorScheme;
     final mime = asset.mimeType ?? '';
     final cat = categoryFromMime(mime);
+    final sub = Theme.of(context).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant);
 
     return GestureDetector(
       onTap: onTap,
@@ -267,126 +309,107 @@ class _AssetRow extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
         child: Row(
           children: [
-            // Type icon
+            // Type icon (always shown)
             SizedBox(
               width: 28,
               child: Icon(_categoryIcon(cat, mime), size: 18,
                   color: _categoryColor(cat, mime)),
             ),
-
-            // Filename
-            Expanded(
-              flex: 5,
-              child: Row(
-                children: [
-                  if ((asset.colorLabel ?? '').isNotEmpty)
-                    Container(
-                      width: 8,
-                      height: 8,
-                      margin: const EdgeInsets.only(right: 6),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _colorFromLabel(asset.colorLabel!),
-                      ),
-                    ),
-                  Expanded(
-                    child: Text(
-                      asset.filename,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ),
-                  // Metadata subtitle (artist - title for audio)
-                  if (_subtitle(asset) != null) ...[
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        _subtitle(asset)!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: cs.onSurfaceVariant,
-                            ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
-            // MIME type label
-            Expanded(
-              flex: 2,
-              child: Text(
-                _typeLabel(cat, mime),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: cs.onSurfaceVariant,
-                    ),
-              ),
-            ),
-
-            // Size
-            SizedBox(
-              width: 72,
-              child: Text(
-                asset.size != null ? _fmtSize(asset.size!) : '—',
-                textAlign: TextAlign.right,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: cs.onSurfaceVariant),
-              ),
-            ),
-
-            // Duration / page count
-            SizedBox(
-              width: 80,
-              child: Text(
-                _durationOrPages(asset),
-                textAlign: TextAlign.right,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: cs.onSurfaceVariant),
-              ),
-            ),
-
-            // Star rating
-            SizedBox(
-              width: 64,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  asset.rating,
-                  (_) =>
-                      const Icon(Icons.star, size: 10, color: Colors.amber),
-                ),
-              ),
-            ),
-
-            // Modified date
-            SizedBox(
-              width: 88,
-              child: Text(
-                asset.fileModifiedAt != null
-                    ? DateFormat(dateFormat).format(
-                        DateTime.fromMillisecondsSinceEpoch(
-                            asset.fileModifiedAt!))
-                    : '—',
-                textAlign: TextAlign.right,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: cs.onSurfaceVariant),
-              ),
-            ),
+            ...columns.map((col) => _buildCell(context, col, cat, mime, sub)),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildCell(BuildContext context, ListColumn col, MimeCategory cat, String mime, TextStyle? sub) {
+    switch (col) {
+      case ListColumn.name:
+        return Expanded(
+          flex: 5,
+          child: Row(
+            children: [
+              if ((asset.colorLabel ?? '').isNotEmpty)
+                Container(
+                  width: 8, height: 8,
+                  margin: const EdgeInsets.only(right: 6),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _colorFromLabel(asset.colorLabel!),
+                  ),
+                ),
+              Expanded(
+                child: Text(asset.filename, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall),
+              ),
+              if (_subtitle(asset) != null) ...[
+                const SizedBox(width: 8),
+                Flexible(child: Text(_subtitle(asset)!, maxLines: 1,
+                    overflow: TextOverflow.ellipsis, style: sub)),
+              ],
+            ],
+          ),
+        );
+      case ListColumn.type:
+        return Expanded(flex: 2, child: Text(_typeLabel(cat, mime), maxLines: 1,
+            overflow: TextOverflow.ellipsis, style: sub));
+      case ListColumn.size:
+        return SizedBox(width: 72, child: Text(
+            asset.size != null ? _fmtSize(asset.size!) : '—',
+            textAlign: TextAlign.right, style: sub));
+      case ListColumn.duration:
+        return SizedBox(width: 80, child: Text(_durationOrPages(asset),
+            textAlign: TextAlign.right, style: sub));
+      case ListColumn.rating:
+        return SizedBox(width: 64, child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(asset.rating,
+              (_) => const Icon(Icons.star, size: 10, color: Colors.amber)),
+        ));
+      case ListColumn.modified:
+        return SizedBox(width: 88, child: Text(
+            asset.fileModifiedAt != null
+                ? DateFormat(dateFormat).format(
+                    DateTime.fromMillisecondsSinceEpoch(asset.fileModifiedAt!))
+                : '—',
+            textAlign: TextAlign.right, style: sub));
+      case ListColumn.artist:
+        return SizedBox(width: 80, child: Text(asset.artist ?? '—',
+            maxLines: 1, overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right, style: sub));
+      case ListColumn.album:
+        return SizedBox(width: 80, child: Text(asset.album ?? '—',
+            maxLines: 1, overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right, style: sub));
+      case ListColumn.genre:
+        return SizedBox(width: 80, child: Text(asset.genre ?? '—',
+            maxLines: 1, overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right, style: sub));
+      case ListColumn.bitrate:
+        return SizedBox(width: 80, child: Text(
+            asset.bitrate != null ? '${asset.bitrate} kbps' : '—',
+            textAlign: TextAlign.right, style: sub));
+      case ListColumn.sampleRate:
+        return SizedBox(width: 80, child: Text(
+            asset.sampleRate != null ? '${asset.sampleRate} Hz' : '—',
+            textAlign: TextAlign.right, style: sub));
+      case ListColumn.resolution:
+        return SizedBox(width: 80, child: Text(
+            asset.width != null && asset.height != null
+                ? '${asset.width}×${asset.height}' : '—',
+            textAlign: TextAlign.right, style: sub));
+      case ListColumn.author:
+        return SizedBox(width: 80, child: Text(asset.author ?? '—',
+            maxLines: 1, overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right, style: sub));
+      case ListColumn.publisher:
+        return SizedBox(width: 80, child: Text(asset.publisher ?? '—',
+            maxLines: 1, overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right, style: sub));
+      case ListColumn.captureDate:
+        return SizedBox(width: 80, child: Text(asset.captureDate ?? '—',
+            textAlign: TextAlign.right, style: sub));
+    }
   }
 
   String? _subtitle(Asset a) {

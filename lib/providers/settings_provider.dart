@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -106,4 +108,102 @@ final detailPanelWidthProvider =
     StateNotifierProvider<_DoublePrefNotifier, double>(
   (ref) => _DoublePrefNotifier(
       _kDetailPanelWidth, kDetailPanelWidth, 200.0, 600.0),
+);
+
+// ── List view columns ────────────────────────────────────────────────────────
+
+/// Columns available in the list view.
+enum ListColumn {
+  name('Name'),
+  type('Typ'),
+  size('Größe'),
+  duration('Dauer / Seiten'),
+  rating('Bewertung'),
+  modified('Geändert'),
+  artist('Künstler'),
+  album('Album'),
+  genre('Genre'),
+  bitrate('Bitrate'),
+  sampleRate('Sample-Rate'),
+  resolution('Auflösung'),
+  author('Autor'),
+  publisher('Verlag'),
+  captureDate('Jahr / Datum');
+
+  const ListColumn(this.label);
+  final String label;
+}
+
+const _kListColumns = 'pref_list_columns';
+
+/// Default columns shown in list view.
+const _defaultListColumns = [
+  ListColumn.name,
+  ListColumn.type,
+  ListColumn.size,
+  ListColumn.duration,
+  ListColumn.rating,
+  ListColumn.modified,
+];
+
+class ListColumnsNotifier extends StateNotifier<List<ListColumn>> {
+  ListColumnsNotifier() : super(_defaultListColumns) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final json = prefs.getString(_kListColumns);
+    if (json == null) return;
+    try {
+      final keys = (jsonDecode(json) as List).cast<String>();
+      final cols = keys
+          .map((k) {
+            try {
+              return ListColumn.values.firstWhere((c) => c.name == k);
+            } catch (_) {
+              return null;
+            }
+          })
+          .whereType<ListColumn>()
+          .toList();
+      if (cols.isNotEmpty) state = cols;
+    } catch (_) {}
+  }
+
+  void setColumns(List<ListColumn> columns) {
+    state = columns;
+    _persist();
+  }
+
+  void addColumn(ListColumn col) {
+    if (state.contains(col)) return;
+    state = [...state, col];
+    _persist();
+  }
+
+  void removeColumn(ListColumn col) {
+    state = state.where((c) => c != col).toList();
+    _persist();
+  }
+
+  void reorder(int oldIndex, int newIndex) {
+    if (newIndex > oldIndex) newIndex--;
+    final cols = List.of(state);
+    final item = cols.removeAt(oldIndex);
+    cols.insert(newIndex, item);
+    state = cols;
+    _persist();
+  }
+
+  Future<void> _persist() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+        _kListColumns, jsonEncode(state.map((c) => c.name).toList()));
+  }
+}
+
+final listColumnsProvider =
+    StateNotifierProvider<ListColumnsNotifier, List<ListColumn>>(
+  (ref) => ListColumnsNotifier(),
 );

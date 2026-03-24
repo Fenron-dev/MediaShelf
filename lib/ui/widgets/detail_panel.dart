@@ -11,6 +11,7 @@ import '../../providers/asset_filter_provider.dart';
 import '../../providers/asset_list_provider.dart';
 import '../../providers/collection_provider.dart';
 import '../../providers/library_provider.dart';
+import '../../providers/media_template_provider.dart';
 import '../../providers/properties_provider.dart';
 import '../../providers/tag_provider.dart';
 import 'thumbnail_image.dart';
@@ -191,6 +192,9 @@ class _AssetDetailState extends ConsumerState<_AssetDetail> {
         if (categoryFromMime(asset.mimeType ?? '') == MimeCategory.audio ||
             categoryFromMime(asset.mimeType ?? '') == MimeCategory.video)
           _AssetPlaylistsSection(assetId: asset.id),
+
+        // Linked assets
+        _LinkedAssetsSection(assetId: asset.id),
       ],
     );
   }
@@ -317,69 +321,25 @@ class _MetaRow extends StatelessWidget {
   }
 }
 
-// ── Media-type template ───────────────────────────────────────────────────────
+// ── Media-type template (configurable) ────────────────────────────────────────
 
-class _MediaTemplate extends StatelessWidget {
+class _MediaTemplate extends ConsumerWidget {
   final Asset asset;
   const _MediaTemplate({required this.asset});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final mime = asset.mimeType ?? '';
-    final cat = categoryFromMime(mime);
+    final category = _resolveCategory(mime);
+    final templates = ref.watch(mediaTemplatesProvider);
+    final config = templates.getTemplate(category);
 
     final rows = <Widget>[];
-
-    // Always show type + size
-    rows.add(_MetaRow('Typ', mime));
-    if (asset.size != null) rows.add(_MetaRow('Größe', _fmtSize(asset.size!)));
-
-    switch (cat) {
-      case MimeCategory.audio:
-        if (asset.mediaTitle != null) rows.add(_MetaRow('Titel', asset.mediaTitle!));
-        if (asset.artist != null) rows.add(_MetaRow('Künstler', asset.artist!));
-        if (asset.album != null) rows.add(_MetaRow('Album', asset.album!));
-        if (asset.genre != null) rows.add(_MetaRow('Genre', asset.genre!));
-        if (asset.trackNumber != null) rows.add(_MetaRow('Track', '${asset.trackNumber}'));
-        if (asset.captureDate != null) rows.add(_MetaRow('Jahr', asset.captureDate!));
-        if (asset.durationMs != null) rows.add(_MetaRow('Dauer', _fmtDuration(asset.durationMs!)));
-        if (asset.bitrate != null) rows.add(_MetaRow('Bitrate', '${asset.bitrate} kbps'));
-        if (asset.sampleRate != null) rows.add(_MetaRow('Sample-Rate', '${asset.sampleRate} Hz'));
-
-      case MimeCategory.video:
-        if (asset.mediaTitle != null) rows.add(_MetaRow('Titel', asset.mediaTitle!));
-        if (asset.artist != null) rows.add(_MetaRow('Regisseur', asset.artist!));
-        if (asset.durationMs != null) rows.add(_MetaRow('Dauer', _fmtDuration(asset.durationMs!)));
-        if (asset.width != null && asset.height != null) {
-          rows.add(_MetaRow('Auflösung', '${asset.width} × ${asset.height}'));
-        }
-        if (asset.bitrate != null) rows.add(_MetaRow('Bitrate', '${asset.bitrate} kbps'));
-        if (asset.captureDate != null) rows.add(_MetaRow('Jahr', asset.captureDate!));
-
-      case MimeCategory.image:
-        if (asset.width != null && asset.height != null) {
-          rows.add(_MetaRow('Abmessungen', '${asset.width} × ${asset.height}'));
-        }
-        if (asset.cameraModel != null) rows.add(_MetaRow('Kamera', asset.cameraModel!));
-        if (asset.captureDate != null) rows.add(_MetaRow('Aufnahmedatum', asset.captureDate!));
-
-      case MimeCategory.document:
-        if (mime == 'application/pdf' || mime.contains('epub')) {
-          if (asset.mediaTitle != null) rows.add(_MetaRow('Titel', asset.mediaTitle!));
-          if (asset.author != null) rows.add(_MetaRow('Autor', asset.author!));
-          if (asset.publisher != null) rows.add(_MetaRow('Verlag', asset.publisher!));
-          if (asset.pageCount != null) rows.add(_MetaRow('Seiten', '${asset.pageCount}'));
-          if (asset.captureDate != null) rows.add(_MetaRow('Jahr', asset.captureDate!));
-        } else {
-          if (asset.author != null) rows.add(_MetaRow('Autor', asset.author!));
-        }
-
-      case MimeCategory.text:
-      case MimeCategory.archive:
-      case MimeCategory.font:
-      case MimeCategory.model:
-      case MimeCategory.other:
-        break;
+    for (final field in config.fields) {
+      final value = _fieldValue(asset, field);
+      if (value != null) {
+        rows.add(_MetaRow(field.label, value));
+      }
     }
 
     if (rows.isEmpty) return const SizedBox.shrink();
@@ -387,6 +347,63 @@ class _MediaTemplate extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: rows,
     );
+  }
+
+  static MediaCategory _resolveCategory(String mime) {
+    final cat = categoryFromMime(mime);
+    switch (cat) {
+      case MimeCategory.audio:
+        return MediaCategory.audio;
+      case MimeCategory.video:
+        return MediaCategory.video;
+      case MimeCategory.image:
+        return MediaCategory.image;
+      case MimeCategory.document:
+        if (mime == 'application/pdf') return MediaCategory.documentPdf;
+        if (mime.contains('epub')) return MediaCategory.documentEbook;
+        return MediaCategory.documentOther;
+      case MimeCategory.text:
+        return MediaCategory.text;
+      case MimeCategory.archive:
+        return MediaCategory.archive;
+      case MimeCategory.font:
+      case MimeCategory.model:
+      case MimeCategory.other:
+        return MediaCategory.other;
+    }
+  }
+
+  static String? _fieldValue(Asset a, MetadataField field) {
+    return switch (field) {
+      MetadataField.mimeType => a.mimeType,
+      MetadataField.size => a.size != null ? _fmtSize(a.size!) : null,
+      MetadataField.mediaTitle => a.mediaTitle,
+      MetadataField.artist => a.artist,
+      MetadataField.album => a.album,
+      MetadataField.genre => a.genre,
+      MetadataField.trackNumber =>
+        a.trackNumber != null ? '${a.trackNumber}' : null,
+      MetadataField.captureDate => a.captureDate,
+      MetadataField.durationMs =>
+        a.durationMs != null ? _fmtDuration(a.durationMs!) : null,
+      MetadataField.bitrate =>
+        a.bitrate != null ? '${a.bitrate} kbps' : null,
+      MetadataField.sampleRate =>
+        a.sampleRate != null ? '${a.sampleRate} Hz' : null,
+      MetadataField.width => a.width != null ? '${a.width}' : null,
+      MetadataField.height => a.height != null ? '${a.height}' : null,
+      MetadataField.resolution =>
+        a.width != null && a.height != null
+            ? '${a.width} × ${a.height}'
+            : null,
+      MetadataField.cameraModel => a.cameraModel,
+      MetadataField.author => a.author,
+      MetadataField.publisher => a.publisher,
+      MetadataField.pageCount =>
+        a.pageCount != null ? '${a.pageCount}' : null,
+      MetadataField.sourceUrl => a.sourceUrl,
+      MetadataField.note => a.note,
+    };
   }
 
   static String _fmtSize(int bytes) {
@@ -736,34 +753,35 @@ class _PropertyValueRowState extends ConsumerState<_PropertyValueRow> {
 
       case 'tags':
         final selectedTags = _parseJsonList(widget.currentValue);
-        final allTagsAsync = ref.watch(allTagsProvider);
-        final allTagNames = allTagsAsync.valueOrNull
-                ?.map((t) => t.tag.name)
-                .toList() ??
-            [];
-        return Wrap(
-          spacing: 4,
-          runSpacing: 4,
-          children: [
-            ...selectedTags.map((tag) => Chip(
-                  label: Text(tag, style: const TextStyle(fontSize: 11)),
-                  onDeleted: () {
-                    final next = [...selectedTags]..remove(tag);
-                    _save(jsonEncode(next));
-                  },
+        return FutureBuilder<List<String>>(
+          future: ref.read(propertiesDaoProvider).getUsedTagsForProperty(def.id),
+          builder: (context, snap) {
+            final allTagNames = snap.data ?? [];
+            return Wrap(
+              spacing: 4,
+              runSpacing: 4,
+              children: [
+                ...selectedTags.map((tag) => Chip(
+                      label: Text(tag, style: const TextStyle(fontSize: 11)),
+                      onDeleted: () {
+                        final next = [...selectedTags]..remove(tag);
+                        _save(jsonEncode(next));
+                      },
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      padding: EdgeInsets.zero,
+                      labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+                    )),
+                ActionChip(
+                  avatar: const Icon(Icons.add, size: 14),
+                  label: const Text('Tag', style: TextStyle(fontSize: 11)),
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   padding: EdgeInsets.zero,
-                  labelPadding: const EdgeInsets.symmetric(horizontal: 6),
-                )),
-            ActionChip(
-              avatar: const Icon(Icons.add, size: 14),
-              label: const Text('Tag', style: TextStyle(fontSize: 11)),
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              padding: EdgeInsets.zero,
-              labelPadding: const EdgeInsets.symmetric(horizontal: 4),
-              onPressed: () => _addTagDialog(selectedTags, allTagNames),
-            ),
-          ],
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+                  onPressed: () => _addTagDialog(selectedTags, allTagNames),
+                ),
+              ],
+            );
+          },
         );
 
       case 'list':
@@ -938,6 +956,168 @@ class _PropertyValueRowState extends ConsumerState<_PropertyValueRow> {
     );
     if (result == null || result.isEmpty) return;
     _save(jsonEncode([...current, result]));
+  }
+}
+
+// ── Linked Assets ────────────────────────────────────────────────────────────
+
+class _LinkedAssetsSection extends ConsumerWidget {
+  const _LinkedAssetsSection({required this.assetId});
+  final String assetId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final dao = ref.watch(assetLinksDaoProvider);
+    return StreamBuilder<List<Asset>>(
+      stream: dao.watchLinkedAssets(assetId),
+      builder: (context, snap) {
+        final linked = snap.data ?? [];
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Divider(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: Text('Verknüpfungen',
+                      style: Theme.of(context).textTheme.labelMedium),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add_link, size: 18),
+                  tooltip: 'Datei verknüpfen',
+                  padding: EdgeInsets.zero,
+                  constraints:
+                      const BoxConstraints(minWidth: 28, minHeight: 28),
+                  onPressed: () => _linkDialog(context, ref),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            if (linked.isEmpty)
+              Text(
+                'Keine Verknüpfungen',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+            ...linked.map((a) => ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.link, size: 18),
+                  title: Text(
+                    a.filename,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  subtitle: Text(
+                    a.path,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.link_off, size: 16),
+                    tooltip: 'Verknüpfung lösen',
+                    padding: EdgeInsets.zero,
+                    constraints:
+                        const BoxConstraints(minWidth: 28, minHeight: 28),
+                    onPressed: () async {
+                      await dao.unlinkAssets(assetId, a.id);
+                      // Also try reverse direction
+                      await dao.unlinkAssets(a.id, assetId);
+                    },
+                  ),
+                  onTap: () {
+                    ref.read(selectedAssetIdProvider.notifier).state = a.id;
+                  },
+                )),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _linkDialog(BuildContext context, WidgetRef ref) async {
+    final controller = TextEditingController();
+    final dao = ref.read(assetsDaoProvider);
+    final result = await showDialog<Asset>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSt) {
+          return AlertDialog(
+            title: const Text('Datei verknüpfen'),
+            content: SizedBox(
+              width: 400,
+              height: 300,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: controller,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      hintText: 'Dateiname suchen...',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.search, size: 18),
+                    ),
+                    onChanged: (_) => setSt(() {}),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: controller.text.length < 2
+                        ? const Center(
+                            child: Text('Mindestens 2 Zeichen eingeben',
+                                style: TextStyle(color: Colors.grey)),
+                          )
+                        : FutureBuilder<List<Asset>>(
+                            future: dao.searchByFilename(controller.text),
+                            builder: (ctx, snap) {
+                              final results = (snap.data ?? [])
+                                  .where((a) => a.id != assetId)
+                                  .toList();
+                              if (results.isEmpty) {
+                                return const Center(
+                                  child: Text('Keine Ergebnisse',
+                                      style: TextStyle(color: Colors.grey)),
+                                );
+                              }
+                              return ListView(
+                                children: results.map((a) => ListTile(
+                                      dense: true,
+                                      title: Text(a.filename,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis),
+                                      subtitle: Text(a.path,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(fontSize: 10)),
+                                      onTap: () => Navigator.of(ctx).pop(a),
+                                    )).toList(),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Abbrechen'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    if (result == null) return;
+    await ref.read(assetLinksDaoProvider).linkAssets(assetId, result.id);
   }
 }
 

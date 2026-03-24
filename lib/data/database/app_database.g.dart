@@ -4644,6 +4644,332 @@ class ActivityLogCompanion extends UpdateCompanion<ActivityLogData> {
   }
 }
 
+class $AssetLinksTable extends AssetLinks
+    with TableInfo<$AssetLinksTable, AssetLink> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AssetLinksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _originalIdMeta = const VerificationMeta(
+    'originalId',
+  );
+  @override
+  late final GeneratedColumn<String> originalId = GeneratedColumn<String>(
+    'original_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES assets (id) ON DELETE RESTRICT',
+    ),
+  );
+  static const VerificationMeta _linkedIdMeta = const VerificationMeta(
+    'linkedId',
+  );
+  @override
+  late final GeneratedColumn<String> linkedId = GeneratedColumn<String>(
+    'linked_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES assets (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, originalId, linkedId, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'asset_links';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AssetLink> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('original_id')) {
+      context.handle(
+        _originalIdMeta,
+        originalId.isAcceptableOrUnknown(data['original_id']!, _originalIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_originalIdMeta);
+    }
+    if (data.containsKey('linked_id')) {
+      context.handle(
+        _linkedIdMeta,
+        linkedId.isAcceptableOrUnknown(data['linked_id']!, _linkedIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_linkedIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {originalId, linkedId},
+  ];
+  @override
+  AssetLink map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AssetLink(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      originalId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}original_id'],
+      )!,
+      linkedId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}linked_id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $AssetLinksTable createAlias(String alias) {
+    return $AssetLinksTable(attachedDatabase, alias);
+  }
+}
+
+class AssetLink extends DataClass implements Insertable<AssetLink> {
+  final String id;
+
+  /// The original / primary asset.
+  final String originalId;
+
+  /// The linked (secondary) asset.
+  final String linkedId;
+  final int createdAt;
+  const AssetLink({
+    required this.id,
+    required this.originalId,
+    required this.linkedId,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['original_id'] = Variable<String>(originalId);
+    map['linked_id'] = Variable<String>(linkedId);
+    map['created_at'] = Variable<int>(createdAt);
+    return map;
+  }
+
+  AssetLinksCompanion toCompanion(bool nullToAbsent) {
+    return AssetLinksCompanion(
+      id: Value(id),
+      originalId: Value(originalId),
+      linkedId: Value(linkedId),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory AssetLink.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AssetLink(
+      id: serializer.fromJson<String>(json['id']),
+      originalId: serializer.fromJson<String>(json['originalId']),
+      linkedId: serializer.fromJson<String>(json['linkedId']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'originalId': serializer.toJson<String>(originalId),
+      'linkedId': serializer.toJson<String>(linkedId),
+      'createdAt': serializer.toJson<int>(createdAt),
+    };
+  }
+
+  AssetLink copyWith({
+    String? id,
+    String? originalId,
+    String? linkedId,
+    int? createdAt,
+  }) => AssetLink(
+    id: id ?? this.id,
+    originalId: originalId ?? this.originalId,
+    linkedId: linkedId ?? this.linkedId,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  AssetLink copyWithCompanion(AssetLinksCompanion data) {
+    return AssetLink(
+      id: data.id.present ? data.id.value : this.id,
+      originalId: data.originalId.present
+          ? data.originalId.value
+          : this.originalId,
+      linkedId: data.linkedId.present ? data.linkedId.value : this.linkedId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AssetLink(')
+          ..write('id: $id, ')
+          ..write('originalId: $originalId, ')
+          ..write('linkedId: $linkedId, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, originalId, linkedId, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AssetLink &&
+          other.id == this.id &&
+          other.originalId == this.originalId &&
+          other.linkedId == this.linkedId &&
+          other.createdAt == this.createdAt);
+}
+
+class AssetLinksCompanion extends UpdateCompanion<AssetLink> {
+  final Value<String> id;
+  final Value<String> originalId;
+  final Value<String> linkedId;
+  final Value<int> createdAt;
+  final Value<int> rowid;
+  const AssetLinksCompanion({
+    this.id = const Value.absent(),
+    this.originalId = const Value.absent(),
+    this.linkedId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AssetLinksCompanion.insert({
+    required String id,
+    required String originalId,
+    required String linkedId,
+    required int createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       originalId = Value(originalId),
+       linkedId = Value(linkedId),
+       createdAt = Value(createdAt);
+  static Insertable<AssetLink> custom({
+    Expression<String>? id,
+    Expression<String>? originalId,
+    Expression<String>? linkedId,
+    Expression<int>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (originalId != null) 'original_id': originalId,
+      if (linkedId != null) 'linked_id': linkedId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AssetLinksCompanion copyWith({
+    Value<String>? id,
+    Value<String>? originalId,
+    Value<String>? linkedId,
+    Value<int>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return AssetLinksCompanion(
+      id: id ?? this.id,
+      originalId: originalId ?? this.originalId,
+      linkedId: linkedId ?? this.linkedId,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (originalId.present) {
+      map['original_id'] = Variable<String>(originalId.value);
+    }
+    if (linkedId.present) {
+      map['linked_id'] = Variable<String>(linkedId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AssetLinksCompanion(')
+          ..write('id: $id, ')
+          ..write('originalId: $originalId, ')
+          ..write('linkedId: $linkedId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4662,6 +4988,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PlaylistsTable playlists = $PlaylistsTable(this);
   late final $PlaylistItemsTable playlistItems = $PlaylistItemsTable(this);
   late final $ActivityLogTable activityLog = $ActivityLogTable(this);
+  late final $AssetLinksTable assetLinks = $AssetLinksTable(this);
   late final AssetsDao assetsDao = AssetsDao(this as AppDatabase);
   late final TagsDao tagsDao = TagsDao(this as AppDatabase);
   late final CollectionsDao collectionsDao = CollectionsDao(
@@ -4670,6 +4997,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final ActivityDao activityDao = ActivityDao(this as AppDatabase);
   late final PropertiesDao propertiesDao = PropertiesDao(this as AppDatabase);
   late final PlaylistsDao playlistsDao = PlaylistsDao(this as AppDatabase);
+  late final AssetLinksDao assetLinksDao = AssetLinksDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4685,6 +5013,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     playlists,
     playlistItems,
     activityLog,
+    assetLinks,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -4743,6 +5072,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('playlist_items', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'assets',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('asset_links', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -8790,6 +9126,393 @@ typedef $$ActivityLogTableProcessedTableManager =
       ActivityLogData,
       PrefetchHooks Function()
     >;
+typedef $$AssetLinksTableCreateCompanionBuilder =
+    AssetLinksCompanion Function({
+      required String id,
+      required String originalId,
+      required String linkedId,
+      required int createdAt,
+      Value<int> rowid,
+    });
+typedef $$AssetLinksTableUpdateCompanionBuilder =
+    AssetLinksCompanion Function({
+      Value<String> id,
+      Value<String> originalId,
+      Value<String> linkedId,
+      Value<int> createdAt,
+      Value<int> rowid,
+    });
+
+final class $$AssetLinksTableReferences
+    extends BaseReferences<_$AppDatabase, $AssetLinksTable, AssetLink> {
+  $$AssetLinksTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $AssetsTable _originalIdTable(_$AppDatabase db) =>
+      db.assets.createAlias(
+        $_aliasNameGenerator(db.assetLinks.originalId, db.assets.id),
+      );
+
+  $$AssetsTableProcessedTableManager get originalId {
+    final $_column = $_itemColumn<String>('original_id')!;
+
+    final manager = $$AssetsTableTableManager(
+      $_db,
+      $_db.assets,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_originalIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $AssetsTable _linkedIdTable(_$AppDatabase db) => db.assets.createAlias(
+    $_aliasNameGenerator(db.assetLinks.linkedId, db.assets.id),
+  );
+
+  $$AssetsTableProcessedTableManager get linkedId {
+    final $_column = $_itemColumn<String>('linked_id')!;
+
+    final manager = $$AssetsTableTableManager(
+      $_db,
+      $_db.assets,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_linkedIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$AssetLinksTableFilterComposer
+    extends Composer<_$AppDatabase, $AssetLinksTable> {
+  $$AssetLinksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$AssetsTableFilterComposer get originalId {
+    final $$AssetsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.originalId,
+      referencedTable: $db.assets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssetsTableFilterComposer(
+            $db: $db,
+            $table: $db.assets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$AssetsTableFilterComposer get linkedId {
+    final $$AssetsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.linkedId,
+      referencedTable: $db.assets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssetsTableFilterComposer(
+            $db: $db,
+            $table: $db.assets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AssetLinksTableOrderingComposer
+    extends Composer<_$AppDatabase, $AssetLinksTable> {
+  $$AssetLinksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$AssetsTableOrderingComposer get originalId {
+    final $$AssetsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.originalId,
+      referencedTable: $db.assets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssetsTableOrderingComposer(
+            $db: $db,
+            $table: $db.assets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$AssetsTableOrderingComposer get linkedId {
+    final $$AssetsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.linkedId,
+      referencedTable: $db.assets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssetsTableOrderingComposer(
+            $db: $db,
+            $table: $db.assets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AssetLinksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AssetLinksTable> {
+  $$AssetLinksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$AssetsTableAnnotationComposer get originalId {
+    final $$AssetsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.originalId,
+      referencedTable: $db.assets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssetsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.assets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$AssetsTableAnnotationComposer get linkedId {
+    final $$AssetsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.linkedId,
+      referencedTable: $db.assets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssetsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.assets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AssetLinksTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AssetLinksTable,
+          AssetLink,
+          $$AssetLinksTableFilterComposer,
+          $$AssetLinksTableOrderingComposer,
+          $$AssetLinksTableAnnotationComposer,
+          $$AssetLinksTableCreateCompanionBuilder,
+          $$AssetLinksTableUpdateCompanionBuilder,
+          (AssetLink, $$AssetLinksTableReferences),
+          AssetLink,
+          PrefetchHooks Function({bool originalId, bool linkedId})
+        > {
+  $$AssetLinksTableTableManager(_$AppDatabase db, $AssetLinksTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AssetLinksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AssetLinksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AssetLinksTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> originalId = const Value.absent(),
+                Value<String> linkedId = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AssetLinksCompanion(
+                id: id,
+                originalId: originalId,
+                linkedId: linkedId,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String originalId,
+                required String linkedId,
+                required int createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => AssetLinksCompanion.insert(
+                id: id,
+                originalId: originalId,
+                linkedId: linkedId,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$AssetLinksTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({originalId = false, linkedId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (originalId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.originalId,
+                                referencedTable: $$AssetLinksTableReferences
+                                    ._originalIdTable(db),
+                                referencedColumn: $$AssetLinksTableReferences
+                                    ._originalIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+                    if (linkedId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.linkedId,
+                                referencedTable: $$AssetLinksTableReferences
+                                    ._linkedIdTable(db),
+                                referencedColumn: $$AssetLinksTableReferences
+                                    ._linkedIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$AssetLinksTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AssetLinksTable,
+      AssetLink,
+      $$AssetLinksTableFilterComposer,
+      $$AssetLinksTableOrderingComposer,
+      $$AssetLinksTableAnnotationComposer,
+      $$AssetLinksTableCreateCompanionBuilder,
+      $$AssetLinksTableUpdateCompanionBuilder,
+      (AssetLink, $$AssetLinksTableReferences),
+      AssetLink,
+      PrefetchHooks Function({bool originalId, bool linkedId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -8813,4 +9536,6 @@ class $AppDatabaseManager {
       $$PlaylistItemsTableTableManager(_db, _db.playlistItems);
   $$ActivityLogTableTableManager get activityLog =>
       $$ActivityLogTableTableManager(_db, _db.activityLog);
+  $$AssetLinksTableTableManager get assetLinks =>
+      $$AssetLinksTableTableManager(_db, _db.assetLinks);
 }

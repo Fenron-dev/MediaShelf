@@ -12,6 +12,7 @@ import '../../data/database/app_database.dart';
 import '../../providers/active_player_provider.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/playback_provider.dart';
+import '../../providers/queue_provider.dart';
 
 class PlayerScreen extends ConsumerStatefulWidget {
   final String assetId;
@@ -234,10 +235,107 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             asset?.filename ?? '',
             style: const TextStyle(color: Colors.white),
           ),
+          actions: [
+            // Queue/Playlist button — only visible when a queue is active
+            Consumer(builder: (context, ref, _) {
+              final queue = ref.watch(queueProvider);
+              if (!queue.hasQueue || queue.total <= 1) {
+                return const SizedBox.shrink();
+              }
+              return IconButton(
+                icon: const Icon(Icons.queue_music, color: Colors.white),
+                tooltip: 'Warteschlange (${queue.displayPosition}/${queue.total})',
+                onPressed: () => _showQueueDialog(context, ref, queue),
+              );
+            }),
+          ],
         ),
         body: asset == null
             ? const Center(child: CircularProgressIndicator())
             : _buildPlayer(asset),
+      ),
+    );
+  }
+
+  void _showQueueDialog(BuildContext context, WidgetRef ref, QueueState queue) {
+    final dao = ref.read(assetsDaoProvider);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            const Expanded(child: Text('Warteschlange')),
+            Text(
+              '${queue.displayPosition} / ${queue.total}',
+              style: Theme.of(ctx).textTheme.bodySmall,
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 400,
+          height: 400,
+          child: FutureBuilder<List<Asset?>>(
+            future: Future.wait(queue.assetIds.map((id) => dao.getById(id))),
+            builder: (ctx, snap) {
+              if (!snap.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final assets = snap.data!;
+              return ListView.builder(
+                itemCount: assets.length,
+                itemBuilder: (ctx, i) {
+                  final asset = assets[i];
+                  final isCurrent = i == queue.currentIndex;
+                  return ListTile(
+                    dense: true,
+                    selected: isCurrent,
+                    leading: SizedBox(
+                      width: 24,
+                      child: Text(
+                        '${i + 1}',
+                        textAlign: TextAlign.right,
+                        style: TextStyle(
+                          fontWeight:
+                              isCurrent ? FontWeight.bold : FontWeight.normal,
+                          color: isCurrent
+                              ? Theme.of(ctx).colorScheme.primary
+                              : null,
+                        ),
+                      ),
+                    ),
+                    title: Text(
+                      asset?.mediaTitle ?? asset?.filename ?? '?',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight:
+                            isCurrent ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                    subtitle: asset?.artist != null
+                        ? Text(asset!.artist!,
+                            maxLines: 1, overflow: TextOverflow.ellipsis)
+                        : null,
+                    trailing: isCurrent
+                        ? Icon(Icons.play_arrow,
+                            color: Theme.of(ctx).colorScheme.primary, size: 20)
+                        : null,
+                    onTap: () {
+                      ref.read(queueProvider.notifier).skipTo(i);
+                      Navigator.of(ctx).pop();
+                    },
+                  );
+                },
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Schließen'),
+          ),
+        ],
       ),
     );
   }
@@ -361,6 +459,7 @@ class _AudioPlayerViewState extends State<_AudioPlayerView> {
   Duration _duration = Duration.zero;
   bool _playing = false;
   double _rate = 1.0;
+  double _volume = 100.0;
 
   final _subs = <StreamSubscription>[];
 
@@ -373,6 +472,7 @@ class _AudioPlayerViewState extends State<_AudioPlayerView> {
     _duration = widget.player.state.duration;
     _playing = widget.player.state.playing;
     _rate = widget.player.state.rate;
+    _volume = widget.player.state.volume;
 
     _subs.add(widget.player.stream.position.listen((p) {
       if (mounted) setState(() => _position = p);
@@ -385,6 +485,9 @@ class _AudioPlayerViewState extends State<_AudioPlayerView> {
     }));
     _subs.add(widget.player.stream.rate.listen((r) {
       if (mounted) setState(() => _rate = r);
+    }));
+    _subs.add(widget.player.stream.volume.listen((v) {
+      if (mounted) setState(() => _volume = v);
     }));
   }
 
@@ -537,6 +640,55 @@ class _AudioPlayerViewState extends State<_AudioPlayerView> {
                     onChanged: (s) {
                       if (s != null) widget.player.setRate(s);
                     },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              // Volume slider
+              Row(
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      _volume == 0
+                          ? Icons.volume_off
+                          : _volume < 50
+                              ? Icons.volume_down
+                              : Icons.volume_up,
+                      color: Colors.white54,
+                      size: 20,
+                    ),
+                    onPressed: () {
+                      widget.player.setVolume(_volume == 0 ? 100.0 : 0.0);
+                    },
+                  ),
+                  Expanded(
+                    child: SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        trackHeight: 3,
+                        thumbShape:
+                            const RoundSliderThumbShape(enabledThumbRadius: 6),
+                        activeTrackColor: Colors.white70,
+                        inactiveTrackColor: Colors.white24,
+                        thumbColor: Colors.white,
+                        overlayColor: Colors.white24,
+                      ),
+                      child: Slider(
+                        value: _volume.clamp(0.0, 100.0),
+                        min: 0,
+                        max: 100,
+                        onChanged: (v) => widget.player.setVolume(v),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 36,
+                    child: Text(
+                      '${_volume.round()}',
+                      style: const TextStyle(
+                          color: Colors.white54, fontSize: 11),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ],
               ),

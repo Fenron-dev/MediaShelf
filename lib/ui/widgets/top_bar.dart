@@ -248,6 +248,14 @@ class _TopBarState extends ConsumerState<TopBar> {
           ),
           onTap: () => showManagePropertiesDialog(context, ref),
         ),
+        PopupMenuItem(
+          child: const ListTile(
+            leading: Icon(Icons.settings_outlined),
+            title: Text('Einstellungen'),
+            dense: true,
+          ),
+          onTap: () => context.push('/library/settings'),
+        ),
         const PopupMenuDivider(),
         PopupMenuItem(
           child: const ListTile(

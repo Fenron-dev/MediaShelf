@@ -40,6 +40,13 @@ class AssetsDao extends DatabaseAccessor<AppDatabase> with _$AssetsDaoMixin {
       (select(assets)..where((a) => a.contentHash.equals(hash)))
           .getSingleOrNull();
 
+  /// Searches assets by filename substring (case-insensitive), max 20 results.
+  Future<List<Asset>> searchByFilename(String query) =>
+      (select(assets)
+            ..where((a) => a.filename.like('%$query%'))
+            ..limit(20))
+          .get();
+
   Future<void> upsertAsset(AssetsCompanion companion) =>
       into(assets).insertOnConflictUpdate(companion);
 
@@ -119,9 +126,9 @@ class AssetsDao extends DatabaseAccessor<AppDatabase> with _$AssetsDaoMixin {
   Future<List<Asset>> getAssetsNeedingMetadata() async {
     final result = await customSelect(
       "SELECT * FROM assets WHERE status = 'ok' AND mime_type IS NOT NULL "
-      "AND media_title IS NULL AND artist IS NULL AND author IS NULL "
-      "AND page_count IS NULL AND capture_date IS NULL "
-      "LIMIT 200",
+      'AND media_title IS NULL AND artist IS NULL AND author IS NULL '
+      'AND page_count IS NULL AND capture_date IS NULL '
+      'LIMIT 200',
       readsFrom: {assets},
     ).get();
     return result.map((row) => assets.map(row.data)).toList();
@@ -483,17 +490,17 @@ class AssetsDao extends DatabaseAccessor<AppDatabase> with _$AssetsDaoMixin {
                   final esc = value
                       .replaceAll('%', r'\%')
                       .replaceAll('_', r'\_');
-                  cond = "EXISTS (SELECT 1 FROM asset_properties ap WHERE ap.asset_id = a.id"
+                  cond = 'EXISTS (SELECT 1 FROM asset_properties ap WHERE ap.asset_id = a.id'
                       " AND ap.property_id = ? AND ap.value_text LIKE ? ESCAPE '\\')";
                   params
                     ..add(Variable.withString(propId))
                     ..add(Variable.withString('%$esc%'));
                 case 'isset':
-                  cond = "EXISTS (SELECT 1 FROM asset_properties ap WHERE ap.asset_id = a.id"
+                  cond = 'EXISTS (SELECT 1 FROM asset_properties ap WHERE ap.asset_id = a.id'
                       " AND ap.property_id = ? AND ap.value_text IS NOT NULL AND ap.value_text != '')";
                   params.add(Variable.withString(propId));
                 case 'notset':
-                  cond = "NOT EXISTS (SELECT 1 FROM asset_properties ap WHERE ap.asset_id = a.id"
+                  cond = 'NOT EXISTS (SELECT 1 FROM asset_properties ap WHERE ap.asset_id = a.id'
                       " AND ap.property_id = ? AND ap.value_text IS NOT NULL AND ap.value_text != '')";
                   params.add(Variable.withString(propId));
               }
@@ -560,11 +567,11 @@ class AssetsDao extends DatabaseAccessor<AppDatabase> with _$AssetsDaoMixin {
   /// Returns a map of dir_path → direct file count (not recursive).
   Future<Map<String, int>> getDirCounts() async {
     final rows = await customSelect(
-      "SELECT substr(path, 1, length(path) - length(filename)) as dir,"
-      " COUNT(*) as cnt"
+      'SELECT substr(path, 1, length(path) - length(filename)) as dir,'
+      ' COUNT(*) as cnt'
       " FROM assets WHERE status = 'ok'"
-      " AND length(path) > length(filename)"
-      " GROUP BY dir",
+      ' AND length(path) > length(filename)'
+      ' GROUP BY dir',
       readsFrom: {assets},
     ).get();
     return {

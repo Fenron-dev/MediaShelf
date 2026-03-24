@@ -28,6 +28,12 @@ class _AssetGridState extends ConsumerState<AssetGrid> {
   final _scrollController = ScrollController();
   int _loadedPages = 1;
 
+  // Box select state
+  Offset? _dragStart;
+  Offset? _dragCurrent;
+  final _gridKey = GlobalKey();
+  final _itemKeys = <int, GlobalKey>{};
+
   @override
   void initState() {
     super.initState();
@@ -117,34 +123,119 @@ class _AssetGridState extends ConsumerState<AssetGrid> {
       );
     }
 
-    return GridView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.all(8),
-      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: thumbSize,
-        mainAxisSpacing: 8,
-        crossAxisSpacing: 8,
-      ),
-      itemCount: allAssets.length + (isLoading ? 1 : 0),
-      itemBuilder: (context, i) {
-        if (i >= allAssets.length) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        final asset = allAssets[i];
-        return GestureDetector(
-          onSecondaryTapUp: (details) =>
-              _showAssetContextMenu(context, asset, details.globalPosition),
-          child: AssetCard(
-            asset: asset,
-            isSelected: selectedIds.contains(asset.id) || selectedId == asset.id,
-            onTapDown: () => _onTapDown(context, asset),
-            onDoubleTap: () => _onDoubleTap(context, asset),
-            onLongPress: () =>
-                ref.read(multiSelectProvider.notifier).toggle(asset.id),
+    return Stack(
+      key: _gridKey,
+      children: [
+        GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () {
+            // Deselect when clicking on empty space
+            ref.read(selectedAssetIdProvider.notifier).state = null;
+            if (ref.read(isMultiSelectProvider)) {
+              ref.read(multiSelectProvider.notifier).clear();
+            }
+          },
+          onPanStart: (d) => _onBoxSelectStart(d.localPosition),
+          onPanUpdate: (d) => _onBoxSelectUpdate(d.localPosition, allAssets),
+          onPanEnd: (_) => _onBoxSelectEnd(),
+          child: GridView.builder(
+            controller: _scrollController,
+            padding: const EdgeInsets.all(8),
+            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: thumbSize,
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+            ),
+            itemCount: allAssets.length + (isLoading ? 1 : 0),
+            itemBuilder: (context, i) {
+              if (i >= allAssets.length) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final asset = allAssets[i];
+              _itemKeys.putIfAbsent(i, () => GlobalKey());
+              return GestureDetector(
+                key: _itemKeys[i],
+                onSecondaryTapUp: (details) =>
+                    _showAssetContextMenu(context, asset, details.globalPosition),
+                child: AssetCard(
+                  asset: asset,
+                  isSelected: selectedIds.contains(asset.id) || selectedId == asset.id,
+                  onTapDown: () => _onTapDown(context, asset),
+                  onDoubleTap: () => _onDoubleTap(context, asset),
+                  onLongPress: () =>
+                      ref.read(multiSelectProvider.notifier).toggle(asset.id),
+                ),
+              );
+            },
           ),
-        );
-      },
+        ),
+        // Rubber-band overlay
+        if (_dragStart != null && _dragCurrent != null)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: CustomPaint(
+                painter: _BoxSelectPainter(
+                  start: _dragStart!,
+                  end: _dragCurrent!,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
+  }
+
+  // ── Box select ──────────────────────────────────────────────────────────────
+
+  void _onBoxSelectStart(Offset localPos) {
+    setState(() {
+      _dragStart = localPos;
+      _dragCurrent = localPos;
+    });
+  }
+
+  void _onBoxSelectUpdate(Offset localPos, List<Asset> allAssets) {
+    setState(() => _dragCurrent = localPos);
+    _updateBoxSelection(allAssets);
+  }
+
+  void _onBoxSelectEnd() {
+    setState(() {
+      _dragStart = null;
+      _dragCurrent = null;
+    });
+  }
+
+  void _updateBoxSelection(List<Asset> allAssets) {
+    if (_dragStart == null || _dragCurrent == null) return;
+
+    final gridRenderBox =
+        _gridKey.currentContext?.findRenderObject() as RenderBox?;
+    if (gridRenderBox == null) return;
+
+    final rect = Rect.fromPoints(_dragStart!, _dragCurrent!);
+    final selected = <String>{};
+
+    for (var i = 0; i < allAssets.length; i++) {
+      final key = _itemKeys[i];
+      if (key == null) continue;
+      final itemRenderBox =
+          key.currentContext?.findRenderObject() as RenderBox?;
+      if (itemRenderBox == null) continue;
+
+      final itemPos = itemRenderBox.localToGlobal(Offset.zero,
+          ancestor: gridRenderBox);
+      final itemRect =
+          Rect.fromLTWH(itemPos.dx, itemPos.dy,
+              itemRenderBox.size.width, itemRenderBox.size.height);
+
+      if (rect.overlaps(itemRect)) {
+        selected.add(allAssets[i].id);
+      }
+    }
+
+    ref.read(multiSelectProvider.notifier).selectAll(selected.toList());
   }
 
   Future<void> _showAssetContextMenu(
@@ -417,4 +508,42 @@ class _PickerFolderTileState extends State<_PickerFolderTile> {
       ],
     );
   }
+}
+
+// ── Box select painter ───────────────────────────────────────────────────────
+
+class _BoxSelectPainter extends CustomPainter {
+  _BoxSelectPainter({
+    required this.start,
+    required this.end,
+    required this.color,
+  });
+
+  final Offset start;
+  final Offset end;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromPoints(start, end);
+    // Fill
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..color = color.withValues(alpha: 0.15)
+        ..style = PaintingStyle.fill,
+    );
+    // Border
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..color = color.withValues(alpha: 0.6)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_BoxSelectPainter oldDelegate) =>
+      start != oldDelegate.start || end != oldDelegate.end;
 }

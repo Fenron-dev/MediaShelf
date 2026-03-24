@@ -71,6 +71,25 @@ class PropertiesDao extends DatabaseAccessor<AppDatabase>
             ..where((ap) => ap.assetId.equals(assetId)))
           .watch();
 
+  /// Returns all unique tag values used across assets for a given property.
+  /// Works with properties of type 'tags' where values are JSON arrays.
+  Future<List<String>> getUsedTagsForProperty(String propertyId) async {
+    final rows = await (select(assetProperties)
+          ..where((ap) => ap.propertyId.equals(propertyId)))
+        .get();
+    final tags = <String>{};
+    for (final row in rows) {
+      final val = row.valueText;
+      if (val == null || val.isEmpty) continue;
+      try {
+        final list = (jsonDecode(val) as List).cast<String>();
+        tags.addAll(list);
+      } catch (_) {}
+    }
+    final sorted = tags.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return sorted;
+  }
+
   Future<void> setPropertyValue(
     String assetId,
     String propertyId,

@@ -135,7 +135,7 @@ class LibraryRepository {
   }) async {
     // Get all 'ok' assets that don't have a thumbnail yet
     final rows = await db.customSelect(
-      "SELECT id, path, extension, mime_type, content_hash"
+      'SELECT id, path, extension, mime_type, content_hash'
       " FROM assets WHERE status = 'ok' AND content_hash IS NOT NULL",
     ).get();
 

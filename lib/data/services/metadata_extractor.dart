@@ -433,8 +433,9 @@ String? _pdfInfoField(String src, String field) {
         i += 2;
         continue;
       }
-      if (ch == '(') depth++;
-      else if (ch == ')') { depth--; if (depth == 0) break; }
+      if (ch == '(') {
+        depth++;
+      } else if (ch == ')') { depth--; if (depth == 0) break; }
       if (depth > 0) buf.write(ch);
       i++;
     }

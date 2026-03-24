@@ -41,7 +41,7 @@ class ThumbnailImage extends ConsumerWidget {
       file,
       fit: fit,
       cacheWidth: kThumbSize * 2,
-      errorBuilder: (_, __, ___) => _Placeholder(asset.mimeType),
+      errorBuilder: (_, _, _) => _Placeholder(asset.mimeType),
     );
   }
 }

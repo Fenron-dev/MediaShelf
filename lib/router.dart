@@ -9,6 +9,7 @@ import 'ui/screens/image_viewer_screen.dart';
 import 'ui/screens/library_screen.dart';
 import 'ui/screens/player_screen.dart';
 import 'ui/screens/playlist_screen.dart';
+import 'ui/screens/settings_screen.dart';
 import 'ui/screens/welcome_screen.dart';
 
 // MaterialApp.router ignores changes to routerConfig after initial build.
@@ -68,6 +69,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'playlist/:playlistId',
             builder: (context, state) => PlaylistScreen(
                 playlistId: state.pathParameters['playlistId']!),
+          ),
+          GoRoute(
+            path: 'settings',
+            builder: (context, state) => const SettingsScreen(),
           ),
         ],
       ),

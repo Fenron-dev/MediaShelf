@@ -196,7 +196,7 @@ ScanResult _performScan(String libraryPath, SendPort send) {
           db.execute(
             'INSERT INTO assets'
             ' (id, path, filename, extension, size, mime_type, content_hash,'
-            "  status, file_modified_at, indexed_at)"
+            '  status, file_modified_at, indexed_at)'
             " VALUES (?, ?, ?, ?, ?, ?, ?, 'ok', ?, ?)",
             [id, relPath, filename, extension, size, mimeType, hash,
               fileModifiedAt, now],
