@@ -43,3 +43,9 @@ const List<String> kColorLabels = ['red', 'yellow', 'green', 'blue', 'purple'];
 /// Smart-filter JSON logic values.
 const String kLogicAnd = 'AND';
 const String kLogicOr = 'OR';
+
+/// Sub-directory inside `.mediashelf` that holds encrypted vault files.
+const String kVaultDir = 'vault';
+
+/// File extension for encrypted vault files on disk.
+const String kVaultExt = '.enc';

@@ -4970,6 +4970,514 @@ class AssetLinksCompanion extends UpdateCompanion<AssetLink> {
   }
 }
 
+class $VaultItemsTable extends VaultItems
+    with TableInfo<$VaultItemsTable, VaultItem> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $VaultItemsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _storageNameMeta = const VerificationMeta(
+    'storageName',
+  );
+  @override
+  late final GeneratedColumn<String> storageName = GeneratedColumn<String>(
+    'storage_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _originalFilenameMeta = const VerificationMeta(
+    'originalFilename',
+  );
+  @override
+  late final GeneratedColumn<String> originalFilename = GeneratedColumn<String>(
+    'original_filename',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _originalMimeTypeMeta = const VerificationMeta(
+    'originalMimeType',
+  );
+  @override
+  late final GeneratedColumn<String> originalMimeType = GeneratedColumn<String>(
+    'original_mime_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _originalExtensionMeta = const VerificationMeta(
+    'originalExtension',
+  );
+  @override
+  late final GeneratedColumn<String> originalExtension =
+      GeneratedColumn<String>(
+        'original_extension',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _fileSizeBytesMeta = const VerificationMeta(
+    'fileSizeBytes',
+  );
+  @override
+  late final GeneratedColumn<int> fileSizeBytes = GeneratedColumn<int>(
+    'file_size_bytes',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _addedAtMeta = const VerificationMeta(
+    'addedAt',
+  );
+  @override
+  late final GeneratedColumn<int> addedAt = GeneratedColumn<int>(
+    'added_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    storageName,
+    originalFilename,
+    originalMimeType,
+    originalExtension,
+    fileSizeBytes,
+    addedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'vault_items';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<VaultItem> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('storage_name')) {
+      context.handle(
+        _storageNameMeta,
+        storageName.isAcceptableOrUnknown(
+          data['storage_name']!,
+          _storageNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_storageNameMeta);
+    }
+    if (data.containsKey('original_filename')) {
+      context.handle(
+        _originalFilenameMeta,
+        originalFilename.isAcceptableOrUnknown(
+          data['original_filename']!,
+          _originalFilenameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_originalFilenameMeta);
+    }
+    if (data.containsKey('original_mime_type')) {
+      context.handle(
+        _originalMimeTypeMeta,
+        originalMimeType.isAcceptableOrUnknown(
+          data['original_mime_type']!,
+          _originalMimeTypeMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_originalMimeTypeMeta);
+    }
+    if (data.containsKey('original_extension')) {
+      context.handle(
+        _originalExtensionMeta,
+        originalExtension.isAcceptableOrUnknown(
+          data['original_extension']!,
+          _originalExtensionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('file_size_bytes')) {
+      context.handle(
+        _fileSizeBytesMeta,
+        fileSizeBytes.isAcceptableOrUnknown(
+          data['file_size_bytes']!,
+          _fileSizeBytesMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_fileSizeBytesMeta);
+    }
+    if (data.containsKey('added_at')) {
+      context.handle(
+        _addedAtMeta,
+        addedAt.isAcceptableOrUnknown(data['added_at']!, _addedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_addedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  VaultItem map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return VaultItem(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      storageName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}storage_name'],
+      )!,
+      originalFilename: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}original_filename'],
+      )!,
+      originalMimeType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}original_mime_type'],
+      )!,
+      originalExtension: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}original_extension'],
+      ),
+      fileSizeBytes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}file_size_bytes'],
+      )!,
+      addedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}added_at'],
+      )!,
+    );
+  }
+
+  @override
+  $VaultItemsTable createAlias(String alias) {
+    return $VaultItemsTable(attachedDatabase, alias);
+  }
+}
+
+class VaultItem extends DataClass implements Insertable<VaultItem> {
+  /// UUID — primary key.
+  final String id;
+
+  /// Filename on disk (UUID + ".enc") inside the vault folder.
+  final String storageName;
+
+  /// Original filename shown in the UI (e.g. "passport_scan.pdf").
+  final String originalFilename;
+
+  /// MIME type for choosing the right icon (e.g. "image/jpeg").
+  final String originalMimeType;
+
+  /// File extension without dot (e.g. "pdf"), nullable.
+  final String? originalExtension;
+
+  /// Size of the original (unencrypted) file in bytes.
+  final int fileSizeBytes;
+
+  /// Unix timestamp (ms) when the item was added to the vault.
+  final int addedAt;
+  const VaultItem({
+    required this.id,
+    required this.storageName,
+    required this.originalFilename,
+    required this.originalMimeType,
+    this.originalExtension,
+    required this.fileSizeBytes,
+    required this.addedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['storage_name'] = Variable<String>(storageName);
+    map['original_filename'] = Variable<String>(originalFilename);
+    map['original_mime_type'] = Variable<String>(originalMimeType);
+    if (!nullToAbsent || originalExtension != null) {
+      map['original_extension'] = Variable<String>(originalExtension);
+    }
+    map['file_size_bytes'] = Variable<int>(fileSizeBytes);
+    map['added_at'] = Variable<int>(addedAt);
+    return map;
+  }
+
+  VaultItemsCompanion toCompanion(bool nullToAbsent) {
+    return VaultItemsCompanion(
+      id: Value(id),
+      storageName: Value(storageName),
+      originalFilename: Value(originalFilename),
+      originalMimeType: Value(originalMimeType),
+      originalExtension: originalExtension == null && nullToAbsent
+          ? const Value.absent()
+          : Value(originalExtension),
+      fileSizeBytes: Value(fileSizeBytes),
+      addedAt: Value(addedAt),
+    );
+  }
+
+  factory VaultItem.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return VaultItem(
+      id: serializer.fromJson<String>(json['id']),
+      storageName: serializer.fromJson<String>(json['storageName']),
+      originalFilename: serializer.fromJson<String>(json['originalFilename']),
+      originalMimeType: serializer.fromJson<String>(json['originalMimeType']),
+      originalExtension: serializer.fromJson<String?>(
+        json['originalExtension'],
+      ),
+      fileSizeBytes: serializer.fromJson<int>(json['fileSizeBytes']),
+      addedAt: serializer.fromJson<int>(json['addedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'storageName': serializer.toJson<String>(storageName),
+      'originalFilename': serializer.toJson<String>(originalFilename),
+      'originalMimeType': serializer.toJson<String>(originalMimeType),
+      'originalExtension': serializer.toJson<String?>(originalExtension),
+      'fileSizeBytes': serializer.toJson<int>(fileSizeBytes),
+      'addedAt': serializer.toJson<int>(addedAt),
+    };
+  }
+
+  VaultItem copyWith({
+    String? id,
+    String? storageName,
+    String? originalFilename,
+    String? originalMimeType,
+    Value<String?> originalExtension = const Value.absent(),
+    int? fileSizeBytes,
+    int? addedAt,
+  }) => VaultItem(
+    id: id ?? this.id,
+    storageName: storageName ?? this.storageName,
+    originalFilename: originalFilename ?? this.originalFilename,
+    originalMimeType: originalMimeType ?? this.originalMimeType,
+    originalExtension: originalExtension.present
+        ? originalExtension.value
+        : this.originalExtension,
+    fileSizeBytes: fileSizeBytes ?? this.fileSizeBytes,
+    addedAt: addedAt ?? this.addedAt,
+  );
+  VaultItem copyWithCompanion(VaultItemsCompanion data) {
+    return VaultItem(
+      id: data.id.present ? data.id.value : this.id,
+      storageName: data.storageName.present
+          ? data.storageName.value
+          : this.storageName,
+      originalFilename: data.originalFilename.present
+          ? data.originalFilename.value
+          : this.originalFilename,
+      originalMimeType: data.originalMimeType.present
+          ? data.originalMimeType.value
+          : this.originalMimeType,
+      originalExtension: data.originalExtension.present
+          ? data.originalExtension.value
+          : this.originalExtension,
+      fileSizeBytes: data.fileSizeBytes.present
+          ? data.fileSizeBytes.value
+          : this.fileSizeBytes,
+      addedAt: data.addedAt.present ? data.addedAt.value : this.addedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VaultItem(')
+          ..write('id: $id, ')
+          ..write('storageName: $storageName, ')
+          ..write('originalFilename: $originalFilename, ')
+          ..write('originalMimeType: $originalMimeType, ')
+          ..write('originalExtension: $originalExtension, ')
+          ..write('fileSizeBytes: $fileSizeBytes, ')
+          ..write('addedAt: $addedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    storageName,
+    originalFilename,
+    originalMimeType,
+    originalExtension,
+    fileSizeBytes,
+    addedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is VaultItem &&
+          other.id == this.id &&
+          other.storageName == this.storageName &&
+          other.originalFilename == this.originalFilename &&
+          other.originalMimeType == this.originalMimeType &&
+          other.originalExtension == this.originalExtension &&
+          other.fileSizeBytes == this.fileSizeBytes &&
+          other.addedAt == this.addedAt);
+}
+
+class VaultItemsCompanion extends UpdateCompanion<VaultItem> {
+  final Value<String> id;
+  final Value<String> storageName;
+  final Value<String> originalFilename;
+  final Value<String> originalMimeType;
+  final Value<String?> originalExtension;
+  final Value<int> fileSizeBytes;
+  final Value<int> addedAt;
+  final Value<int> rowid;
+  const VaultItemsCompanion({
+    this.id = const Value.absent(),
+    this.storageName = const Value.absent(),
+    this.originalFilename = const Value.absent(),
+    this.originalMimeType = const Value.absent(),
+    this.originalExtension = const Value.absent(),
+    this.fileSizeBytes = const Value.absent(),
+    this.addedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  VaultItemsCompanion.insert({
+    required String id,
+    required String storageName,
+    required String originalFilename,
+    required String originalMimeType,
+    this.originalExtension = const Value.absent(),
+    required int fileSizeBytes,
+    required int addedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       storageName = Value(storageName),
+       originalFilename = Value(originalFilename),
+       originalMimeType = Value(originalMimeType),
+       fileSizeBytes = Value(fileSizeBytes),
+       addedAt = Value(addedAt);
+  static Insertable<VaultItem> custom({
+    Expression<String>? id,
+    Expression<String>? storageName,
+    Expression<String>? originalFilename,
+    Expression<String>? originalMimeType,
+    Expression<String>? originalExtension,
+    Expression<int>? fileSizeBytes,
+    Expression<int>? addedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (storageName != null) 'storage_name': storageName,
+      if (originalFilename != null) 'original_filename': originalFilename,
+      if (originalMimeType != null) 'original_mime_type': originalMimeType,
+      if (originalExtension != null) 'original_extension': originalExtension,
+      if (fileSizeBytes != null) 'file_size_bytes': fileSizeBytes,
+      if (addedAt != null) 'added_at': addedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  VaultItemsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? storageName,
+    Value<String>? originalFilename,
+    Value<String>? originalMimeType,
+    Value<String?>? originalExtension,
+    Value<int>? fileSizeBytes,
+    Value<int>? addedAt,
+    Value<int>? rowid,
+  }) {
+    return VaultItemsCompanion(
+      id: id ?? this.id,
+      storageName: storageName ?? this.storageName,
+      originalFilename: originalFilename ?? this.originalFilename,
+      originalMimeType: originalMimeType ?? this.originalMimeType,
+      originalExtension: originalExtension ?? this.originalExtension,
+      fileSizeBytes: fileSizeBytes ?? this.fileSizeBytes,
+      addedAt: addedAt ?? this.addedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (storageName.present) {
+      map['storage_name'] = Variable<String>(storageName.value);
+    }
+    if (originalFilename.present) {
+      map['original_filename'] = Variable<String>(originalFilename.value);
+    }
+    if (originalMimeType.present) {
+      map['original_mime_type'] = Variable<String>(originalMimeType.value);
+    }
+    if (originalExtension.present) {
+      map['original_extension'] = Variable<String>(originalExtension.value);
+    }
+    if (fileSizeBytes.present) {
+      map['file_size_bytes'] = Variable<int>(fileSizeBytes.value);
+    }
+    if (addedAt.present) {
+      map['added_at'] = Variable<int>(addedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VaultItemsCompanion(')
+          ..write('id: $id, ')
+          ..write('storageName: $storageName, ')
+          ..write('originalFilename: $originalFilename, ')
+          ..write('originalMimeType: $originalMimeType, ')
+          ..write('originalExtension: $originalExtension, ')
+          ..write('fileSizeBytes: $fileSizeBytes, ')
+          ..write('addedAt: $addedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4989,6 +5497,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PlaylistItemsTable playlistItems = $PlaylistItemsTable(this);
   late final $ActivityLogTable activityLog = $ActivityLogTable(this);
   late final $AssetLinksTable assetLinks = $AssetLinksTable(this);
+  late final $VaultItemsTable vaultItems = $VaultItemsTable(this);
   late final AssetsDao assetsDao = AssetsDao(this as AppDatabase);
   late final TagsDao tagsDao = TagsDao(this as AppDatabase);
   late final CollectionsDao collectionsDao = CollectionsDao(
@@ -4998,6 +5507,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final PropertiesDao propertiesDao = PropertiesDao(this as AppDatabase);
   late final PlaylistsDao playlistsDao = PlaylistsDao(this as AppDatabase);
   late final AssetLinksDao assetLinksDao = AssetLinksDao(this as AppDatabase);
+  late final VaultDao vaultDao = VaultDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5014,6 +5524,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     playlistItems,
     activityLog,
     assetLinks,
+    vaultItems,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -9513,6 +10024,251 @@ typedef $$AssetLinksTableProcessedTableManager =
       AssetLink,
       PrefetchHooks Function({bool originalId, bool linkedId})
     >;
+typedef $$VaultItemsTableCreateCompanionBuilder =
+    VaultItemsCompanion Function({
+      required String id,
+      required String storageName,
+      required String originalFilename,
+      required String originalMimeType,
+      Value<String?> originalExtension,
+      required int fileSizeBytes,
+      required int addedAt,
+      Value<int> rowid,
+    });
+typedef $$VaultItemsTableUpdateCompanionBuilder =
+    VaultItemsCompanion Function({
+      Value<String> id,
+      Value<String> storageName,
+      Value<String> originalFilename,
+      Value<String> originalMimeType,
+      Value<String?> originalExtension,
+      Value<int> fileSizeBytes,
+      Value<int> addedAt,
+      Value<int> rowid,
+    });
+
+class $$VaultItemsTableFilterComposer
+    extends Composer<_$AppDatabase, $VaultItemsTable> {
+  $$VaultItemsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get storageName => $composableBuilder(
+    column: $table.storageName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get originalFilename => $composableBuilder(
+    column: $table.originalFilename,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get originalMimeType => $composableBuilder(
+    column: $table.originalMimeType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get originalExtension => $composableBuilder(
+    column: $table.originalExtension,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get fileSizeBytes => $composableBuilder(
+    column: $table.fileSizeBytes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get addedAt => $composableBuilder(
+    column: $table.addedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$VaultItemsTableOrderingComposer
+    extends Composer<_$AppDatabase, $VaultItemsTable> {
+  $$VaultItemsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get storageName => $composableBuilder(
+    column: $table.storageName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get originalFilename => $composableBuilder(
+    column: $table.originalFilename,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get originalMimeType => $composableBuilder(
+    column: $table.originalMimeType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get originalExtension => $composableBuilder(
+    column: $table.originalExtension,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get fileSizeBytes => $composableBuilder(
+    column: $table.fileSizeBytes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get addedAt => $composableBuilder(
+    column: $table.addedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$VaultItemsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $VaultItemsTable> {
+  $$VaultItemsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get storageName => $composableBuilder(
+    column: $table.storageName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get originalFilename => $composableBuilder(
+    column: $table.originalFilename,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get originalMimeType => $composableBuilder(
+    column: $table.originalMimeType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get originalExtension => $composableBuilder(
+    column: $table.originalExtension,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get fileSizeBytes => $composableBuilder(
+    column: $table.fileSizeBytes,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get addedAt =>
+      $composableBuilder(column: $table.addedAt, builder: (column) => column);
+}
+
+class $$VaultItemsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $VaultItemsTable,
+          VaultItem,
+          $$VaultItemsTableFilterComposer,
+          $$VaultItemsTableOrderingComposer,
+          $$VaultItemsTableAnnotationComposer,
+          $$VaultItemsTableCreateCompanionBuilder,
+          $$VaultItemsTableUpdateCompanionBuilder,
+          (
+            VaultItem,
+            BaseReferences<_$AppDatabase, $VaultItemsTable, VaultItem>,
+          ),
+          VaultItem,
+          PrefetchHooks Function()
+        > {
+  $$VaultItemsTableTableManager(_$AppDatabase db, $VaultItemsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$VaultItemsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$VaultItemsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$VaultItemsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> storageName = const Value.absent(),
+                Value<String> originalFilename = const Value.absent(),
+                Value<String> originalMimeType = const Value.absent(),
+                Value<String?> originalExtension = const Value.absent(),
+                Value<int> fileSizeBytes = const Value.absent(),
+                Value<int> addedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => VaultItemsCompanion(
+                id: id,
+                storageName: storageName,
+                originalFilename: originalFilename,
+                originalMimeType: originalMimeType,
+                originalExtension: originalExtension,
+                fileSizeBytes: fileSizeBytes,
+                addedAt: addedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String storageName,
+                required String originalFilename,
+                required String originalMimeType,
+                Value<String?> originalExtension = const Value.absent(),
+                required int fileSizeBytes,
+                required int addedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => VaultItemsCompanion.insert(
+                id: id,
+                storageName: storageName,
+                originalFilename: originalFilename,
+                originalMimeType: originalMimeType,
+                originalExtension: originalExtension,
+                fileSizeBytes: fileSizeBytes,
+                addedAt: addedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$VaultItemsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $VaultItemsTable,
+      VaultItem,
+      $$VaultItemsTableFilterComposer,
+      $$VaultItemsTableOrderingComposer,
+      $$VaultItemsTableAnnotationComposer,
+      $$VaultItemsTableCreateCompanionBuilder,
+      $$VaultItemsTableUpdateCompanionBuilder,
+      (VaultItem, BaseReferences<_$AppDatabase, $VaultItemsTable, VaultItem>),
+      VaultItem,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -9538,4 +10294,6 @@ class $AppDatabaseManager {
       $$ActivityLogTableTableManager(_db, _db.activityLog);
   $$AssetLinksTableTableManager get assetLinks =>
       $$AssetLinksTableTableManager(_db, _db.assetLinks);
+  $$VaultItemsTableTableManager get vaultItems =>
+      $$VaultItemsTableTableManager(_db, _db.vaultItems);
 }

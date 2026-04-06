@@ -15,7 +15,9 @@ import '../../providers/collection_provider.dart';
 import '../../providers/folder_tree_provider.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/tag_provider.dart';
+import '../../providers/vault_provider.dart';
 import 'smart_filter_editor.dart';
+import 'vault_unlock_dialog.dart';
 
 // Prefs keys for section collapse state
 const _kExpandFolders = 'sidebar_expand_folders';
@@ -192,6 +194,10 @@ class _LibrarySidebarState extends ConsumerState<LibrarySidebar> {
           ),
           child: const _PlaylistsSection(),
         ),
+        const Divider(height: 1),
+
+        // ── Vault ─────────────────────────────────────────────────────────
+        const _VaultSidebarEntry(),
       ],
     );
   }
@@ -1291,6 +1297,55 @@ class _SidebarTile extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(horizontal: 12),
       onTap: onTap,
       onLongPress: onLongPress,
+    );
+  }
+}
+
+// ── Vault sidebar entry ───────────────────────────────────────────────────────
+
+class _VaultSidebarEntry extends ConsumerWidget {
+  const _VaultSidebarEntry();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final vaultState = ref.watch(vaultProvider);
+    final isUnlocked = vaultState.isUnlocked;
+    final cs = Theme.of(context).colorScheme;
+
+    final color = isUnlocked ? Colors.green.shade600 : cs.error;
+
+    return ListTile(
+      dense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      leading: Icon(
+        isUnlocked ? Icons.lock_open_outlined : Icons.lock_outlined,
+        size: 18,
+        color: color,
+      ),
+      title: Text(
+        'Vault',
+        style: TextStyle(fontWeight: FontWeight.w600, color: color),
+      ),
+      trailing: isUnlocked
+          ? IconButton(
+              icon: Icon(Icons.lock_outlined, size: 16, color: color),
+              tooltip: 'Vault sperren',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+              onPressed: () => ref.read(vaultProvider.notifier).lock(),
+            )
+          : null,
+      onTap: () {
+        if (isUnlocked) {
+          context.push('/library/vault');
+        } else {
+          showDialog<void>(
+            context: context,
+            builder: (_) => const VaultUnlockDialog(),
+          );
+        }
+      },
     );
   }
 }

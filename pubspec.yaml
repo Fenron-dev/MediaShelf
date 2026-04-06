@@ -43,6 +43,7 @@ dependencies:
   media_kit_libs_video: ^1.0.4   # bundles libmpv + all codecs, no system deps needed
 
   # ── Viewer ──────────────────────────────────────────────────────────────────
+  flutter_cube: ^0.1.1         # 3D OBJ/MTL renderer (OpenGL ES, pure Dart)
   photo_view: ^0.15.0          # full-screen image zoom/pan
   pdfrx: ^1.0.0                # PDF rendering (Linux/Win/macOS/iOS/Android)
   flutter_markdown_plus: ^1.0.7 # Markdown + plain-text rendering (successor to flutter_markdown)
@@ -60,6 +61,9 @@ dependencies:
   intl: ^0.20.2
   flutter_animate: ^4.5.2
   google_fonts: ^6.2.1
+
+  # ── Encryption (Vault) ──────────────────────────────────────────────────────
+  cryptography: ^2.7.0
 
   # ── Utilities ───────────────────────────────────────────────────────────────
   collection: ^1.19.1

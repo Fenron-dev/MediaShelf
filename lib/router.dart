@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/plugin_registry.dart';
 import 'providers/library_provider.dart';
 import 'ui/screens/activity_screen.dart';
 import 'ui/screens/document_viewer_screen.dart';
@@ -10,6 +11,7 @@ import 'ui/screens/library_screen.dart';
 import 'ui/screens/player_screen.dart';
 import 'ui/screens/playlist_screen.dart';
 import 'ui/screens/settings_screen.dart';
+import 'ui/screens/vault_screen.dart';
 import 'ui/screens/welcome_screen.dart';
 
 // MaterialApp.router ignores changes to routerConfig after initial build.
@@ -71,11 +73,43 @@ final routerProvider = Provider<GoRouter>((ref) {
                 playlistId: state.pathParameters['playlistId']!),
           ),
           GoRoute(
+            path: 'vault',
+            builder: (context, state) => const VaultScreen(),
+          ),
+          GoRoute(
             path: 'settings',
             builder: (context, state) => const SettingsScreen(),
+            routes: [
+              // Plugin settings pages: /library/settings/plugin/:pluginId
+              GoRoute(
+                path: 'plugin/:pluginId',
+                builder: (context, state) => _PluginSettingsPage(
+                  pluginId: state.pathParameters['pluginId']!,
+                ),
+              ),
+            ],
           ),
+          // Plugin-contributed routes
+          ...registeredPlugins.expand((p) => p.routes()),
         ],
       ),
     ],
   );
 });
+
+class _PluginSettingsPage extends ConsumerWidget {
+  const _PluginSettingsPage({required this.pluginId});
+  final String pluginId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final plugin = registeredPlugins.firstWhere(
+      (p) => p.id == pluginId,
+      orElse: () => throw Exception('Plugin $pluginId not found'),
+    );
+    return Scaffold(
+      appBar: AppBar(title: Text('${plugin.displayName} — Einstellungen')),
+      body: plugin.settingsPage(context, ref) ?? const SizedBox.shrink(),
+    );
+  }
+}
