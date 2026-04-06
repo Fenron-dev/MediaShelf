@@ -10,11 +10,18 @@ import '../../data/database/app_database.dart';
 import '../../providers/vault_provider.dart';
 
 /// The main Vault screen — shows encrypted items when the vault is unlocked.
-class VaultScreen extends ConsumerWidget {
+class VaultScreen extends ConsumerStatefulWidget {
   const VaultScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<VaultScreen> createState() => _VaultScreenState();
+}
+
+class _VaultScreenState extends ConsumerState<VaultScreen> {
+  bool _adding = false;
+
+  @override
+  Widget build(BuildContext context) {
     final vaultState = ref.watch(vaultProvider);
 
     // Safety: redirect back if somehow we got here while locked.
@@ -32,13 +39,17 @@ class VaultScreen extends ConsumerWidget {
           ],
         ),
         actions: [
-          // Add file button
           IconButton(
-            icon: const Icon(Icons.add_outlined),
+            icon: _adding
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.add_outlined),
             tooltip: 'Datei hinzufügen',
-            onPressed: () => _addFiles(context, ref),
+            onPressed: _adding ? null : _addFiles,
           ),
-          // Lock button
           IconButton(
             icon: const Icon(Icons.lock_outlined),
             tooltip: 'Vault sperren',
@@ -53,18 +64,23 @@ class VaultScreen extends ConsumerWidget {
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Center(child: Text('Fehler: $e')),
             data: (items) => items.isEmpty
-                ? _EmptyVault(onAdd: () => _addFiles(context, ref))
+                ? _EmptyVault(onAdd: _adding ? null : _addFiles)
                 : _VaultGrid(items: items),
           ),
     );
   }
 
-  Future<void> _addFiles(BuildContext context, WidgetRef ref) async {
+  Future<void> _addFiles() async {
+    if (_adding) return;
     final key = ref.read(vaultProvider).key;
     if (key == null) return;
 
+    // Pick files before setting _adding=true so the picker opens immediately.
     final result = await FilePicker.platform.pickFiles(allowMultiple: true);
     if (result == null || result.files.isEmpty) return;
+    if (!mounted) return;
+
+    setState(() => _adding = true);
 
     final service = ref.read(vaultServiceProvider);
     var errors = 0;
@@ -78,7 +94,10 @@ class VaultScreen extends ConsumerWidget {
       }
     }
 
-    if (context.mounted && errors > 0) {
+    if (!mounted) return;
+    setState(() => _adding = false);
+
+    if (errors > 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('$errors Datei(en) konnten nicht verschlüsselt werden.')),
       );
@@ -90,7 +109,7 @@ class VaultScreen extends ConsumerWidget {
 
 class _EmptyVault extends StatelessWidget {
   const _EmptyVault({required this.onAdd});
-  final VoidCallback onAdd;
+  final VoidCallback? onAdd;
 
   @override
   Widget build(BuildContext context) {

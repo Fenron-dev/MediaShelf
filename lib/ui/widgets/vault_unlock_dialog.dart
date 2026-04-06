@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../providers/vault_provider.dart';
 
@@ -52,8 +51,9 @@ class _VaultUnlockDialogState extends ConsumerState<VaultUnlockDialog> {
     setState(() => _loading = false);
 
     if (success) {
-      Navigator.of(context).pop();
-      context.push('/library/vault');
+      // Pop with true so the caller can navigate — do NOT navigate here,
+      // the dialog's context may be disposed after pop().
+      Navigator.of(context).pop(true);
     } else {
       setState(() => _error = 'Falsches Passwort. Bitte erneut versuchen.');
     }

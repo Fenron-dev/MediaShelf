@@ -1340,10 +1340,14 @@ class _VaultSidebarEntry extends ConsumerWidget {
         if (isUnlocked) {
           context.push('/library/vault');
         } else {
-          showDialog<void>(
+          showDialog<bool>(
             context: context,
             builder: (_) => const VaultUnlockDialog(),
-          );
+          ).then((unlocked) {
+            if (unlocked == true && context.mounted) {
+              context.push('/library/vault');
+            }
+          });
         }
       },
     );
