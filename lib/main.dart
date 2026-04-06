@@ -6,10 +6,15 @@ import 'package:media_kit/media_kit.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'app.dart';
+import 'core/plugin_registry.dart';
+import 'features/emuvr/emuvr_plugin.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
+
+  // ── Register plugins ───────────────────────────────────────────────────────
+  registerPlugin(EmuvrPlugin());
 
   if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
     await windowManager.ensureInitialized();

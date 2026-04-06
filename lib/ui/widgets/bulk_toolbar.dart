@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/plugin_registry.dart';
 import '../../data/database/app_database.dart';
 import '../../providers/asset_list_provider.dart';
 import '../../providers/library_provider.dart';
@@ -73,6 +74,17 @@ class BulkToolbar extends ConsumerWidget {
                     icon: const Icon(Icons.file_upload_outlined),
                     tooltip: 'Export selected',
                     onPressed: () => _showExportDialog(context, ref, selectedIds),
+                  ),
+
+                  // Plugin actions
+                  ...ref.watch(enabledPluginsProvider).expand(
+                    (plugin) => plugin.bulkActions().map(
+                      (action) => IconButton(
+                        icon: Icon(action.icon),
+                        tooltip: action.tooltip,
+                        onPressed: () => action.onPressed(context, ref, selectedIds),
+                      ),
+                    ),
                   ),
 
                   // Delete

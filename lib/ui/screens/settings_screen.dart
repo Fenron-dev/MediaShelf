@@ -4,7 +4,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../core/plugin_registry.dart';
 import '../../providers/media_template_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -16,6 +18,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   MediaCategory _selectedCategory = MediaCategory.audio;
+  bool _showPlugins = false;
 
   @override
   Widget build(BuildContext context) {
@@ -107,7 +110,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 ...MediaCategory.values.map((cat) => ListTile(
                       dense: true,
-                      selected: _selectedCategory == cat,
+                      selected: !_showPlugins && _selectedCategory == cat,
                       selectedTileColor:
                           cs.primaryContainer.withValues(alpha: 0.3),
                       leading: Icon(_categoryIcon(cat), size: 20),
@@ -116,23 +119,45 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         '${templates.getTemplate(cat).fields.length}',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
-                      onTap: () =>
-                          setState(() => _selectedCategory = cat),
+                      onTap: () => setState(() {
+                        _selectedCategory = cat;
+                        _showPlugins = false;
+                      }),
                     )),
+                const Divider(height: 16),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: Text('Plugins',
+                      style: Theme.of(context).textTheme.titleSmall),
+                ),
+                ListTile(
+                  dense: true,
+                  selected: _showPlugins,
+                  selectedTileColor: cs.primaryContainer.withValues(alpha: 0.3),
+                  leading: const Icon(Icons.extension_outlined, size: 20),
+                  title: const Text('Plugins verwalten'),
+                  trailing: Text(
+                    '${registeredPlugins.length}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  onTap: () => setState(() => _showPlugins = true),
+                ),
               ],
             ),
           ),
           const VerticalDivider(width: 1),
 
-          // ── Template editor ────────────────────────────────────────────
+          // ── Template editor or Plugin manager ─────────────────────────
           Expanded(
-            child: _TemplateEditor(
-              category: _selectedCategory,
-              config: templates.getTemplate(_selectedCategory),
-              onChanged: (config) => ref
-                  .read(mediaTemplatesProvider.notifier)
-                  .updateTemplate(_selectedCategory, config),
-            ),
+            child: _showPlugins
+                ? const _PluginManager()
+                : _TemplateEditor(
+                    category: _selectedCategory,
+                    config: templates.getTemplate(_selectedCategory),
+                    onChanged: (config) => ref
+                        .read(mediaTemplatesProvider.notifier)
+                        .updateTemplate(_selectedCategory, config),
+                  ),
           ),
         ],
       ),
@@ -358,6 +383,66 @@ class _TemplateEditor extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ── Plugin Manager ────────────────────────────────────────────────────────────
+
+class _PluginManager extends ConsumerWidget {
+  const _PluginManager();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final plugins = registeredPlugins;
+    final enabledMap = ref.watch(pluginEnabledProvider);
+    final notifier = ref.read(pluginEnabledProvider.notifier);
+
+    if (plugins.isEmpty) {
+      return Center(
+        child: Text(
+          'Keine Plugins installiert.',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: plugins.length,
+      separatorBuilder: (context, index) => const Divider(height: 1),
+      itemBuilder: (context, i) {
+        final plugin = plugins[i];
+        final enabled = enabledMap[plugin.id] ?? true;
+        final hasSettings = plugin.settingsPage(context, ref) != null;
+        return ListTile(
+          leading: Icon(plugin.icon),
+          title: Text(plugin.displayName),
+          subtitle: Text(
+            plugin.description,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (hasSettings)
+                IconButton(
+                  icon: const Icon(Icons.settings_outlined, size: 18),
+                  tooltip: '${plugin.displayName} Einstellungen',
+                  onPressed: () => context.push(
+                    '/library/settings/plugin/${plugin.id}',
+                  ),
+                ),
+              Switch(
+                value: enabled,
+                onChanged: (v) => notifier.setEnabled(plugin.id, v),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/mime_resolver.dart';
+import '../../core/plugin_registry.dart';
 import '../../data/database/app_database.dart';
 import '../../providers/asset_filter_provider.dart';
 import '../../providers/asset_list_provider.dart';
@@ -195,6 +196,9 @@ class _AssetDetailState extends ConsumerState<_AssetDetail> {
 
         // Linked assets
         _LinkedAssetsSection(assetId: asset.id),
+
+        // Plugin-injected sections
+        _PluginDetailSections(asset: asset),
       ],
     );
   }
@@ -1177,6 +1181,27 @@ class _ColorLabelPicker extends StatelessWidget {
               ),
             )),
       ],
+    );
+  }
+}
+
+// ── Plugin sections ───────────────────────────────────────────────────────────
+
+/// Renders the detail-panel sections contributed by all enabled plugins.
+class _PluginDetailSections extends ConsumerWidget {
+  const _PluginDetailSections({required this.asset});
+  final Asset asset;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final plugins = ref.watch(enabledPluginsProvider);
+    final sections = plugins
+        .expand((p) => p.detailSections(asset, ref))
+        .toList();
+    if (sections.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: sections,
     );
   }
 }

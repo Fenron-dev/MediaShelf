@@ -9,6 +9,20 @@ import '../../core/mime_resolver.dart';
 import '../../data/database/app_database.dart';
 import '../../providers/library_provider.dart';
 
+// ── OBJ thumbnail proxy ───────────────────────────────────────────────────────
+
+/// For .obj assets: returns the content-hash (or id) of the first linked
+/// PNG/JPG texture so it can be displayed as a thumbnail proxy.
+final _objTextureThumbnailProvider =
+    FutureProvider.family<String?, String>((ref, assetId) async {
+  final linksDao = ref.watch(assetLinksDaoProvider);
+  final linked = await linksDao.getLinkedAssets(assetId);
+  final texture = linked
+      .where((a) => const {'png', 'jpg', 'jpeg'}.contains(a.extension))
+      .firstOrNull;
+  return texture?.contentHash ?? texture?.id;
+});
+
 /// Shows the cached thumbnail for [asset], falling back to a placeholder icon.
 class ThumbnailImage extends ConsumerWidget {
   final Asset asset;
@@ -24,6 +38,31 @@ class ThumbnailImage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final libraryPath = ref.watch(libraryPathProvider);
     if (libraryPath == null) return _Placeholder(asset.mimeType);
+
+    // For .obj assets, try to use a linked PNG texture as thumbnail proxy.
+    if (asset.extension == 'obj') {
+      final proxyAsync = ref.watch(_objTextureThumbnailProvider(asset.id));
+      final proxyHash = proxyAsync.valueOrNull;
+      if (proxyHash != null) {
+        final proxyPath = p.join(
+          libraryPath,
+          kMediashelfDir,
+          kThumbDir,
+          '$proxyHash.jpg',
+        );
+        final proxyFile = File(proxyPath);
+        if (proxyFile.existsSync()) {
+          return Image.file(
+            proxyFile,
+            fit: fit,
+            cacheWidth: kThumbSize * 2,
+            errorBuilder: (_, _, _) => _Placeholder(asset.mimeType),
+          );
+        }
+      }
+      // No proxy available yet — show model placeholder
+      return _Placeholder(asset.mimeType);
+    }
 
     final thumbPath = p.join(
       libraryPath,
