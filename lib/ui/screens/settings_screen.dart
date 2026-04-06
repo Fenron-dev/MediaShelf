@@ -6,7 +6,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/library_lock.dart';
 import '../../core/plugin_registry.dart';
+import '../../providers/library_lock_provider.dart';
+import '../../providers/library_provider.dart';
 import '../../providers/media_template_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -19,6 +22,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   MediaCategory _selectedCategory = MediaCategory.audio;
   bool _showPlugins = false;
+  bool _showSecurity = false;
 
   @override
   Widget build(BuildContext context) {
@@ -140,24 +144,46 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     '${registeredPlugins.length}',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
-                  onTap: () => setState(() => _showPlugins = true),
+                  onTap: () => setState(() {
+                    _showPlugins = true;
+                    _showSecurity = false;
+                  }),
+                ),
+                const Divider(height: 16),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: Text('Sicherheit',
+                      style: Theme.of(context).textTheme.titleSmall),
+                ),
+                ListTile(
+                  dense: true,
+                  selected: _showSecurity,
+                  selectedTileColor: cs.primaryContainer.withValues(alpha: 0.3),
+                  leading: const Icon(Icons.shield_outlined, size: 20),
+                  title: const Text('Bibliotheks-Schutz'),
+                  onTap: () => setState(() {
+                    _showSecurity = true;
+                    _showPlugins = false;
+                  }),
                 ),
               ],
             ),
           ),
           const VerticalDivider(width: 1),
 
-          // ── Template editor or Plugin manager ─────────────────────────
+          // ── Template editor / Plugin manager / Security ───────────────
           Expanded(
-            child: _showPlugins
-                ? const _PluginManager()
-                : _TemplateEditor(
-                    category: _selectedCategory,
-                    config: templates.getTemplate(_selectedCategory),
-                    onChanged: (config) => ref
-                        .read(mediaTemplatesProvider.notifier)
-                        .updateTemplate(_selectedCategory, config),
-                  ),
+            child: _showSecurity
+                ? const _SecurityPanel()
+                : _showPlugins
+                    ? const _PluginManager()
+                    : _TemplateEditor(
+                        category: _selectedCategory,
+                        config: templates.getTemplate(_selectedCategory),
+                        onChanged: (config) => ref
+                            .read(mediaTemplatesProvider.notifier)
+                            .updateTemplate(_selectedCategory, config),
+                      ),
           ),
         ],
       ),
@@ -443,6 +469,225 @@ class _PluginManager extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+// ── Security Panel ────────────────────────────────────────────────────────────
+
+class _SecurityPanel extends ConsumerStatefulWidget {
+  const _SecurityPanel();
+
+  @override
+  ConsumerState<_SecurityPanel> createState() => _SecurityPanelState();
+}
+
+class _SecurityPanelState extends ConsumerState<_SecurityPanel> {
+  bool _loading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final libraryPath = ref.watch(libraryPathProvider);
+    if (libraryPath == null) {
+      return const Center(child: Text('Keine Bibliothek geöffnet.'));
+    }
+
+    final isLocked = ref.watch(libraryLockedProvider);
+    final obfuscated = ref.watch(filenamesObfuscatedProvider);
+    final cs = Theme.of(context).colorScheme;
+
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        // ── App-Lock ─────────────────────────────────────────────────────
+        Text('App-Lock', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 4),
+        Text(
+          'Beim Öffnen dieser Bibliothek wird ein Passwort verlangt. '
+          'Die Dateien auf der Festplatte bleiben unverändert.',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: cs.onSurfaceVariant,
+              ),
+        ),
+        const SizedBox(height: 16),
+        SwitchListTile(
+          value: isLocked,
+          title: const Text('Bibliothek mit Passwort schützen'),
+          subtitle: Text(isLocked ? 'Aktiv' : 'Deaktiviert'),
+          onChanged: _loading ? null : (v) => v ? _enable(libraryPath) : _disable(libraryPath),
+        ),
+        if (isLocked) ...[
+          const SizedBox(height: 8),
+          ListTile(
+            leading: const Icon(Icons.password_outlined),
+            title: const Text('Passwort ändern'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: _loading ? null : () => _changePassword(libraryPath),
+          ),
+        ],
+
+        const Divider(height: 32),
+
+        // ── Dateinamen-Verschleierung ─────────────────────────────────────
+        Text('Dateinamen-Verschleierung',
+            style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 4),
+        Text(
+          'Dateien werden beim Import unter zufälligen UUIDs gespeichert '
+          '(z.B. "3f9a1b2c.jpg"). Der Ordner auf der Festplatte verrät '
+          'so keine Dateinamen. Nur für neue Importe wirksam.',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: cs.onSurfaceVariant,
+              ),
+        ),
+        const SizedBox(height: 16),
+        SwitchListTile(
+          value: obfuscated,
+          title: const Text('Dateinamen verschleiern'),
+          subtitle: Text(obfuscated ? 'Aktiv — neue Dateien erhalten UUID-Namen' : 'Deaktiviert'),
+          onChanged: isLocked && !_loading
+              ? (v) async {
+                  await LibraryLock.setObfuscateFilenames(libraryPath, v);
+                  setState(() {});
+                  // Force provider re-read
+                  ref.invalidate(filenamesObfuscatedProvider);
+                }
+              : null,
+        ),
+        if (!isLocked)
+          Padding(
+            padding: const EdgeInsets.only(left: 16, top: 4),
+            child: Text(
+              'Dateinamen-Verschleierung erfordert einen aktiven App-Lock.',
+              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _enable(String libraryPath) async {
+    final password = await _askPassword(context, isSetup: true);
+    if (password == null || !mounted) return;
+    setState(() => _loading = true);
+    await LibraryLock.enable(libraryPath, password);
+    ref.invalidate(libraryLockedProvider);
+    if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _disable(String libraryPath) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Schutz deaktivieren'),
+        content: const Text('Der Passwortschutz wird entfernt. Fortfahren?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Abbrechen')),
+          FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Deaktivieren')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _loading = true);
+    await LibraryLock.disable(libraryPath);
+    await LibraryLock.setObfuscateFilenames(libraryPath, false);
+    ref.invalidate(libraryLockedProvider);
+    ref.invalidate(filenamesObfuscatedProvider);
+    if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _changePassword(String libraryPath) async {
+    final password = await _askPassword(context, isSetup: true, title: 'Neues Passwort');
+    if (password == null || !mounted) return;
+    setState(() => _loading = true);
+    final obfuscated = LibraryLock.filenamesObfuscated(libraryPath);
+    await LibraryLock.enable(libraryPath, password, obfuscateFilenames: obfuscated);
+    if (mounted) {
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passwort geändert')),
+      );
+    }
+  }
+
+  /// Shows a dialog to enter (and optionally confirm) a password.
+  /// Returns the password or null if cancelled.
+  static Future<String?> _askPassword(
+    BuildContext context, {
+    required bool isSetup,
+    String title = 'Passwort festlegen',
+  }) {
+    final ctrl = TextEditingController();
+    final confirmCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    var obscure = true;
+
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSt) => AlertDialog(
+          title: Text(title),
+          content: SizedBox(
+            width: 320,
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: ctrl,
+                    autofocus: true,
+                    obscureText: obscure,
+                    decoration: InputDecoration(
+                      labelText: 'Passwort',
+                      suffixIcon: IconButton(
+                        icon: Icon(obscure
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined),
+                        onPressed: () => setSt(() => obscure = !obscure),
+                      ),
+                    ),
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return 'Pflichtfeld';
+                      if (v.length < 8) return 'Mindestens 8 Zeichen';
+                      return null;
+                    },
+                  ),
+                  if (isSetup) ...[
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: confirmCtrl,
+                      obscureText: obscure,
+                      decoration: const InputDecoration(
+                          labelText: 'Passwort bestätigen'),
+                      validator: (v) => v != ctrl.text
+                          ? 'Passwörter stimmen nicht überein'
+                          : null,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Abbrechen')),
+            FilledButton(
+              onPressed: () {
+                if (formKey.currentState?.validate() ?? false) {
+                  Navigator.pop(ctx, ctrl.text);
+                }
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

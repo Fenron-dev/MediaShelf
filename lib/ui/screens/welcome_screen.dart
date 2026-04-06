@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/library_lock.dart';
 import '../../providers/library_provider.dart';
+import '../widgets/library_lock_dialog.dart';
 
 class WelcomeScreen extends ConsumerWidget {
   const WelcomeScreen({super.key});
@@ -146,6 +148,16 @@ class WelcomeScreen extends ConsumerWidget {
     WidgetRef ref,
     String path,
   ) async {
+    // If the library has an App-Lock, require the password first.
+    if (LibraryLock.isLocked(path)) {
+      final unlocked = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => LibraryLockDialog(libraryPath: path),
+      );
+      if (unlocked != true || !context.mounted) return;
+    }
+
     try {
       final repo = ref.read(libraryRepositoryProvider);
       await repo.openLibrary(path);

@@ -38,11 +38,27 @@ class VaultCrypto {
     );
   }
 
+  /// Public alias for external callers (e.g. LibraryLock).
+  static Future<SecretKey> deriveKeyFromSalt(
+          String password, List<int> salt) =>
+      _deriveKey(password, salt);
+
   /// Generates 16 cryptographically random bytes.
   static List<int> _randomSalt() {
     final rng = Random.secure();
     return List.generate(16, (_) => rng.nextInt(256));
   }
+
+  /// Public alias for external callers.
+  static List<int> generateSalt() => _randomSalt();
+
+  /// Public alias for [encrypt] — same format, usable without the Vault context.
+  static Future<Uint8List> encryptRaw(SecretKey key, List<int> plaintext) =>
+      encrypt(key, plaintext);
+
+  /// Public alias for [decrypt].
+  static Future<Uint8List> decryptRaw(SecretKey key, Uint8List data) =>
+      decrypt(key, data);
 
   // ── Encryption / Decryption ─────────────────────────────────────────────────
 
