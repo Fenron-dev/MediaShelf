@@ -166,6 +166,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     _showPlugins = false;
                   }),
                 ),
+                const Divider(height: 16),
+                ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.menu_book_outlined, size: 20),
+                  title: const Text('Hilfe & Handbuch'),
+                  trailing: const Icon(Icons.open_in_new, size: 14),
+                  onTap: () => context.push('/library/help'),
+                ),
               ],
             ),
           ),

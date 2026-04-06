@@ -11,6 +11,7 @@ import 'ui/screens/library_screen.dart';
 import 'ui/screens/player_screen.dart';
 import 'ui/screens/playlist_screen.dart';
 import 'ui/screens/settings_screen.dart';
+import 'ui/screens/help_screen.dart';
 import 'ui/screens/vault_screen.dart';
 import 'ui/screens/welcome_screen.dart';
 
@@ -75,6 +76,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'vault',
             builder: (context, state) => const VaultScreen(),
+          ),
+          GoRoute(
+            path: 'help',
+            builder: (context, state) => const HelpScreen(),
           ),
           GoRoute(
             path: 'settings',
