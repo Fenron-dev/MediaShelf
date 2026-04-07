@@ -1,9 +1,9 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/file_picker_helper.dart';
 import '../../core/library_lock.dart';
 import '../../providers/library_provider.dart';
 import '../widgets/library_lock_dialog.dart';
@@ -115,7 +115,7 @@ class WelcomeScreen extends ConsumerWidget {
   }
 
   Future<void> _openLibrary(BuildContext context, WidgetRef ref) async {
-    final dir = await FilePicker.platform.getDirectoryPath(
+    final dir = await FilePickerHelper.getDirectoryPath(
       dialogTitle: 'Open MediaShelf Library',
     );
     if (dir == null || !context.mounted) return;
@@ -123,7 +123,7 @@ class WelcomeScreen extends ConsumerWidget {
   }
 
   Future<void> _createLibrary(BuildContext context, WidgetRef ref) async {
-    final dir = await FilePicker.platform.getDirectoryPath(
+    final dir = await FilePickerHelper.getDirectoryPath(
       dialogTitle: 'Choose Folder for New Library',
     );
     if (dir == null || !context.mounted) return;

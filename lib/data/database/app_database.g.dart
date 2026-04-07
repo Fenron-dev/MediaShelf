@@ -5478,6 +5478,1033 @@ class VaultItemsCompanion extends UpdateCompanion<VaultItem> {
   }
 }
 
+class $DocumentPositionsTable extends DocumentPositions
+    with TableInfo<$DocumentPositionsTable, DocumentPosition> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DocumentPositionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _assetIdMeta = const VerificationMeta(
+    'assetId',
+  );
+  @override
+  late final GeneratedColumn<String> assetId = GeneratedColumn<String>(
+    'asset_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES assets (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _positionKeyMeta = const VerificationMeta(
+    'positionKey',
+  );
+  @override
+  late final GeneratedColumn<String> positionKey = GeneratedColumn<String>(
+    'position_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _positionLabelMeta = const VerificationMeta(
+    'positionLabel',
+  );
+  @override
+  late final GeneratedColumn<String> positionLabel = GeneratedColumn<String>(
+    'position_label',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _progressMeta = const VerificationMeta(
+    'progress',
+  );
+  @override
+  late final GeneratedColumn<double> progress = GeneratedColumn<double>(
+    'progress',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    assetId,
+    positionKey,
+    positionLabel,
+    progress,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'document_positions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DocumentPosition> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('asset_id')) {
+      context.handle(
+        _assetIdMeta,
+        assetId.isAcceptableOrUnknown(data['asset_id']!, _assetIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_assetIdMeta);
+    }
+    if (data.containsKey('position_key')) {
+      context.handle(
+        _positionKeyMeta,
+        positionKey.isAcceptableOrUnknown(
+          data['position_key']!,
+          _positionKeyMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_positionKeyMeta);
+    }
+    if (data.containsKey('position_label')) {
+      context.handle(
+        _positionLabelMeta,
+        positionLabel.isAcceptableOrUnknown(
+          data['position_label']!,
+          _positionLabelMeta,
+        ),
+      );
+    }
+    if (data.containsKey('progress')) {
+      context.handle(
+        _progressMeta,
+        progress.isAcceptableOrUnknown(data['progress']!, _progressMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {assetId};
+  @override
+  DocumentPosition map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DocumentPosition(
+      assetId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}asset_id'],
+      )!,
+      positionKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}position_key'],
+      )!,
+      positionLabel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}position_label'],
+      ),
+      progress: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}progress'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $DocumentPositionsTable createAlias(String alias) {
+    return $DocumentPositionsTable(attachedDatabase, alias);
+  }
+}
+
+class DocumentPosition extends DataClass
+    implements Insertable<DocumentPosition> {
+  final String assetId;
+
+  /// CFI string (ePub) or page number string (PDF).
+  final String positionKey;
+
+  /// Human-readable label, e.g. "Kapitel 3" or "Seite 42".
+  final String? positionLabel;
+
+  /// Reading progress 0.0–1.0.
+  final double progress;
+
+  /// Milliseconds since epoch.
+  final int updatedAt;
+  const DocumentPosition({
+    required this.assetId,
+    required this.positionKey,
+    this.positionLabel,
+    required this.progress,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['asset_id'] = Variable<String>(assetId);
+    map['position_key'] = Variable<String>(positionKey);
+    if (!nullToAbsent || positionLabel != null) {
+      map['position_label'] = Variable<String>(positionLabel);
+    }
+    map['progress'] = Variable<double>(progress);
+    map['updated_at'] = Variable<int>(updatedAt);
+    return map;
+  }
+
+  DocumentPositionsCompanion toCompanion(bool nullToAbsent) {
+    return DocumentPositionsCompanion(
+      assetId: Value(assetId),
+      positionKey: Value(positionKey),
+      positionLabel: positionLabel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(positionLabel),
+      progress: Value(progress),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory DocumentPosition.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DocumentPosition(
+      assetId: serializer.fromJson<String>(json['assetId']),
+      positionKey: serializer.fromJson<String>(json['positionKey']),
+      positionLabel: serializer.fromJson<String?>(json['positionLabel']),
+      progress: serializer.fromJson<double>(json['progress']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'assetId': serializer.toJson<String>(assetId),
+      'positionKey': serializer.toJson<String>(positionKey),
+      'positionLabel': serializer.toJson<String?>(positionLabel),
+      'progress': serializer.toJson<double>(progress),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+    };
+  }
+
+  DocumentPosition copyWith({
+    String? assetId,
+    String? positionKey,
+    Value<String?> positionLabel = const Value.absent(),
+    double? progress,
+    int? updatedAt,
+  }) => DocumentPosition(
+    assetId: assetId ?? this.assetId,
+    positionKey: positionKey ?? this.positionKey,
+    positionLabel: positionLabel.present
+        ? positionLabel.value
+        : this.positionLabel,
+    progress: progress ?? this.progress,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  DocumentPosition copyWithCompanion(DocumentPositionsCompanion data) {
+    return DocumentPosition(
+      assetId: data.assetId.present ? data.assetId.value : this.assetId,
+      positionKey: data.positionKey.present
+          ? data.positionKey.value
+          : this.positionKey,
+      positionLabel: data.positionLabel.present
+          ? data.positionLabel.value
+          : this.positionLabel,
+      progress: data.progress.present ? data.progress.value : this.progress,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DocumentPosition(')
+          ..write('assetId: $assetId, ')
+          ..write('positionKey: $positionKey, ')
+          ..write('positionLabel: $positionLabel, ')
+          ..write('progress: $progress, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(assetId, positionKey, positionLabel, progress, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DocumentPosition &&
+          other.assetId == this.assetId &&
+          other.positionKey == this.positionKey &&
+          other.positionLabel == this.positionLabel &&
+          other.progress == this.progress &&
+          other.updatedAt == this.updatedAt);
+}
+
+class DocumentPositionsCompanion extends UpdateCompanion<DocumentPosition> {
+  final Value<String> assetId;
+  final Value<String> positionKey;
+  final Value<String?> positionLabel;
+  final Value<double> progress;
+  final Value<int> updatedAt;
+  final Value<int> rowid;
+  const DocumentPositionsCompanion({
+    this.assetId = const Value.absent(),
+    this.positionKey = const Value.absent(),
+    this.positionLabel = const Value.absent(),
+    this.progress = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DocumentPositionsCompanion.insert({
+    required String assetId,
+    required String positionKey,
+    this.positionLabel = const Value.absent(),
+    this.progress = const Value.absent(),
+    required int updatedAt,
+    this.rowid = const Value.absent(),
+  }) : assetId = Value(assetId),
+       positionKey = Value(positionKey),
+       updatedAt = Value(updatedAt);
+  static Insertable<DocumentPosition> custom({
+    Expression<String>? assetId,
+    Expression<String>? positionKey,
+    Expression<String>? positionLabel,
+    Expression<double>? progress,
+    Expression<int>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (assetId != null) 'asset_id': assetId,
+      if (positionKey != null) 'position_key': positionKey,
+      if (positionLabel != null) 'position_label': positionLabel,
+      if (progress != null) 'progress': progress,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DocumentPositionsCompanion copyWith({
+    Value<String>? assetId,
+    Value<String>? positionKey,
+    Value<String?>? positionLabel,
+    Value<double>? progress,
+    Value<int>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return DocumentPositionsCompanion(
+      assetId: assetId ?? this.assetId,
+      positionKey: positionKey ?? this.positionKey,
+      positionLabel: positionLabel ?? this.positionLabel,
+      progress: progress ?? this.progress,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (assetId.present) {
+      map['asset_id'] = Variable<String>(assetId.value);
+    }
+    if (positionKey.present) {
+      map['position_key'] = Variable<String>(positionKey.value);
+    }
+    if (positionLabel.present) {
+      map['position_label'] = Variable<String>(positionLabel.value);
+    }
+    if (progress.present) {
+      map['progress'] = Variable<double>(progress.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DocumentPositionsCompanion(')
+          ..write('assetId: $assetId, ')
+          ..write('positionKey: $positionKey, ')
+          ..write('positionLabel: $positionLabel, ')
+          ..write('progress: $progress, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $MediaBookmarksTable extends MediaBookmarks
+    with TableInfo<$MediaBookmarksTable, MediaBookmark> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MediaBookmarksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _assetIdMeta = const VerificationMeta(
+    'assetId',
+  );
+  @override
+  late final GeneratedColumn<String> assetId = GeneratedColumn<String>(
+    'asset_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES assets (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _mediaTypeMeta = const VerificationMeta(
+    'mediaType',
+  );
+  @override
+  late final GeneratedColumn<String> mediaType = GeneratedColumn<String>(
+    'media_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _positionKeyMeta = const VerificationMeta(
+    'positionKey',
+  );
+  @override
+  late final GeneratedColumn<String> positionKey = GeneratedColumn<String>(
+    'position_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+    'label',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _positionLabelMeta = const VerificationMeta(
+    'positionLabel',
+  );
+  @override
+  late final GeneratedColumn<String> positionLabel = GeneratedColumn<String>(
+    'position_label',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _colorTagMeta = const VerificationMeta(
+    'colorTag',
+  );
+  @override
+  late final GeneratedColumn<String> colorTag = GeneratedColumn<String>(
+    'color_tag',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _quoteMeta = const VerificationMeta('quote');
+  @override
+  late final GeneratedColumn<String> quote = GeneratedColumn<String>(
+    'quote',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    assetId,
+    mediaType,
+    positionKey,
+    label,
+    note,
+    positionLabel,
+    colorTag,
+    quote,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'media_bookmarks';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MediaBookmark> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('asset_id')) {
+      context.handle(
+        _assetIdMeta,
+        assetId.isAcceptableOrUnknown(data['asset_id']!, _assetIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_assetIdMeta);
+    }
+    if (data.containsKey('media_type')) {
+      context.handle(
+        _mediaTypeMeta,
+        mediaType.isAcceptableOrUnknown(data['media_type']!, _mediaTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_mediaTypeMeta);
+    }
+    if (data.containsKey('position_key')) {
+      context.handle(
+        _positionKeyMeta,
+        positionKey.isAcceptableOrUnknown(
+          data['position_key']!,
+          _positionKeyMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_positionKeyMeta);
+    }
+    if (data.containsKey('label')) {
+      context.handle(
+        _labelMeta,
+        label.isAcceptableOrUnknown(data['label']!, _labelMeta),
+      );
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    if (data.containsKey('position_label')) {
+      context.handle(
+        _positionLabelMeta,
+        positionLabel.isAcceptableOrUnknown(
+          data['position_label']!,
+          _positionLabelMeta,
+        ),
+      );
+    }
+    if (data.containsKey('color_tag')) {
+      context.handle(
+        _colorTagMeta,
+        colorTag.isAcceptableOrUnknown(data['color_tag']!, _colorTagMeta),
+      );
+    }
+    if (data.containsKey('quote')) {
+      context.handle(
+        _quoteMeta,
+        quote.isAcceptableOrUnknown(data['quote']!, _quoteMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  MediaBookmark map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MediaBookmark(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      assetId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}asset_id'],
+      )!,
+      mediaType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}media_type'],
+      )!,
+      positionKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}position_key'],
+      )!,
+      label: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}label'],
+      ),
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      ),
+      positionLabel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}position_label'],
+      ),
+      colorTag: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}color_tag'],
+      ),
+      quote: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}quote'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $MediaBookmarksTable createAlias(String alias) {
+    return $MediaBookmarksTable(attachedDatabase, alias);
+  }
+}
+
+class MediaBookmark extends DataClass implements Insertable<MediaBookmark> {
+  final String id;
+  final String assetId;
+
+  /// 'epub' | 'pdf' | 'video' | 'audio'
+  final String mediaType;
+
+  /// CFI / page number / milliseconds as string.
+  final String positionKey;
+
+  /// Optional user label, e.g. "Spannende Szene".
+  final String? label;
+
+  /// Optional longer note.
+  final String? note;
+
+  /// Human-readable position, e.g. "Kapitel 3", "Seite 12", "0:45:22".
+  final String? positionLabel;
+
+  /// Color tag for highlights: 'yellow'|'green'|'blue'|'pink'|'orange'.
+  final String? colorTag;
+
+  /// Highlighted/quoted text (ePub highlights).
+  final String? quote;
+
+  /// Milliseconds since epoch.
+  final int createdAt;
+  const MediaBookmark({
+    required this.id,
+    required this.assetId,
+    required this.mediaType,
+    required this.positionKey,
+    this.label,
+    this.note,
+    this.positionLabel,
+    this.colorTag,
+    this.quote,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['asset_id'] = Variable<String>(assetId);
+    map['media_type'] = Variable<String>(mediaType);
+    map['position_key'] = Variable<String>(positionKey);
+    if (!nullToAbsent || label != null) {
+      map['label'] = Variable<String>(label);
+    }
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
+    if (!nullToAbsent || positionLabel != null) {
+      map['position_label'] = Variable<String>(positionLabel);
+    }
+    if (!nullToAbsent || colorTag != null) {
+      map['color_tag'] = Variable<String>(colorTag);
+    }
+    if (!nullToAbsent || quote != null) {
+      map['quote'] = Variable<String>(quote);
+    }
+    map['created_at'] = Variable<int>(createdAt);
+    return map;
+  }
+
+  MediaBookmarksCompanion toCompanion(bool nullToAbsent) {
+    return MediaBookmarksCompanion(
+      id: Value(id),
+      assetId: Value(assetId),
+      mediaType: Value(mediaType),
+      positionKey: Value(positionKey),
+      label: label == null && nullToAbsent
+          ? const Value.absent()
+          : Value(label),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      positionLabel: positionLabel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(positionLabel),
+      colorTag: colorTag == null && nullToAbsent
+          ? const Value.absent()
+          : Value(colorTag),
+      quote: quote == null && nullToAbsent
+          ? const Value.absent()
+          : Value(quote),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory MediaBookmark.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MediaBookmark(
+      id: serializer.fromJson<String>(json['id']),
+      assetId: serializer.fromJson<String>(json['assetId']),
+      mediaType: serializer.fromJson<String>(json['mediaType']),
+      positionKey: serializer.fromJson<String>(json['positionKey']),
+      label: serializer.fromJson<String?>(json['label']),
+      note: serializer.fromJson<String?>(json['note']),
+      positionLabel: serializer.fromJson<String?>(json['positionLabel']),
+      colorTag: serializer.fromJson<String?>(json['colorTag']),
+      quote: serializer.fromJson<String?>(json['quote']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'assetId': serializer.toJson<String>(assetId),
+      'mediaType': serializer.toJson<String>(mediaType),
+      'positionKey': serializer.toJson<String>(positionKey),
+      'label': serializer.toJson<String?>(label),
+      'note': serializer.toJson<String?>(note),
+      'positionLabel': serializer.toJson<String?>(positionLabel),
+      'colorTag': serializer.toJson<String?>(colorTag),
+      'quote': serializer.toJson<String?>(quote),
+      'createdAt': serializer.toJson<int>(createdAt),
+    };
+  }
+
+  MediaBookmark copyWith({
+    String? id,
+    String? assetId,
+    String? mediaType,
+    String? positionKey,
+    Value<String?> label = const Value.absent(),
+    Value<String?> note = const Value.absent(),
+    Value<String?> positionLabel = const Value.absent(),
+    Value<String?> colorTag = const Value.absent(),
+    Value<String?> quote = const Value.absent(),
+    int? createdAt,
+  }) => MediaBookmark(
+    id: id ?? this.id,
+    assetId: assetId ?? this.assetId,
+    mediaType: mediaType ?? this.mediaType,
+    positionKey: positionKey ?? this.positionKey,
+    label: label.present ? label.value : this.label,
+    note: note.present ? note.value : this.note,
+    positionLabel: positionLabel.present
+        ? positionLabel.value
+        : this.positionLabel,
+    colorTag: colorTag.present ? colorTag.value : this.colorTag,
+    quote: quote.present ? quote.value : this.quote,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  MediaBookmark copyWithCompanion(MediaBookmarksCompanion data) {
+    return MediaBookmark(
+      id: data.id.present ? data.id.value : this.id,
+      assetId: data.assetId.present ? data.assetId.value : this.assetId,
+      mediaType: data.mediaType.present ? data.mediaType.value : this.mediaType,
+      positionKey: data.positionKey.present
+          ? data.positionKey.value
+          : this.positionKey,
+      label: data.label.present ? data.label.value : this.label,
+      note: data.note.present ? data.note.value : this.note,
+      positionLabel: data.positionLabel.present
+          ? data.positionLabel.value
+          : this.positionLabel,
+      colorTag: data.colorTag.present ? data.colorTag.value : this.colorTag,
+      quote: data.quote.present ? data.quote.value : this.quote,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MediaBookmark(')
+          ..write('id: $id, ')
+          ..write('assetId: $assetId, ')
+          ..write('mediaType: $mediaType, ')
+          ..write('positionKey: $positionKey, ')
+          ..write('label: $label, ')
+          ..write('note: $note, ')
+          ..write('positionLabel: $positionLabel, ')
+          ..write('colorTag: $colorTag, ')
+          ..write('quote: $quote, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    assetId,
+    mediaType,
+    positionKey,
+    label,
+    note,
+    positionLabel,
+    colorTag,
+    quote,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MediaBookmark &&
+          other.id == this.id &&
+          other.assetId == this.assetId &&
+          other.mediaType == this.mediaType &&
+          other.positionKey == this.positionKey &&
+          other.label == this.label &&
+          other.note == this.note &&
+          other.positionLabel == this.positionLabel &&
+          other.colorTag == this.colorTag &&
+          other.quote == this.quote &&
+          other.createdAt == this.createdAt);
+}
+
+class MediaBookmarksCompanion extends UpdateCompanion<MediaBookmark> {
+  final Value<String> id;
+  final Value<String> assetId;
+  final Value<String> mediaType;
+  final Value<String> positionKey;
+  final Value<String?> label;
+  final Value<String?> note;
+  final Value<String?> positionLabel;
+  final Value<String?> colorTag;
+  final Value<String?> quote;
+  final Value<int> createdAt;
+  final Value<int> rowid;
+  const MediaBookmarksCompanion({
+    this.id = const Value.absent(),
+    this.assetId = const Value.absent(),
+    this.mediaType = const Value.absent(),
+    this.positionKey = const Value.absent(),
+    this.label = const Value.absent(),
+    this.note = const Value.absent(),
+    this.positionLabel = const Value.absent(),
+    this.colorTag = const Value.absent(),
+    this.quote = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MediaBookmarksCompanion.insert({
+    required String id,
+    required String assetId,
+    required String mediaType,
+    required String positionKey,
+    this.label = const Value.absent(),
+    this.note = const Value.absent(),
+    this.positionLabel = const Value.absent(),
+    this.colorTag = const Value.absent(),
+    this.quote = const Value.absent(),
+    required int createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       assetId = Value(assetId),
+       mediaType = Value(mediaType),
+       positionKey = Value(positionKey),
+       createdAt = Value(createdAt);
+  static Insertable<MediaBookmark> custom({
+    Expression<String>? id,
+    Expression<String>? assetId,
+    Expression<String>? mediaType,
+    Expression<String>? positionKey,
+    Expression<String>? label,
+    Expression<String>? note,
+    Expression<String>? positionLabel,
+    Expression<String>? colorTag,
+    Expression<String>? quote,
+    Expression<int>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (assetId != null) 'asset_id': assetId,
+      if (mediaType != null) 'media_type': mediaType,
+      if (positionKey != null) 'position_key': positionKey,
+      if (label != null) 'label': label,
+      if (note != null) 'note': note,
+      if (positionLabel != null) 'position_label': positionLabel,
+      if (colorTag != null) 'color_tag': colorTag,
+      if (quote != null) 'quote': quote,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MediaBookmarksCompanion copyWith({
+    Value<String>? id,
+    Value<String>? assetId,
+    Value<String>? mediaType,
+    Value<String>? positionKey,
+    Value<String?>? label,
+    Value<String?>? note,
+    Value<String?>? positionLabel,
+    Value<String?>? colorTag,
+    Value<String?>? quote,
+    Value<int>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return MediaBookmarksCompanion(
+      id: id ?? this.id,
+      assetId: assetId ?? this.assetId,
+      mediaType: mediaType ?? this.mediaType,
+      positionKey: positionKey ?? this.positionKey,
+      label: label ?? this.label,
+      note: note ?? this.note,
+      positionLabel: positionLabel ?? this.positionLabel,
+      colorTag: colorTag ?? this.colorTag,
+      quote: quote ?? this.quote,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (assetId.present) {
+      map['asset_id'] = Variable<String>(assetId.value);
+    }
+    if (mediaType.present) {
+      map['media_type'] = Variable<String>(mediaType.value);
+    }
+    if (positionKey.present) {
+      map['position_key'] = Variable<String>(positionKey.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (positionLabel.present) {
+      map['position_label'] = Variable<String>(positionLabel.value);
+    }
+    if (colorTag.present) {
+      map['color_tag'] = Variable<String>(colorTag.value);
+    }
+    if (quote.present) {
+      map['quote'] = Variable<String>(quote.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MediaBookmarksCompanion(')
+          ..write('id: $id, ')
+          ..write('assetId: $assetId, ')
+          ..write('mediaType: $mediaType, ')
+          ..write('positionKey: $positionKey, ')
+          ..write('label: $label, ')
+          ..write('note: $note, ')
+          ..write('positionLabel: $positionLabel, ')
+          ..write('colorTag: $colorTag, ')
+          ..write('quote: $quote, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5498,6 +6525,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ActivityLogTable activityLog = $ActivityLogTable(this);
   late final $AssetLinksTable assetLinks = $AssetLinksTable(this);
   late final $VaultItemsTable vaultItems = $VaultItemsTable(this);
+  late final $DocumentPositionsTable documentPositions =
+      $DocumentPositionsTable(this);
+  late final $MediaBookmarksTable mediaBookmarks = $MediaBookmarksTable(this);
   late final AssetsDao assetsDao = AssetsDao(this as AppDatabase);
   late final TagsDao tagsDao = TagsDao(this as AppDatabase);
   late final CollectionsDao collectionsDao = CollectionsDao(
@@ -5508,6 +6538,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final PlaylistsDao playlistsDao = PlaylistsDao(this as AppDatabase);
   late final AssetLinksDao assetLinksDao = AssetLinksDao(this as AppDatabase);
   late final VaultDao vaultDao = VaultDao(this as AppDatabase);
+  late final DocumentPositionsDao documentPositionsDao = DocumentPositionsDao(
+    this as AppDatabase,
+  );
+  late final MediaBookmarksDao mediaBookmarksDao = MediaBookmarksDao(
+    this as AppDatabase,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5525,6 +6561,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     activityLog,
     assetLinks,
     vaultItems,
+    documentPositions,
+    mediaBookmarks,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -5590,6 +6628,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('asset_links', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'assets',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('document_positions', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'assets',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('media_bookmarks', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -5742,6 +6794,48 @@ final class $$AssetsTableReferences
     ).filter((f) => f.assetId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_playlistItemsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$DocumentPositionsTable, List<DocumentPosition>>
+  _documentPositionsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.documentPositions,
+        aliasName: $_aliasNameGenerator(
+          db.assets.id,
+          db.documentPositions.assetId,
+        ),
+      );
+
+  $$DocumentPositionsTableProcessedTableManager get documentPositionsRefs {
+    final manager = $$DocumentPositionsTableTableManager(
+      $_db,
+      $_db.documentPositions,
+    ).filter((f) => f.assetId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _documentPositionsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$MediaBookmarksTable, List<MediaBookmark>>
+  _mediaBookmarksRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.mediaBookmarks,
+    aliasName: $_aliasNameGenerator(db.assets.id, db.mediaBookmarks.assetId),
+  );
+
+  $$MediaBookmarksTableProcessedTableManager get mediaBookmarksRefs {
+    final manager = $$MediaBookmarksTableTableManager(
+      $_db,
+      $_db.mediaBookmarks,
+    ).filter((f) => f.assetId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_mediaBookmarksRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -6008,6 +7102,56 @@ class $$AssetsTableFilterComposer
           }) => $$PlaylistItemsTableFilterComposer(
             $db: $db,
             $table: $db.playlistItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> documentPositionsRefs(
+    Expression<bool> Function($$DocumentPositionsTableFilterComposer f) f,
+  ) {
+    final $$DocumentPositionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.documentPositions,
+      getReferencedColumn: (t) => t.assetId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DocumentPositionsTableFilterComposer(
+            $db: $db,
+            $table: $db.documentPositions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> mediaBookmarksRefs(
+    Expression<bool> Function($$MediaBookmarksTableFilterComposer f) f,
+  ) {
+    final $$MediaBookmarksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.mediaBookmarks,
+      getReferencedColumn: (t) => t.assetId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MediaBookmarksTableFilterComposer(
+            $db: $db,
+            $table: $db.mediaBookmarks,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -6414,6 +7558,57 @@ class $$AssetsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> documentPositionsRefs<T extends Object>(
+    Expression<T> Function($$DocumentPositionsTableAnnotationComposer a) f,
+  ) {
+    final $$DocumentPositionsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.documentPositions,
+          getReferencedColumn: (t) => t.assetId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$DocumentPositionsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.documentPositions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<T> mediaBookmarksRefs<T extends Object>(
+    Expression<T> Function($$MediaBookmarksTableAnnotationComposer a) f,
+  ) {
+    final $$MediaBookmarksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.mediaBookmarks,
+      getReferencedColumn: (t) => t.assetId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MediaBookmarksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.mediaBookmarks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$AssetsTableTableManager
@@ -6434,6 +7629,8 @@ class $$AssetsTableTableManager
             bool collectionAssetsRefs,
             bool assetPropertiesRefs,
             bool playlistItemsRefs,
+            bool documentPositionsRefs,
+            bool mediaBookmarksRefs,
           })
         > {
   $$AssetsTableTableManager(_$AppDatabase db, $AssetsTable table)
@@ -6599,6 +7796,8 @@ class $$AssetsTableTableManager
                 collectionAssetsRefs = false,
                 assetPropertiesRefs = false,
                 playlistItemsRefs = false,
+                documentPositionsRefs = false,
+                mediaBookmarksRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -6607,6 +7806,8 @@ class $$AssetsTableTableManager
                     if (collectionAssetsRefs) db.collectionAssets,
                     if (assetPropertiesRefs) db.assetProperties,
                     if (playlistItemsRefs) db.playlistItems,
+                    if (documentPositionsRefs) db.documentPositions,
+                    if (mediaBookmarksRefs) db.mediaBookmarks,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -6695,6 +7896,48 @@ class $$AssetsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (documentPositionsRefs)
+                        await $_getPrefetchedData<
+                          Asset,
+                          $AssetsTable,
+                          DocumentPosition
+                        >(
+                          currentTable: table,
+                          referencedTable: $$AssetsTableReferences
+                              ._documentPositionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$AssetsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).documentPositionsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.assetId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (mediaBookmarksRefs)
+                        await $_getPrefetchedData<
+                          Asset,
+                          $AssetsTable,
+                          MediaBookmark
+                        >(
+                          currentTable: table,
+                          referencedTable: $$AssetsTableReferences
+                              ._mediaBookmarksRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$AssetsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).mediaBookmarksRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.assetId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -6720,6 +7963,8 @@ typedef $$AssetsTableProcessedTableManager =
         bool collectionAssetsRefs,
         bool assetPropertiesRefs,
         bool playlistItemsRefs,
+        bool documentPositionsRefs,
+        bool mediaBookmarksRefs,
       })
     >;
 typedef $$TagsTableCreateCompanionBuilder =
@@ -10269,6 +11514,768 @@ typedef $$VaultItemsTableProcessedTableManager =
       VaultItem,
       PrefetchHooks Function()
     >;
+typedef $$DocumentPositionsTableCreateCompanionBuilder =
+    DocumentPositionsCompanion Function({
+      required String assetId,
+      required String positionKey,
+      Value<String?> positionLabel,
+      Value<double> progress,
+      required int updatedAt,
+      Value<int> rowid,
+    });
+typedef $$DocumentPositionsTableUpdateCompanionBuilder =
+    DocumentPositionsCompanion Function({
+      Value<String> assetId,
+      Value<String> positionKey,
+      Value<String?> positionLabel,
+      Value<double> progress,
+      Value<int> updatedAt,
+      Value<int> rowid,
+    });
+
+final class $$DocumentPositionsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $DocumentPositionsTable,
+          DocumentPosition
+        > {
+  $$DocumentPositionsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $AssetsTable _assetIdTable(_$AppDatabase db) => db.assets.createAlias(
+    $_aliasNameGenerator(db.documentPositions.assetId, db.assets.id),
+  );
+
+  $$AssetsTableProcessedTableManager get assetId {
+    final $_column = $_itemColumn<String>('asset_id')!;
+
+    final manager = $$AssetsTableTableManager(
+      $_db,
+      $_db.assets,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_assetIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$DocumentPositionsTableFilterComposer
+    extends Composer<_$AppDatabase, $DocumentPositionsTable> {
+  $$DocumentPositionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get positionKey => $composableBuilder(
+    column: $table.positionKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get positionLabel => $composableBuilder(
+    column: $table.positionLabel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get progress => $composableBuilder(
+    column: $table.progress,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$AssetsTableFilterComposer get assetId {
+    final $$AssetsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.assetId,
+      referencedTable: $db.assets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssetsTableFilterComposer(
+            $db: $db,
+            $table: $db.assets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DocumentPositionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $DocumentPositionsTable> {
+  $$DocumentPositionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get positionKey => $composableBuilder(
+    column: $table.positionKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get positionLabel => $composableBuilder(
+    column: $table.positionLabel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get progress => $composableBuilder(
+    column: $table.progress,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$AssetsTableOrderingComposer get assetId {
+    final $$AssetsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.assetId,
+      referencedTable: $db.assets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssetsTableOrderingComposer(
+            $db: $db,
+            $table: $db.assets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DocumentPositionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DocumentPositionsTable> {
+  $$DocumentPositionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get positionKey => $composableBuilder(
+    column: $table.positionKey,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get positionLabel => $composableBuilder(
+    column: $table.positionLabel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get progress =>
+      $composableBuilder(column: $table.progress, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$AssetsTableAnnotationComposer get assetId {
+    final $$AssetsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.assetId,
+      referencedTable: $db.assets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssetsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.assets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DocumentPositionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DocumentPositionsTable,
+          DocumentPosition,
+          $$DocumentPositionsTableFilterComposer,
+          $$DocumentPositionsTableOrderingComposer,
+          $$DocumentPositionsTableAnnotationComposer,
+          $$DocumentPositionsTableCreateCompanionBuilder,
+          $$DocumentPositionsTableUpdateCompanionBuilder,
+          (DocumentPosition, $$DocumentPositionsTableReferences),
+          DocumentPosition,
+          PrefetchHooks Function({bool assetId})
+        > {
+  $$DocumentPositionsTableTableManager(
+    _$AppDatabase db,
+    $DocumentPositionsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DocumentPositionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DocumentPositionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DocumentPositionsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> assetId = const Value.absent(),
+                Value<String> positionKey = const Value.absent(),
+                Value<String?> positionLabel = const Value.absent(),
+                Value<double> progress = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DocumentPositionsCompanion(
+                assetId: assetId,
+                positionKey: positionKey,
+                positionLabel: positionLabel,
+                progress: progress,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String assetId,
+                required String positionKey,
+                Value<String?> positionLabel = const Value.absent(),
+                Value<double> progress = const Value.absent(),
+                required int updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => DocumentPositionsCompanion.insert(
+                assetId: assetId,
+                positionKey: positionKey,
+                positionLabel: positionLabel,
+                progress: progress,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$DocumentPositionsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({assetId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (assetId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.assetId,
+                                referencedTable:
+                                    $$DocumentPositionsTableReferences
+                                        ._assetIdTable(db),
+                                referencedColumn:
+                                    $$DocumentPositionsTableReferences
+                                        ._assetIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$DocumentPositionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DocumentPositionsTable,
+      DocumentPosition,
+      $$DocumentPositionsTableFilterComposer,
+      $$DocumentPositionsTableOrderingComposer,
+      $$DocumentPositionsTableAnnotationComposer,
+      $$DocumentPositionsTableCreateCompanionBuilder,
+      $$DocumentPositionsTableUpdateCompanionBuilder,
+      (DocumentPosition, $$DocumentPositionsTableReferences),
+      DocumentPosition,
+      PrefetchHooks Function({bool assetId})
+    >;
+typedef $$MediaBookmarksTableCreateCompanionBuilder =
+    MediaBookmarksCompanion Function({
+      required String id,
+      required String assetId,
+      required String mediaType,
+      required String positionKey,
+      Value<String?> label,
+      Value<String?> note,
+      Value<String?> positionLabel,
+      Value<String?> colorTag,
+      Value<String?> quote,
+      required int createdAt,
+      Value<int> rowid,
+    });
+typedef $$MediaBookmarksTableUpdateCompanionBuilder =
+    MediaBookmarksCompanion Function({
+      Value<String> id,
+      Value<String> assetId,
+      Value<String> mediaType,
+      Value<String> positionKey,
+      Value<String?> label,
+      Value<String?> note,
+      Value<String?> positionLabel,
+      Value<String?> colorTag,
+      Value<String?> quote,
+      Value<int> createdAt,
+      Value<int> rowid,
+    });
+
+final class $$MediaBookmarksTableReferences
+    extends BaseReferences<_$AppDatabase, $MediaBookmarksTable, MediaBookmark> {
+  $$MediaBookmarksTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $AssetsTable _assetIdTable(_$AppDatabase db) => db.assets.createAlias(
+    $_aliasNameGenerator(db.mediaBookmarks.assetId, db.assets.id),
+  );
+
+  $$AssetsTableProcessedTableManager get assetId {
+    final $_column = $_itemColumn<String>('asset_id')!;
+
+    final manager = $$AssetsTableTableManager(
+      $_db,
+      $_db.assets,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_assetIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$MediaBookmarksTableFilterComposer
+    extends Composer<_$AppDatabase, $MediaBookmarksTable> {
+  $$MediaBookmarksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mediaType => $composableBuilder(
+    column: $table.mediaType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get positionKey => $composableBuilder(
+    column: $table.positionKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get positionLabel => $composableBuilder(
+    column: $table.positionLabel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get colorTag => $composableBuilder(
+    column: $table.colorTag,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get quote => $composableBuilder(
+    column: $table.quote,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$AssetsTableFilterComposer get assetId {
+    final $$AssetsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.assetId,
+      referencedTable: $db.assets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssetsTableFilterComposer(
+            $db: $db,
+            $table: $db.assets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$MediaBookmarksTableOrderingComposer
+    extends Composer<_$AppDatabase, $MediaBookmarksTable> {
+  $$MediaBookmarksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get mediaType => $composableBuilder(
+    column: $table.mediaType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get positionKey => $composableBuilder(
+    column: $table.positionKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get positionLabel => $composableBuilder(
+    column: $table.positionLabel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get colorTag => $composableBuilder(
+    column: $table.colorTag,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get quote => $composableBuilder(
+    column: $table.quote,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$AssetsTableOrderingComposer get assetId {
+    final $$AssetsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.assetId,
+      referencedTable: $db.assets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssetsTableOrderingComposer(
+            $db: $db,
+            $table: $db.assets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$MediaBookmarksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MediaBookmarksTable> {
+  $$MediaBookmarksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get mediaType =>
+      $composableBuilder(column: $table.mediaType, builder: (column) => column);
+
+  GeneratedColumn<String> get positionKey => $composableBuilder(
+    column: $table.positionKey,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<String> get positionLabel => $composableBuilder(
+    column: $table.positionLabel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get colorTag =>
+      $composableBuilder(column: $table.colorTag, builder: (column) => column);
+
+  GeneratedColumn<String> get quote =>
+      $composableBuilder(column: $table.quote, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$AssetsTableAnnotationComposer get assetId {
+    final $$AssetsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.assetId,
+      referencedTable: $db.assets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssetsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.assets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$MediaBookmarksTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $MediaBookmarksTable,
+          MediaBookmark,
+          $$MediaBookmarksTableFilterComposer,
+          $$MediaBookmarksTableOrderingComposer,
+          $$MediaBookmarksTableAnnotationComposer,
+          $$MediaBookmarksTableCreateCompanionBuilder,
+          $$MediaBookmarksTableUpdateCompanionBuilder,
+          (MediaBookmark, $$MediaBookmarksTableReferences),
+          MediaBookmark,
+          PrefetchHooks Function({bool assetId})
+        > {
+  $$MediaBookmarksTableTableManager(
+    _$AppDatabase db,
+    $MediaBookmarksTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MediaBookmarksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MediaBookmarksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MediaBookmarksTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> assetId = const Value.absent(),
+                Value<String> mediaType = const Value.absent(),
+                Value<String> positionKey = const Value.absent(),
+                Value<String?> label = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+                Value<String?> positionLabel = const Value.absent(),
+                Value<String?> colorTag = const Value.absent(),
+                Value<String?> quote = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MediaBookmarksCompanion(
+                id: id,
+                assetId: assetId,
+                mediaType: mediaType,
+                positionKey: positionKey,
+                label: label,
+                note: note,
+                positionLabel: positionLabel,
+                colorTag: colorTag,
+                quote: quote,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String assetId,
+                required String mediaType,
+                required String positionKey,
+                Value<String?> label = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+                Value<String?> positionLabel = const Value.absent(),
+                Value<String?> colorTag = const Value.absent(),
+                Value<String?> quote = const Value.absent(),
+                required int createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => MediaBookmarksCompanion.insert(
+                id: id,
+                assetId: assetId,
+                mediaType: mediaType,
+                positionKey: positionKey,
+                label: label,
+                note: note,
+                positionLabel: positionLabel,
+                colorTag: colorTag,
+                quote: quote,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$MediaBookmarksTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({assetId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (assetId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.assetId,
+                                referencedTable: $$MediaBookmarksTableReferences
+                                    ._assetIdTable(db),
+                                referencedColumn:
+                                    $$MediaBookmarksTableReferences
+                                        ._assetIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$MediaBookmarksTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $MediaBookmarksTable,
+      MediaBookmark,
+      $$MediaBookmarksTableFilterComposer,
+      $$MediaBookmarksTableOrderingComposer,
+      $$MediaBookmarksTableAnnotationComposer,
+      $$MediaBookmarksTableCreateCompanionBuilder,
+      $$MediaBookmarksTableUpdateCompanionBuilder,
+      (MediaBookmark, $$MediaBookmarksTableReferences),
+      MediaBookmark,
+      PrefetchHooks Function({bool assetId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -10296,4 +12303,8 @@ class $AppDatabaseManager {
       $$AssetLinksTableTableManager(_db, _db.assetLinks);
   $$VaultItemsTableTableManager get vaultItems =>
       $$VaultItemsTableTableManager(_db, _db.vaultItems);
+  $$DocumentPositionsTableTableManager get documentPositions =>
+      $$DocumentPositionsTableTableManager(_db, _db.documentPositions);
+  $$MediaBookmarksTableTableManager get mediaBookmarks =>
+      $$MediaBookmarksTableTableManager(_db, _db.mediaBookmarks);
 }

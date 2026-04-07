@@ -1,7 +1,7 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/file_picker_helper.dart';
 import '../../data/database/app_database.dart';
 import '../../data/services/export_service.dart';
 import '../../providers/library_provider.dart';
@@ -164,7 +164,7 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
   }
 
   Future<void> _pickFolder() async {
-    final result = await FilePicker.platform.getDirectoryPath();
+    final result = await FilePickerHelper.getDirectoryPath();
     if (result != null && mounted) {
       setState(() => _destPath = result);
     }

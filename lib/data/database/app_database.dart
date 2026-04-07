@@ -5,6 +5,8 @@ import 'daos/activity_dao.dart';
 import 'daos/asset_links_dao.dart';
 import 'daos/assets_dao.dart';
 import 'daos/collections_dao.dart';
+import 'daos/document_positions_dao.dart';
+import 'daos/media_bookmarks_dao.dart';
 import 'daos/playlists_dao.dart';
 import 'daos/properties_dao.dart';
 import 'daos/tags_dao.dart';
@@ -13,6 +15,8 @@ import 'tables/activity_log_table.dart';
 import 'tables/asset_links_table.dart';
 import 'tables/assets_table.dart';
 import 'tables/collections_table.dart';
+import 'tables/document_positions_table.dart';
+import 'tables/media_bookmarks_table.dart';
 import 'tables/playlists_table.dart';
 import 'tables/properties_table.dart';
 import 'tables/tags_table.dart';
@@ -22,6 +26,8 @@ export 'daos/activity_dao.dart';
 export 'daos/asset_links_dao.dart';
 export 'daos/assets_dao.dart';
 export 'daos/collections_dao.dart';
+export 'daos/document_positions_dao.dart';
+export 'daos/media_bookmarks_dao.dart';
 export 'daos/playlists_dao.dart';
 export 'daos/properties_dao.dart';
 export 'daos/tags_dao.dart';
@@ -30,6 +36,8 @@ export 'tables/activity_log_table.dart';
 export 'tables/asset_links_table.dart';
 export 'tables/assets_table.dart';
 export 'tables/collections_table.dart';
+export 'tables/document_positions_table.dart';
+export 'tables/media_bookmarks_table.dart';
 export 'tables/playlists_table.dart';
 export 'tables/properties_table.dart';
 export 'tables/tags_table.dart';
@@ -51,8 +59,10 @@ part 'app_database.g.dart';
     ActivityLog,
     AssetLinks,
     VaultItems,
+    DocumentPositions,
+    MediaBookmarks,
   ],
-  daos: [AssetsDao, TagsDao, CollectionsDao, ActivityDao, PropertiesDao, PlaylistsDao, AssetLinksDao, VaultDao],
+  daos: [AssetsDao, TagsDao, CollectionsDao, ActivityDao, PropertiesDao, PlaylistsDao, AssetLinksDao, VaultDao, DocumentPositionsDao, MediaBookmarksDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(String dbPath)
@@ -80,9 +90,13 @@ class AppDatabase extends _$AppDatabase {
   AssetLinksDao get assetLinksDao => AssetLinksDao(this);
   @override
   VaultDao get vaultDao => VaultDao(this);
+  @override
+  DocumentPositionsDao get documentPositionsDao => DocumentPositionsDao(this);
+  @override
+  MediaBookmarksDao get mediaBookmarksDao => MediaBookmarksDao(this);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -145,6 +159,10 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 6) {
             await m.createTable(vaultItems);
+          }
+          if (from < 7) {
+            await m.createTable(documentPositions);
+            await m.createTable(mediaBookmarks);
           }
         },
         beforeOpen: (details) async {

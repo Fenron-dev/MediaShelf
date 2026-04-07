@@ -1,11 +1,11 @@
 import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../../core/file_picker_helper.dart';
 import '../../data/database/app_database.dart';
 import '../../providers/vault_provider.dart';
 
@@ -76,7 +76,7 @@ class _VaultScreenState extends ConsumerState<VaultScreen> {
     if (key == null) return;
 
     // Pick files before setting _adding=true so the picker opens immediately.
-    final result = await FilePicker.platform.pickFiles(allowMultiple: true);
+    final result = await FilePickerHelper.pickFiles(allowMultiple: true);
     if (result == null || result.files.isEmpty) return;
     if (!mounted) return;
 
@@ -320,7 +320,7 @@ class _VaultItemCard extends ConsumerWidget {
     final service = ref.read(vaultServiceProvider);
 
     // Let the user pick a destination folder.
-    final destPath = await FilePicker.platform.getDirectoryPath(
+    final destPath = await FilePickerHelper.getDirectoryPath(
       dialogTitle: 'Speicherort wählen',
     );
     if (destPath == null || !context.mounted) return;

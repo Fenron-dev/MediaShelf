@@ -1,8 +1,8 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/file_picker_helper.dart';
 import '../../../../providers/library_provider.dart';
 import '../../data/emuvr_export_service.dart';
 import '../../providers/emuvr_settings_provider.dart';
@@ -75,7 +75,7 @@ class _EmuvrExportDialogState extends ConsumerState<EmuvrExportDialog> {
   }
 
   Future<void> _changePath() async {
-    final path = await FilePicker.platform.getDirectoryPath(
+    final path = await FilePickerHelper.getDirectoryPath(
       dialogTitle: 'EmuVR-Ordner auswählen',
     );
     if (path != null) {

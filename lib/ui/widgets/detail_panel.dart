@@ -12,6 +12,7 @@ import '../../providers/asset_filter_provider.dart';
 import '../../providers/asset_list_provider.dart';
 import '../../providers/collection_provider.dart';
 import '../../providers/library_provider.dart';
+import '../../providers/media_bookmarks_provider.dart';
 import '../../providers/media_template_provider.dart';
 import '../../providers/properties_provider.dart';
 import '../../providers/tag_provider.dart';
@@ -196,6 +197,14 @@ class _AssetDetailState extends ConsumerState<_AssetDetail> {
 
         // Linked assets
         _LinkedAssetsSection(assetId: asset.id),
+
+        // Bookmarks (ePub + PDF only)
+        if (asset.mimeType == 'application/epub+zip' ||
+            asset.mimeType == 'application/pdf' ||
+            (asset.mimeType == null &&
+                (asset.filename.toLowerCase().endsWith('.epub') ||
+                    asset.filename.toLowerCase().endsWith('.pdf'))))
+          _BookmarksSection(asset: asset),
 
         // Plugin-injected sections
         _PluginDetailSections(asset: asset),
@@ -1202,6 +1211,82 @@ class _PluginDetailSections extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: sections,
+    );
+  }
+}
+
+// ── Bookmarks Section (ePub + PDF) ────────────────────────────────────────────
+
+class _BookmarksSection extends ConsumerWidget {
+  const _BookmarksSection({required this.asset});
+  final Asset asset;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final countAsync = ref.watch(bookmarkCountProvider(asset.id));
+
+    return countAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (e, _) => const SizedBox.shrink(),
+      data: (count) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Divider(height: 24),
+          Row(
+            children: [
+              Text('Lesezeichen',
+                  style: Theme.of(context).textTheme.labelMedium),
+              const SizedBox(width: 8),
+              if (count > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '$count',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onPrimaryContainer,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (count == 0)
+            Text(
+              'Keine Lesezeichen vorhanden.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            )
+          else
+            ActionChip(
+              avatar: const Icon(Icons.bookmarks_outlined, size: 14),
+              label: Text('$count Lesezeichen anzeigen'),
+              onPressed: () {
+                final mime = asset.mimeType ?? '';
+                final isEpub = mime == 'application/epub+zip' ||
+                    asset.filename.toLowerCase().endsWith('.epub');
+                if (isEpub) {
+                  context.push('/library/document/${asset.id}');
+                } else {
+                  context.push('/library/document/${asset.id}');
+                }
+              },
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              padding: EdgeInsets.zero,
+              labelPadding:
+                  const EdgeInsets.symmetric(horizontal: 6),
+            ),
+        ],
+      ),
     );
   }
 }

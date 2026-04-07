@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/file_picker_helper.dart';
 import '../../core/library_lock.dart';
 import '../../core/plugin_registry.dart';
 import '../../providers/library_lock_provider.dart';
@@ -203,7 +204,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     switch (action) {
       case 'export':
         final json = notifier.exportToJson();
-        final result = await FilePicker.platform.saveFile(
+        final result = await FilePickerHelper.saveFile(
           dialogTitle: 'Template-Einstellungen exportieren',
           fileName: 'mediashelf_templates.json',
           allowedExtensions: ['json'],
@@ -218,7 +219,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           }
         }
       case 'import':
-        final result = await FilePicker.platform.pickFiles(
+        final result = await FilePickerHelper.pickFiles(
           dialogTitle: 'Template-Einstellungen importieren',
           allowedExtensions: ['json'],
           type: FileType.custom,
