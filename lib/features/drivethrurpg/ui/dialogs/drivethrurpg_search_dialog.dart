@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../data/database/app_database.dart';
 import '../../../../data/thumbnailer/thumbnailer.dart';
@@ -16,10 +17,6 @@ import '../../providers/drivethrurpg_provider.dart';
 
 // ── Public entry point ────────────────────────────────────────────────────────
 
-/// Opens the DriveThruRPG search dialog for [asset].
-///
-/// If the user confirms a selection the metadata is written back to the DB
-/// and the optional [onApplied] callback is fired.
 Future<void> showDriveThruRpgDialog(
   BuildContext context, {
   required Asset asset,
@@ -31,6 +28,8 @@ Future<void> showDriveThruRpgDialog(
     );
 
 // ── Dialog widget ─────────────────────────────────────────────────────────────
+
+enum _DialogMode { search, manual, apply }
 
 class _DriveThruRpgDialog extends ConsumerStatefulWidget {
   const _DriveThruRpgDialog({required this.asset, this.onApplied});
@@ -44,9 +43,13 @@ class _DriveThruRpgDialog extends ConsumerStatefulWidget {
 
 class _DriveThruRpgDialogState extends ConsumerState<_DriveThruRpgDialog> {
   late final TextEditingController _searchCtrl;
-  DriveThruRpgSearchResult? _selected;
+  _DialogMode _mode = _DialogMode.search;
 
-  // Options for "apply" step
+  // Confirmed metadata ready to apply (from scraper OR manual form)
+  DriveThruRpgMetadata? _confirmedMeta;
+  DriveThruRpgSearchResult? _selectedResult;
+
+  // Apply-field toggles
   bool _applyTitle = true;
   bool _applyAuthor = true;
   bool _applyPublisher = true;
@@ -58,9 +61,9 @@ class _DriveThruRpgDialogState extends ConsumerState<_DriveThruRpgDialog> {
   @override
   void initState() {
     super.initState();
-    // Pre-fill with filename (without extension)
-    final base = p.basenameWithoutExtension(widget.asset.filename);
-    _searchCtrl = TextEditingController(text: base);
+    _searchCtrl = TextEditingController(
+      text: p.basenameWithoutExtension(widget.asset.filename),
+    );
   }
 
   @override
@@ -69,11 +72,10 @@ class _DriveThruRpgDialogState extends ConsumerState<_DriveThruRpgDialog> {
     super.dispose();
   }
 
+  // ── Build ─────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
-    final searchAsync = ref.watch(drivethrurpgSearchProvider);
-    final fetchAsync = ref.watch(drivethrurpgFetchProvider);
-
     return Dialog(
       clipBehavior: Clip.hardEdge,
       child: ConstrainedBox(
@@ -81,133 +83,188 @@ class _DriveThruRpgDialogState extends ConsumerState<_DriveThruRpgDialog> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ── Header ──────────────────────────────────────────────────────
-            Container(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
-              child: Row(
-                children: [
-                  const Icon(Icons.travel_explore, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'DriveThruRPG Lookup',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                    tooltip: 'Schließen',
-                  ),
-                ],
-              ),
-            ),
-
-            // ── Search bar ──────────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _searchCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Titel suchen oder Produkt-URL einfügen',
-                        prefixIcon: Icon(Icons.search),
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                      onSubmitted: (_) => _runSearch(),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  FilledButton(
-                    onPressed: _runSearch,
-                    child: const Text('Suchen'),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            // ── Body — switches between states ──────────────────────────────
-            Expanded(
-              child: fetchAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => _ErrorView(
-                  message: e.toString(),
-                  onRetry: () => ref
-                      .read(drivethrurpgFetchProvider.notifier)
-                      .fetchByUrl(_selected!.productUrl),
-                ),
-                data: (meta) {
-                  if (meta != null) {
-                    return _ApplyView(
-                      meta: meta,
-                      asset: widget.asset,
-                      applyTitle: _applyTitle,
-                      applyAuthor: _applyAuthor,
-                      applyPublisher: _applyPublisher,
-                      applyPageCount: _applyPageCount,
-                      applyNote: _applyNote,
-                      applyCover: _applyCover,
-                      applySourceUrl: _applySourceUrl,
-                      onToggle: (field, value) => setState(() {
-                        switch (field) {
-                          case 'title': _applyTitle = value;
-                          case 'author': _applyAuthor = value;
-                          case 'publisher': _applyPublisher = value;
-                          case 'pageCount': _applyPageCount = value;
-                          case 'note': _applyNote = value;
-                          case 'cover': _applyCover = value;
-                          case 'sourceUrl': _applySourceUrl = value;
-                        }
-                      }),
-                      onBack: () {
-                        ref.read(drivethrurpgFetchProvider.notifier).clear();
-                        setState(() => _selected = null);
-                      },
-                      onApply: () => _applyMetadata(meta),
-                    );
-                  }
-                  return searchAsync.when(
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    error: (e, _) =>
-                        _ErrorView(message: e.toString(), onRetry: _runSearch),
-                    data: (results) {
-                      if (results.isEmpty &&
-                          searchAsync is! AsyncLoading) {
-                        return const Center(
-                          child: Text(
-                            'Keine Ergebnisse. Bitte Suchbegriff anpassen.',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        );
-                      }
-                      return _SearchResultList(
-                        results: results,
-                        onSelect: _fetchProduct,
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
+            _buildHeader(context),
+            if (_mode != _DialogMode.apply) _buildSearchBar(context),
+            if (_mode != _DialogMode.apply) const SizedBox(height: 4),
+            Expanded(child: _buildBody(context)),
           ],
         ),
       ),
     );
   }
 
+  Widget _buildHeader(BuildContext context) {
+    return Container(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+      child: Row(
+        children: [
+          const Icon(Icons.travel_explore, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text('DriveThruRPG Lookup',
+                style: Theme.of(context).textTheme.titleMedium),
+          ),
+          if (_mode == _DialogMode.manual)
+            TextButton(
+              onPressed: () => setState(() => _mode = _DialogMode.search),
+              child: const Text('Suche'),
+            ),
+          IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () => Navigator.pop(context),
+            tooltip: 'Schließen',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchBar(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _searchCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Titel suchen oder Produkt-URL einfügen',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              onSubmitted: (_) => _runSearch(),
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilledButton(
+            onPressed: _runSearch,
+            child: const Text('Suchen'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context) {
+    if (_mode == _DialogMode.manual) {
+      return _ManualEntryForm(
+        asset: widget.asset,
+        onSubmit: (meta) {
+          setState(() {
+            _confirmedMeta = meta;
+            _mode = _DialogMode.apply;
+          });
+        },
+      );
+    }
+
+    if (_mode == _DialogMode.apply && _confirmedMeta != null) {
+      return _ApplyView(
+        meta: _confirmedMeta!,
+        applyTitle: _applyTitle,
+        applyAuthor: _applyAuthor,
+        applyPublisher: _applyPublisher,
+        applyPageCount: _applyPageCount,
+        applyNote: _applyNote,
+        applyCover: _applyCover,
+        applySourceUrl: _applySourceUrl,
+        onToggle: (field, value) => setState(() {
+          switch (field) {
+            case 'title':
+              _applyTitle = value;
+            case 'author':
+              _applyAuthor = value;
+            case 'publisher':
+              _applyPublisher = value;
+            case 'pageCount':
+              _applyPageCount = value;
+            case 'note':
+              _applyNote = value;
+            case 'cover':
+              _applyCover = value;
+            case 'sourceUrl':
+              _applySourceUrl = value;
+          }
+        }),
+        onBack: () => setState(() {
+          _mode = _DialogMode.search;
+          _confirmedMeta = null;
+          _selectedResult = null;
+          ref.read(drivethrurpgFetchProvider.notifier).clear();
+        }),
+        onApply: () => _applyMetadata(_confirmedMeta!),
+      );
+    }
+
+    // Search mode — show results or loading/error
+    final fetchAsync = ref.watch(drivethrurpgFetchProvider);
+    final searchAsync = ref.watch(drivethrurpgSearchProvider);
+
+    return fetchAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => _ErrorView(
+        message: e.toString(),
+        onRetry: _selectedResult != null
+            ? () => ref
+                .read(drivethrurpgFetchProvider.notifier)
+                .fetchByUrl(_selectedResult!.productUrl)
+            : null,
+        onManualEntry: () => setState(() => _mode = _DialogMode.manual),
+        searchQuery: _searchCtrl.text.trim(),
+      ),
+      data: (meta) {
+        if (meta != null) {
+          // Auto-advance to apply view when fetch succeeds
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _mode == _DialogMode.search) {
+              setState(() {
+                _confirmedMeta = meta;
+                _mode = _DialogMode.apply;
+              });
+            }
+          });
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        return searchAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => _ErrorView(
+            message: e.toString(),
+            onRetry: _runSearch,
+            onManualEntry: () => setState(() => _mode = _DialogMode.manual),
+            searchQuery: _searchCtrl.text.trim(),
+          ),
+          data: (results) {
+            if (results.isEmpty) {
+              return _EmptyResults(
+                onManualEntry: () =>
+                    setState(() => _mode = _DialogMode.manual),
+              );
+            }
+            return _SearchResultList(
+              results: results,
+              onSelect: _fetchProduct,
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ── Actions ───────────────────────────────────────────────────────────────
+
   void _runSearch() {
     final query = _searchCtrl.text.trim();
     if (query.isEmpty) return;
     ref.read(drivethrurpgFetchProvider.notifier).clear();
-    setState(() => _selected = null);
+    setState(() {
+      _mode = _DialogMode.search;
+      _confirmedMeta = null;
+      _selectedResult = null;
+    });
 
-    // If input looks like a URL, fetch directly
     if (query.startsWith('http') && query.contains('drivethrurpg')) {
       ref.read(drivethrurpgFetchProvider.notifier).fetchByUrl(query);
     } else {
@@ -216,7 +273,7 @@ class _DriveThruRpgDialogState extends ConsumerState<_DriveThruRpgDialog> {
   }
 
   void _fetchProduct(DriveThruRpgSearchResult result) {
-    setState(() => _selected = result);
+    setState(() => _selectedResult = result);
     ref.read(drivethrurpgFetchProvider.notifier).fetchByUrl(result.productUrl);
   }
 
@@ -239,7 +296,7 @@ class _DriveThruRpgDialogState extends ConsumerState<_DriveThruRpgDialog> {
           : const Value.absent(),
     );
 
-    if (_applySourceUrl) {
+    if (_applySourceUrl && meta.productUrl.isNotEmpty) {
       await dao.updateMeta(
         id: widget.asset.id,
         sourceUrl: Value(meta.productUrl),
@@ -283,26 +340,164 @@ class _DriveThruRpgDialogState extends ConsumerState<_DriveThruRpgDialog> {
       final dest = thumbPath(libraryPath, asset.contentHash!);
       File(dest).writeAsBytesSync(jpegBytes);
     } catch (_) {
-      // Cover download is optional — swallow errors silently
+      // Cover download is optional
     }
+  }
+}
+
+// ── Manual entry form ─────────────────────────────────────────────────────────
+
+class _ManualEntryForm extends StatefulWidget {
+  const _ManualEntryForm({required this.asset, required this.onSubmit});
+  final Asset asset;
+  final void Function(DriveThruRpgMetadata meta) onSubmit;
+
+  @override
+  State<_ManualEntryForm> createState() => _ManualEntryFormState();
+}
+
+class _ManualEntryFormState extends State<_ManualEntryForm> {
+  final _titleCtrl = TextEditingController();
+  final _authorCtrl = TextEditingController();
+  final _publisherCtrl = TextEditingController();
+  final _pageCtrl = TextEditingController();
+  final _urlCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill from existing asset data
+    _titleCtrl.text = widget.asset.mediaTitle ?? '';
+    _authorCtrl.text = widget.asset.author ?? '';
+    _publisherCtrl.text = widget.asset.publisher ?? '';
+    _pageCtrl.text =
+        widget.asset.pageCount != null ? '${widget.asset.pageCount}' : '';
+    _urlCtrl.text = widget.asset.sourceUrl ?? '';
+  }
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _authorCtrl.dispose();
+    _publisherCtrl.dispose();
+    _pageCtrl.dispose();
+    _urlCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Text(
+                'Metadaten manuell eingeben',
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Öffne die Produktseite im Browser und übertrage die '
+                'gewünschten Informationen hier.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              _field(_urlCtrl, 'Produkt-URL (optional)',
+                  icon: Icons.link, action: _openUrl),
+              const SizedBox(height: 10),
+              _field(_titleCtrl, 'Titel', icon: Icons.title),
+              const SizedBox(height: 10),
+              _field(_authorCtrl, 'Autor(en)', icon: Icons.person_outline),
+              const SizedBox(height: 10),
+              _field(_publisherCtrl, 'Verlag', icon: Icons.business_outlined),
+              const SizedBox(height: 10),
+              _field(_pageCtrl, 'Seitenanzahl',
+                  icon: Icons.menu_book_outlined,
+                  inputType: TextInputType.number),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: FilledButton.icon(
+            icon: const Icon(Icons.check, size: 16),
+            label: const Text('Weiter'),
+            onPressed: _submit,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _field(
+    TextEditingController ctrl,
+    String label, {
+    IconData? icon,
+    TextInputType? inputType,
+    VoidCallback? action,
+  }) {
+    return TextField(
+      controller: ctrl,
+      keyboardType: inputType,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: icon != null ? Icon(icon, size: 18) : null,
+        suffixIcon: action != null
+            ? IconButton(
+                icon: const Icon(Icons.open_in_browser, size: 18),
+                tooltip: 'Im Browser öffnen',
+                onPressed: action,
+              )
+            : null,
+        border: const OutlineInputBorder(),
+        isDense: true,
+      ),
+    );
+  }
+
+  void _openUrl() {
+    final url = _urlCtrl.text.trim();
+    if (url.isNotEmpty) {
+      launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    }
+  }
+
+  void _submit() {
+    final authors = _authorCtrl.text.trim().isEmpty
+        ? <String>[]
+        : _authorCtrl.text
+            .split(RegExp(r'[,;]'))
+            .map((s) => s.trim())
+            .where((s) => s.isNotEmpty)
+            .toList();
+
+    final meta = DriveThruRpgMetadata(
+      title: _titleCtrl.text.trim().isEmpty ? null : _titleCtrl.text.trim(),
+      authors: authors,
+      publisher:
+          _publisherCtrl.text.trim().isEmpty ? null : _publisherCtrl.text.trim(),
+      pageCount: int.tryParse(_pageCtrl.text.trim()),
+      productUrl: _urlCtrl.text.trim(),
+    );
+    widget.onSubmit(meta);
   }
 }
 
 // ── Search result list ────────────────────────────────────────────────────────
 
 class _SearchResultList extends StatelessWidget {
-  const _SearchResultList({
-    required this.results,
-    required this.onSelect,
-  });
-
+  const _SearchResultList({required this.results, required this.onSelect});
   final List<DriveThruRpgSearchResult> results;
   final ValueChanged<DriveThruRpgSearchResult> onSelect;
 
   @override
   Widget build(BuildContext context) {
-    if (results.isEmpty) return const SizedBox.shrink();
-
     return ListView.separated(
       padding: const EdgeInsets.symmetric(vertical: 4),
       itemCount: results.length,
@@ -320,8 +515,7 @@ class _SearchResultList extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
           trailing: r.price != null
-              ? Text(r.price!,
-                  style: Theme.of(context).textTheme.labelSmall)
+              ? Text(r.price!, style: Theme.of(context).textTheme.labelSmall)
               : null,
           onTap: () => onSelect(r),
         );
@@ -335,7 +529,6 @@ class _SearchResultList extends StatelessWidget {
 class _ApplyView extends StatelessWidget {
   const _ApplyView({
     required this.meta,
-    required this.asset,
     required this.applyTitle,
     required this.applyAuthor,
     required this.applyPublisher,
@@ -349,7 +542,6 @@ class _ApplyView extends StatelessWidget {
   });
 
   final DriveThruRpgMetadata meta;
-  final Asset asset;
   final bool applyTitle;
   final bool applyAuthor;
   final bool applyPublisher;
@@ -398,18 +590,13 @@ class _ApplyView extends StatelessWidget {
             ],
           ),
         ),
-
         const Divider(height: 1),
-
-        // Field checkboxes
         Expanded(
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             children: [
-              Text(
-                'Felder übernehmen:',
-                style: Theme.of(context).textTheme.labelMedium,
-              ),
+              Text('Felder übernehmen:',
+                  style: Theme.of(context).textTheme.labelMedium),
               const SizedBox(height: 4),
               if (meta.title != null)
                 _FieldTile(
@@ -455,16 +642,17 @@ class _ApplyView extends StatelessWidget {
                   checked: applyCover,
                   onChanged: (v) => onToggle('cover', v),
                 ),
-              _FieldTile(
-                label: 'Produkt-URL speichern',
-                value: meta.productUrl,
-                checked: applySourceUrl,
-                onChanged: (v) => onToggle('sourceUrl', v),
-              ),
-
+              if (meta.productUrl.isNotEmpty)
+                _FieldTile(
+                  label: 'Produkt-URL speichern',
+                  value: meta.productUrl,
+                  checked: applySourceUrl,
+                  onChanged: (v) => onToggle('sourceUrl', v),
+                ),
               if (meta.categories.isNotEmpty) ...[
                 const SizedBox(height: 8),
-                Text('Kategorien:', style: Theme.of(context).textTheme.labelSmall),
+                Text('Kategorien:',
+                    style: Theme.of(context).textTheme.labelSmall),
                 const SizedBox(height: 4),
                 Wrap(
                   spacing: 6,
@@ -484,8 +672,6 @@ class _ApplyView extends StatelessWidget {
             ],
           ),
         ),
-
-        // Action buttons
         const Divider(height: 1),
         Padding(
           padding: const EdgeInsets.all(12),
@@ -506,6 +692,122 @@ class _ApplyView extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ── Empty / error states ──────────────────────────────────────────────────────
+
+class _EmptyResults extends StatelessWidget {
+  const _EmptyResults({required this.onManualEntry});
+  final VoidCallback onManualEntry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.search_off,
+              size: 40,
+              color: Theme.of(context).colorScheme.onSurfaceVariant),
+          const SizedBox(height: 8),
+          const Text('Keine Ergebnisse gefunden.',
+              style: TextStyle(color: Colors.grey)),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.edit_note, size: 16),
+            label: const Text('Manuell eingeben'),
+            onPressed: onManualEntry,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({
+    required this.message,
+    required this.onManualEntry,
+    required this.searchQuery,
+    this.onRetry,
+  });
+
+  final String message;
+  final VoidCallback? onRetry;
+  final VoidCallback onManualEntry;
+  final String searchQuery;
+
+  @override
+  Widget build(BuildContext context) {
+    final isBlocked = message.contains('403') || message.contains('401');
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isBlocked ? Icons.block : Icons.error_outline,
+              size: 40,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              isBlocked
+                  ? 'DriveThruRPG hat die Anfrage blockiert (Bot-Schutz).'
+                  : message,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            if (isBlocked) ...[
+              const SizedBox(height: 6),
+              Text(
+                'Die Seite kann direkt im Browser geöffnet werden. '
+                'Alternativ Metadaten manuell eintragen.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: [
+                if (isBlocked && searchQuery.isNotEmpty)
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.open_in_browser, size: 16),
+                    label: const Text('Im Browser suchen'),
+                    onPressed: () => launchUrl(
+                      Uri.parse(
+                        'https://www.drivethrurpg.com/de/search'
+                        '?keywords=${Uri.encodeComponent(searchQuery)}'
+                        '&search_type=products',
+                      ),
+                      mode: LaunchMode.externalApplication,
+                    ),
+                  ),
+                if (onRetry != null && !isBlocked)
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.refresh, size: 16),
+                    label: const Text('Erneut versuchen'),
+                    onPressed: onRetry,
+                  ),
+                FilledButton.icon(
+                  icon: const Icon(Icons.edit_note, size: 16),
+                  label: const Text('Manuell eingeben'),
+                  onPressed: onManualEntry,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -576,32 +878,6 @@ class _CoverImage extends StatelessWidget {
           color: Theme.of(context).colorScheme.surfaceContainerHighest,
           child: const Icon(Icons.broken_image_outlined),
         ),
-      ),
-    );
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.message, required this.onRetry});
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.error_outline, size: 40, color: Colors.red),
-          const SizedBox(height: 8),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton(onPressed: onRetry, child: const Text('Erneut versuchen')),
-        ],
       ),
     );
   }

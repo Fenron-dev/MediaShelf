@@ -1,27 +1,20 @@
 // ignore_for_file: avoid_catches_without_on_clauses
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:html/dom.dart';
 import 'package:html/parser.dart' as html_parser;
-import 'package:http/http.dart' as http;
 
 import '../domain/drivethrurpg_metadata.dart';
 
 /// Scrapes product information from DriveThruRPG.
 ///
-/// Uses the German locale base URL by default (`/de/`) but falls back to the
-/// product's canonical URL if the user provides a full link.
+/// Uses [dart:io]'s [HttpClient] directly so we can carry session cookies
+/// and send a full set of browser-like headers that reduce the chance of
+/// receiving a 403 / bot-challenge response from the site.
 class DriveThruRpgScraper {
   static const _baseUrl = 'https://www.drivethrurpg.com';
-
-  // Mimic a real browser so the server does not return a bot-block page.
-  static const _headers = {
-    'User-Agent':
-        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 '
-        '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    'Accept-Language': 'de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7',
-  };
+  static const _timeout = Duration(seconds: 20);
 
   // ── Public API ──────────────────────────────────────────────────────────────
 
@@ -31,11 +24,8 @@ class DriveThruRpgScraper {
       '$_baseUrl/de/search?keywords=${Uri.encodeComponent(query)}'
       '&search_type=products',
     );
-    final response = await http.get(uri, headers: _headers).timeout(
-      const Duration(seconds: 15),
-    );
-    if (response.statusCode != 200) return [];
-    return _parseSearchResults(response.body);
+    final body = await _fetchHtml(uri);
+    return _parseSearchResults(body);
   }
 
   /// Fetches full metadata for a product identified by [productUrl].
@@ -43,13 +33,78 @@ class DriveThruRpgScraper {
   /// Accepts both full DTRPG URLs and bare product IDs.
   Future<DriveThruRpgMetadata> fetchMetadata(String productUrl) async {
     final uri = _resolveUrl(productUrl);
-    final response = await http.get(uri, headers: _headers).timeout(
-      const Duration(seconds: 15),
-    );
-    if (response.statusCode != 200) {
-      throw Exception('HTTP ${response.statusCode} für $productUrl');
+    final body = await _fetchHtml(uri);
+    return _parseProductPage(body, uri.toString());
+  }
+
+  // ── HTTP with session cookies ───────────────────────────────────────────────
+
+  /// Two-step fetch: first load the DTRPG homepage to acquire session cookies,
+  /// then load [uri] with those cookies attached.
+  Future<String> _fetchHtml(Uri uri) async {
+    final client = HttpClient()
+      ..connectionTimeout = _timeout
+      ..badCertificateCallback = (cert, host, port) => false; // strict TLS
+
+    try {
+      // ── Step 1: homepage → cookies ─────────────────────────────────────────
+      final homeReq =
+          await client.getUrl(Uri.parse('$_baseUrl/de/')).timeout(_timeout);
+      _applyHeaders(homeReq, referer: null);
+      final homeResp = await homeReq.close().timeout(_timeout);
+      final cookies = List<Cookie>.from(homeResp.cookies);
+      await homeResp.drain<void>();
+
+      // ── Step 2: target URL with cookies ────────────────────────────────────
+      final req = await client.getUrl(uri).timeout(_timeout);
+      _applyHeaders(req, referer: '$_baseUrl/de/');
+      for (final c in cookies) {
+        req.cookies.add(Cookie(c.name, c.value));
+      }
+
+      final resp = await req.close().timeout(_timeout);
+      if (resp.statusCode != 200) {
+        await resp.drain<void>();
+        throw Exception('HTTP ${resp.statusCode} für $uri');
+      }
+
+      // Decode body — handle gzip transparently
+      final rawBytes = <int>[];
+      await resp.forEach(rawBytes.addAll);
+      final encoding = resp.headers.value(HttpHeaders.contentEncodingHeader) ?? '';
+      final bytes =
+          encoding.contains('gzip') ? GZipCodec().decode(rawBytes) : rawBytes;
+      return utf8.decode(bytes, allowMalformed: true);
+    } finally {
+      client.close();
     }
-    return _parseProductPage(response.body, uri.toString());
+  }
+
+  void _applyHeaders(HttpClientRequest req, {required String? referer}) {
+    req.headers
+      ..set(HttpHeaders.userAgentHeader,
+          'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 '
+          '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36')
+      ..set(HttpHeaders.acceptHeader,
+          'text/html,application/xhtml+xml,application/xml;q=0.9,'
+          'image/avif,image/webp,image/apng,*/*;q=0.8')
+      ..set(HttpHeaders.acceptLanguageHeader,
+          'de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7')
+      ..set(HttpHeaders.acceptEncodingHeader, 'gzip, deflate, br')
+      ..set('Connection', 'keep-alive')
+      ..set('Upgrade-Insecure-Requests', '1')
+      ..set('Sec-Fetch-Dest', 'document')
+      ..set('Sec-Fetch-Mode', 'navigate')
+      ..set('Sec-Fetch-Site', referer == null ? 'none' : 'same-origin')
+      ..set('Sec-Fetch-User', '?1')
+      ..set('Cache-Control', 'max-age=0')
+      ..set('sec-ch-ua',
+          '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"')
+      ..set('sec-ch-ua-mobile', '?0')
+      ..set('sec-ch-ua-platform', '"Linux"');
+    if (referer != null) {
+      req.headers.set(HttpHeaders.refererHeader, referer);
+    }
   }
 
   // ── URL helper ──────────────────────────────────────────────────────────────
