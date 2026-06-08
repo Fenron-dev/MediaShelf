@@ -6,6 +6,27 @@ Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [0.5.6] – 2026-06-08
+
+### Neu
+- **Bibliotheksbezogener Vault** — Vault-Konfiguration ist jetzt an die geöffnete
+  Bibliothek gebunden statt global am Gerät. Alte globale Konfigurationen werden
+  erkannt und nur explizit migriert.
+- **Integritätsprüfung & Backup** — In den Sicherheitseinstellungen gibt es jetzt
+  einen Integritätscheck mit Reparatur sowie Export/Import für sicherheitsrelevante
+  Metadaten.
+
+### Geändert
+- **Pfad-Härtung** — Dateioperationen für Import, Export, Thumbnailing, Viewer und
+  Vault laufen jetzt über einen zentralen sicheren Pfad-Resolver.
+- **Desktop-Dateiauswahl unter Windows** — Der File-Picker verwendet auf Windows
+  keinen Minimize/Restore-Workaround mehr, um graue bzw. blockierte Fenster nach
+  dem Vault-Import zu vermeiden.
+
+### Behoben
+- Drift-Referenzkonflikt in den Asset-Links behoben.
+- Mehrere `BuildContext`-Async-Probleme im UI bereinigt.
+
 ## [0.3.1] – 2026-03-22
 
 ### Neu
