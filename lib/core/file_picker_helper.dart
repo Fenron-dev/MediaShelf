@@ -19,15 +19,20 @@ class FilePickerHelper {
 
   static bool get _isDesktop =>
       Platform.isLinux || Platform.isWindows || Platform.isMacOS;
+  static bool get _shouldMinimizeDesktopWindow =>
+      Platform.isLinux || Platform.isMacOS;
+
+  static bool _effectiveLockParentWindow(bool lockParentWindow) =>
+      lockParentWindow || Platform.isWindows;
 
   static Future<void> _beforeDialog() async {
-    if (!_isDesktop) return;
+    if (!_isDesktop || !_shouldMinimizeDesktopWindow) return;
     await windowManager.minimize();
     await Future.delayed(const Duration(milliseconds: 120));
   }
 
   static Future<void> _afterDialog() async {
-    if (!_isDesktop) return;
+    if (!_isDesktop || !_shouldMinimizeDesktopWindow) return;
     await windowManager.restore();
     await windowManager.maximize();
     await windowManager.focus();
@@ -39,12 +44,14 @@ class FilePickerHelper {
     bool lockParentWindow = false,
   }) async {
     await _beforeDialog();
-    final result = await FilePicker.platform.getDirectoryPath(
-      dialogTitle: dialogTitle,
-      lockParentWindow: lockParentWindow,
-    );
-    await _afterDialog();
-    return result;
+    try {
+      return await FilePicker.platform.getDirectoryPath(
+        dialogTitle: dialogTitle,
+        lockParentWindow: _effectiveLockParentWindow(lockParentWindow),
+      );
+    } finally {
+      await _afterDialog();
+    }
   }
 
   /// Replacement for [FilePicker.platform.pickFiles].
@@ -54,17 +61,21 @@ class FilePickerHelper {
     FileType type = FileType.any,
     List<String>? allowedExtensions,
     bool withData = false,
+    bool lockParentWindow = false,
   }) async {
     await _beforeDialog();
-    final result = await FilePicker.platform.pickFiles(
-      dialogTitle: dialogTitle,
-      allowMultiple: allowMultiple,
-      type: type,
-      allowedExtensions: allowedExtensions,
-      withData: withData,
-    );
-    await _afterDialog();
-    return result;
+    try {
+      return await FilePicker.platform.pickFiles(
+        dialogTitle: dialogTitle,
+        allowMultiple: allowMultiple,
+        type: type,
+        allowedExtensions: allowedExtensions,
+        withData: withData,
+        lockParentWindow: _effectiveLockParentWindow(lockParentWindow),
+      );
+    } finally {
+      await _afterDialog();
+    }
   }
 
   /// Replacement for [FilePicker.platform.saveFile].
@@ -73,15 +84,19 @@ class FilePickerHelper {
     String? fileName,
     FileType type = FileType.any,
     List<String>? allowedExtensions,
+    bool lockParentWindow = false,
   }) async {
     await _beforeDialog();
-    final result = await FilePicker.platform.saveFile(
-      dialogTitle: dialogTitle,
-      fileName: fileName,
-      type: type,
-      allowedExtensions: allowedExtensions,
-    );
-    await _afterDialog();
-    return result;
+    try {
+      return await FilePicker.platform.saveFile(
+        dialogTitle: dialogTitle,
+        fileName: fileName,
+        type: type,
+        allowedExtensions: allowedExtensions,
+        lockParentWindow: _effectiveLockParentWindow(lockParentWindow),
+      );
+    } finally {
+      await _afterDialog();
+    }
   }
 }
