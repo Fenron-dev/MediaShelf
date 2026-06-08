@@ -6799,6 +6799,42 @@ final class $$AssetsTableReferences
     );
   }
 
+  static MultiTypedResultKey<$AssetLinksTable, List<AssetLink>>
+  _outgoingAssetLinksTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.assetLinks,
+    aliasName: $_aliasNameGenerator(db.assets.id, db.assetLinks.originalId),
+  );
+
+  $$AssetLinksTableProcessedTableManager get outgoingAssetLinks {
+    final manager = $$AssetLinksTableTableManager(
+      $_db,
+      $_db.assetLinks,
+    ).filter((f) => f.originalId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_outgoingAssetLinksTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$AssetLinksTable, List<AssetLink>>
+  _incomingAssetLinksTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.assetLinks,
+    aliasName: $_aliasNameGenerator(db.assets.id, db.assetLinks.linkedId),
+  );
+
+  $$AssetLinksTableProcessedTableManager get incomingAssetLinks {
+    final manager = $$AssetLinksTableTableManager(
+      $_db,
+      $_db.assetLinks,
+    ).filter((f) => f.linkedId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_incomingAssetLinksTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
   static MultiTypedResultKey<$DocumentPositionsTable, List<DocumentPosition>>
   _documentPositionsRefsTable(_$AppDatabase db) =>
       MultiTypedResultKey.fromTable(
@@ -7102,6 +7138,56 @@ class $$AssetsTableFilterComposer
           }) => $$PlaylistItemsTableFilterComposer(
             $db: $db,
             $table: $db.playlistItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> outgoingAssetLinks(
+    Expression<bool> Function($$AssetLinksTableFilterComposer f) f,
+  ) {
+    final $$AssetLinksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.assetLinks,
+      getReferencedColumn: (t) => t.originalId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssetLinksTableFilterComposer(
+            $db: $db,
+            $table: $db.assetLinks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> incomingAssetLinks(
+    Expression<bool> Function($$AssetLinksTableFilterComposer f) f,
+  ) {
+    final $$AssetLinksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.assetLinks,
+      getReferencedColumn: (t) => t.linkedId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssetLinksTableFilterComposer(
+            $db: $db,
+            $table: $db.assetLinks,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -7559,6 +7645,56 @@ class $$AssetsTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> outgoingAssetLinks<T extends Object>(
+    Expression<T> Function($$AssetLinksTableAnnotationComposer a) f,
+  ) {
+    final $$AssetLinksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.assetLinks,
+      getReferencedColumn: (t) => t.originalId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssetLinksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.assetLinks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> incomingAssetLinks<T extends Object>(
+    Expression<T> Function($$AssetLinksTableAnnotationComposer a) f,
+  ) {
+    final $$AssetLinksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.assetLinks,
+      getReferencedColumn: (t) => t.linkedId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssetLinksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.assetLinks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<T> documentPositionsRefs<T extends Object>(
     Expression<T> Function($$DocumentPositionsTableAnnotationComposer a) f,
   ) {
@@ -7629,6 +7765,8 @@ class $$AssetsTableTableManager
             bool collectionAssetsRefs,
             bool assetPropertiesRefs,
             bool playlistItemsRefs,
+            bool outgoingAssetLinks,
+            bool incomingAssetLinks,
             bool documentPositionsRefs,
             bool mediaBookmarksRefs,
           })
@@ -7796,6 +7934,8 @@ class $$AssetsTableTableManager
                 collectionAssetsRefs = false,
                 assetPropertiesRefs = false,
                 playlistItemsRefs = false,
+                outgoingAssetLinks = false,
+                incomingAssetLinks = false,
                 documentPositionsRefs = false,
                 mediaBookmarksRefs = false,
               }) {
@@ -7806,6 +7946,8 @@ class $$AssetsTableTableManager
                     if (collectionAssetsRefs) db.collectionAssets,
                     if (assetPropertiesRefs) db.assetProperties,
                     if (playlistItemsRefs) db.playlistItems,
+                    if (outgoingAssetLinks) db.assetLinks,
+                    if (incomingAssetLinks) db.assetLinks,
                     if (documentPositionsRefs) db.documentPositions,
                     if (mediaBookmarksRefs) db.mediaBookmarks,
                   ],
@@ -7896,6 +8038,48 @@ class $$AssetsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (outgoingAssetLinks)
+                        await $_getPrefetchedData<
+                          Asset,
+                          $AssetsTable,
+                          AssetLink
+                        >(
+                          currentTable: table,
+                          referencedTable: $$AssetsTableReferences
+                              ._outgoingAssetLinksTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$AssetsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).outgoingAssetLinks,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.originalId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (incomingAssetLinks)
+                        await $_getPrefetchedData<
+                          Asset,
+                          $AssetsTable,
+                          AssetLink
+                        >(
+                          currentTable: table,
+                          referencedTable: $$AssetsTableReferences
+                              ._incomingAssetLinksTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$AssetsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).incomingAssetLinks,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.linkedId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                       if (documentPositionsRefs)
                         await $_getPrefetchedData<
                           Asset,
@@ -7963,6 +8147,8 @@ typedef $$AssetsTableProcessedTableManager =
         bool collectionAssetsRefs,
         bool assetPropertiesRefs,
         bool playlistItemsRefs,
+        bool outgoingAssetLinks,
+        bool incomingAssetLinks,
         bool documentPositionsRefs,
         bool mediaBookmarksRefs,
       })

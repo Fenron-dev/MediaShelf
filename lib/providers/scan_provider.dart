@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/safe_paths.dart';
 import '../data/services/metadata_extractor.dart';
 import '../domain/models/scan_result.dart';
 import 'asset_list_provider.dart';
@@ -42,17 +43,16 @@ class ScanState {
     int? thumbsTotal,
     ScanResult? lastResult,
     String? error,
-  }) =>
-      ScanState(
-        isScanning: isScanning ?? this.isScanning,
-        phase: phase ?? this.phase,
-        processed: processed ?? this.processed,
-        total: total ?? this.total,
-        thumbsDone: thumbsDone ?? this.thumbsDone,
-        thumbsTotal: thumbsTotal ?? this.thumbsTotal,
-        lastResult: lastResult ?? this.lastResult,
-        error: error,
-      );
+  }) => ScanState(
+    isScanning: isScanning ?? this.isScanning,
+    phase: phase ?? this.phase,
+    processed: processed ?? this.processed,
+    total: total ?? this.total,
+    thumbsDone: thumbsDone ?? this.thumbsDone,
+    thumbsTotal: thumbsTotal ?? this.thumbsTotal,
+    lastResult: lastResult ?? this.lastResult,
+    error: error,
+  );
 }
 
 enum ScanPhase { idle, scanning, thumbnails, metadata }
@@ -109,8 +109,13 @@ class ScanNotifier extends StateNotifier<ScanState> {
             final mime = asset.mimeType ?? '';
             if (mime.isEmpty) continue;
             try {
+              final filePath = resolveLibraryRelativePath(
+                libraryPath,
+                asset.path,
+                requireExisting: true,
+              );
               final meta = await Future.microtask(
-                () => extractMetadata('$libraryPath/${asset.path}', mime),
+                () => extractMetadata(filePath, mime),
               );
               if (!meta.isEmpty) {
                 await dao.updateMediaMetadata(

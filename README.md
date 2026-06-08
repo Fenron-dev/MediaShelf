@@ -14,10 +14,11 @@ MediaShelf is a port of [Nexus Explorer](https://github.com/Fenron-dev/nexus-exp
 - **Auto-thumbnails** — 256 × 256 JPEG cache, generated in an Isolate pool (4 workers)
 - **Smart Filters** — rule-based JSON queries (`{logic, rules}`) compatible with Nexus Explorer
 - **Rich metadata** — star rating (0–5), color labels, free-text notes, tags, collections
-- **Media playback** — video (chewie) and audio (just_audio) with resume support
+- **Media playback** — video and audio via `media_kit`, including resume support
 - **Responsive layout** — 3-panel desktop shell (sidebar · grid · detail panel) and mobile bottom-nav shell
 - **Filesystem watcher** — live updates with 800 ms debounce
 - **Activity Journal** — tracks added / missing / restored events
+- **Library maintenance** — integrity check/repair plus backup/restore for lock and vault metadata
 
 ## Roadmap
 
@@ -84,7 +85,7 @@ lib/
 **Navigation:** go_router 14
 **Database:** Drift 2 + sqlite3_flutter_libs (FTS5 enabled)
 **Thumbnails:** image 4 (pure Dart, Isolate-safe)
-**Media:** video_player + chewie (video) · just_audio (audio)
+**Media:** media_kit + media_kit_video
 
 ---
 

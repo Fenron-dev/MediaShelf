@@ -3,11 +3,8 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-// SharedPreferences keys
-const _kSaltKey = 'vault_salt_v1';
-const _kVerifierKey = 'vault_verifier_v1';
+import 'vault_config_store.dart';
 
 // A fixed known plaintext — encrypting this and storing it lets us verify the
 // password on subsequent unlocks without storing the password itself.
@@ -39,8 +36,7 @@ class VaultCrypto {
   }
 
   /// Public alias for external callers (e.g. LibraryLock).
-  static Future<SecretKey> deriveKeyFromSalt(
-          String password, List<int> salt) =>
+  static Future<SecretKey> deriveKeyFromSalt(String password, List<int> salt) =>
       _deriveKey(password, salt);
 
   /// Generates 16 cryptographically random bytes.
@@ -66,7 +62,9 @@ class VaultCrypto {
   /// Returns `[nonce:12][mac:16][ciphertext]`.
   static Future<Uint8List> encrypt(SecretKey key, List<int> plaintext) async {
     final box = await _aes.encrypt(plaintext, secretKey: key);
-    final out = Uint8List(box.nonce.length + box.mac.bytes.length + box.cipherText.length);
+    final out = Uint8List(
+      box.nonce.length + box.mac.bytes.length + box.cipherText.length,
+    );
     var offset = 0;
     out.setRange(offset, offset += box.nonce.length, box.nonce);
     out.setRange(offset, offset += box.mac.bytes.length, box.mac.bytes);
@@ -88,41 +86,30 @@ class VaultCrypto {
     return Uint8List.fromList(plain);
   }
 
-  // ── Vault lifecycle ─────────────────────────────────────────────────────────
+  // ── Vault config helpers ────────────────────────────────────────────────────
 
-  /// Returns true when a vault has been configured on this device.
-  static Future<bool> isConfigured() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.containsKey(_kSaltKey) && prefs.containsKey(_kVerifierKey);
-  }
-
-  /// Sets up a new vault with [password].
-  /// Generates a salt, derives a key, stores a verifier blob.
-  /// Returns the derived [SecretKey] (vault is unlocked after setup).
-  static Future<SecretKey> setup(String password) async {
+  /// Builds a new persisted vault configuration for [password].
+  static Future<VaultConfig> createConfig(String password) async {
     final salt = _randomSalt();
     final key = await _deriveKey(password, salt);
     final verifier = await encrypt(key, utf8.encode(_kVerificationText));
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kSaltKey, base64.encode(salt));
-    await prefs.setString(_kVerifierKey, base64.encode(verifier));
-    return key;
+    return VaultConfig(
+      saltB64: base64.encode(salt),
+      verifierB64: base64.encode(verifier),
+    );
   }
 
-  /// Attempts to unlock the vault with [password].
+  /// Attempts to unlock a vault with [password] using the stored [config].
   /// Returns the derived [SecretKey] on success, or `null` if the password is wrong.
-  static Future<SecretKey?> unlock(String password) async {
-    final prefs = await SharedPreferences.getInstance();
-    final saltB64 = prefs.getString(_kSaltKey);
-    final verifierB64 = prefs.getString(_kVerifierKey);
-    if (saltB64 == null || verifierB64 == null) return null;
-
-    final salt = base64.decode(saltB64);
+  static Future<SecretKey?> unlockWithConfig(
+    String password,
+    VaultConfig config,
+  ) async {
+    final salt = base64.decode(config.saltB64);
     final key = await _deriveKey(password, salt);
 
     try {
-      final decrypted = await decrypt(key, base64.decode(verifierB64));
+      final decrypted = await decrypt(key, base64.decode(config.verifierB64));
       if (utf8.decode(decrypted) == _kVerificationText) return key;
     } on SecretBoxAuthenticationError {
       // Wrong password — fall through to return null.
@@ -133,24 +120,4 @@ class VaultCrypto {
   }
 
   /// Changes the vault password. Requires the current [SecretKey].
-  /// Re-encrypts the verifier with the new password and saves the new salt.
-  static Future<SecretKey> changePassword(
-    SecretKey currentKey,
-    String newPassword,
-  ) async {
-    // Verify current key is valid first.
-    final prefs = await SharedPreferences.getInstance();
-    final verifierB64 = prefs.getString(_kVerifierKey);
-    if (verifierB64 != null) {
-      await decrypt(currentKey, base64.decode(verifierB64)); // throws if invalid
-    }
-    return setup(newPassword);
-  }
-
-  /// Wipes all vault configuration from SharedPreferences (irreversible!).
-  static Future<void> reset() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_kSaltKey);
-    await prefs.remove(_kVerifierKey);
-  }
 }

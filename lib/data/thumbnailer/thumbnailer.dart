@@ -4,8 +4,9 @@ import 'dart:isolate';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 
-import '../../core/constants.dart';
 import '../../core/mime_resolver.dart';
+import '../../core/safe_paths.dart';
+import '../../core/constants.dart';
 
 /// Input for a single thumbnail generation job.
 class ThumbJob {
@@ -24,12 +25,8 @@ class ThumbJob {
 }
 
 /// Returns the absolute path where a thumbnail is (or will be) stored.
-String thumbPath(String libraryPath, String contentHash) => p.join(
-      libraryPath,
-      kMediashelfDir,
-      kThumbDir,
-      '$contentHash.jpg',
-    );
+String thumbPath(String libraryPath, String contentHash) =>
+    resolveThumbPath(libraryPath, contentHash);
 
 /// Ensures a thumbnail exists for the given asset.
 ///
@@ -42,10 +39,12 @@ String ensureThumbnail(ThumbJob job) {
   // Ensure thumbnails directory exists
   Directory(p.dirname(dest)).createSync(recursive: true);
 
+  final srcPath = File(job.absFilePath).resolveSymbolicLinksSync();
+
   if (isDecodableImage(job.mimeType)) {
-    _generateImageThumb(job.absFilePath, dest);
+    _generateImageThumb(srcPath, dest);
   } else {
-    _generatePlaceholder(job.mimeType, job.absFilePath, dest);
+    _generatePlaceholder(job.mimeType, srcPath, dest);
   }
 
   return dest;
@@ -84,9 +83,9 @@ void _generateImageThumb(String srcPath, String destPath) {
       height: kThumbSize,
     );
 
-    File(destPath).writeAsBytesSync(
-      img.encodeJpg(cropped, quality: kThumbQuality),
-    );
+    File(
+      destPath,
+    ).writeAsBytesSync(img.encodeJpg(cropped, quality: kThumbQuality));
   } catch (_) {
     _generatePlaceholder('image/unknown', srcPath, destPath);
   }
@@ -96,22 +95,18 @@ void _generateImageThumb(String srcPath, String destPath) {
 
 /// Category color map — matches Nexus Explorer's visual language.
 const _categoryColors = <String, (int, int, int)>{
-  'image': (99, 102, 241),   // indigo
-  'video': (239, 68, 68),    // red
-  'audio': (234, 179, 8),    // yellow
+  'image': (99, 102, 241), // indigo
+  'video': (239, 68, 68), // red
+  'audio': (234, 179, 8), // yellow
   'document': (59, 130, 246), // blue
-  'text': (107, 114, 128),   // gray
+  'text': (107, 114, 128), // gray
   'archive': (168, 85, 247), // purple
-  'font': (236, 72, 153),    // pink
-  'model': (20, 184, 166),   // teal
-  'other': (75, 85, 99),     // dark gray
+  'font': (236, 72, 153), // pink
+  'model': (20, 184, 166), // teal
+  'other': (75, 85, 99), // dark gray
 };
 
-void _generatePlaceholder(
-  String mimeType,
-  String filePath,
-  String destPath,
-) {
+void _generatePlaceholder(String mimeType, String filePath, String destPath) {
   final category = categoryFromMime(mimeType);
   final categoryName = category.name;
   final (r, g, b) = _categoryColors[categoryName] ?? (75, 85, 99);
@@ -150,9 +145,7 @@ void _generatePlaceholder(
     color: img.ColorRgb8(255, 255, 255),
   );
 
-  File(destPath).writeAsBytesSync(
-    img.encodeJpg(image, quality: kThumbQuality),
-  );
+  File(destPath).writeAsBytesSync(img.encodeJpg(image, quality: kThumbQuality));
 }
 
 // ── Batch generation ─────────────────────────────────────────────────────────

@@ -31,6 +31,9 @@ class _VaultUnlockDialogState extends ConsumerState<VaultUnlockDialog> {
   bool get _isSetup =>
       ref.read(vaultProvider).status == VaultStatus.notConfigured;
 
+  bool get _needsMigration =>
+      ref.read(vaultProvider).status == VaultStatus.migrationRequired;
+
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() {
@@ -59,104 +62,173 @@ class _VaultUnlockDialogState extends ConsumerState<VaultUnlockDialog> {
     }
   }
 
+  Future<void> _importLegacyConfig() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    final success = await ref.read(vaultProvider.notifier).importLegacyConfig();
+    if (!mounted) return;
+
+    setState(() => _loading = false);
+    if (!success) {
+      setState(() {
+        _error = 'Die alte Vault-Konfiguration konnte nicht übernommen werden.';
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final isSetup = _isSetup;
+    final needsMigration = _needsMigration;
 
     return AlertDialog(
       icon: Icon(
-        isSetup ? Icons.lock_outlined : Icons.lock_open_outlined,
+        isSetup || needsMigration
+            ? Icons.lock_outlined
+            : Icons.lock_open_outlined,
         color: cs.primary,
         size: 32,
       ),
-      title: Text(isSetup ? 'Vault einrichten' : 'Vault entsperren'),
+      title: Text(
+        needsMigration
+            ? 'Vault-Migration erforderlich'
+            : isSetup
+            ? 'Vault einrichten'
+            : 'Vault entsperren',
+      ),
       content: SizedBox(
         width: 360,
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (isSetup) ...[
-                Text(
-                  'Wähle ein sicheres Passwort für deinen Vault. '
-                  'Es gibt keine Passwort-Wiederherstellung — '
-                  'vergissst du es, sind die Dateien nicht mehr zugänglich.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: cs.onSurfaceVariant,
-                      ),
-                ),
-                const SizedBox(height: 16),
-              ],
-              TextFormField(
-                controller: _passwordCtrl,
-                autofocus: true,
-                obscureText: _obscure,
-                decoration: InputDecoration(
-                  labelText: 'Passwort',
-                  prefixIcon: const Icon(Icons.key_outlined),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                    ),
-                    onPressed: () => setState(() => _obscure = !_obscure),
+        child: needsMigration
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Auf diesem Gerät wurde noch eine alte, bibliotheksweite '
+                    'Vault-Konfiguration gefunden. Aus Sicherheitsgründen wird '
+                    'sie nicht automatisch an diese Bibliothek gebunden.',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                   ),
-                ),
-                onFieldSubmitted: (_) => isSetup ? null : _submit(),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return 'Passwort eingeben';
-                  if (isSetup && v.length < 8) {
-                    return 'Mindestens 8 Zeichen';
-                  }
-                  return null;
-                },
-              ),
-              if (isSetup) ...[
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _confirmCtrl,
-                  obscureText: _obscure,
-                  decoration: const InputDecoration(
-                    labelText: 'Passwort bestätigen',
-                    prefixIcon: Icon(Icons.key_outlined),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Übernimm die alte Konfiguration nur dann, wenn dieser '
+                    'Vault tatsächlich zu der aktuell geöffneten Bibliothek gehört.',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                   ),
-                  onFieldSubmitted: (_) => _submit(),
-                  validator: (v) {
-                    if (v != _passwordCtrl.text) {
-                      return 'Passwörter stimmen nicht überein';
-                    }
-                    return null;
-                  },
-                ),
-              ],
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Icon(Icons.error_outline, size: 16, color: cs.error),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        _error!,
-                        style: TextStyle(color: cs.error, fontSize: 13),
-                      ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      _error!,
+                      style: TextStyle(color: cs.error, fontSize: 13),
                     ),
                   ],
+                ],
+              )
+            : Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (isSetup) ...[
+                      Text(
+                        'Wähle ein sicheres Passwort für deinen Vault. '
+                        'Es gibt keine Passwort-Wiederherstellung — '
+                        'vergissst du es, sind die Dateien nicht mehr zugänglich.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    TextFormField(
+                      controller: _passwordCtrl,
+                      autofocus: true,
+                      obscureText: _obscure,
+                      decoration: InputDecoration(
+                        labelText: 'Passwort',
+                        prefixIcon: const Icon(Icons.key_outlined),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscure
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+                          ),
+                          onPressed: () => setState(() => _obscure = !_obscure),
+                        ),
+                      ),
+                      onFieldSubmitted: (_) => isSetup ? null : _submit(),
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return 'Passwort eingeben';
+                        if (isSetup && v.length < 8) {
+                          return 'Mindestens 8 Zeichen';
+                        }
+                        return null;
+                      },
+                    ),
+                    if (isSetup) ...[
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _confirmCtrl,
+                        obscureText: _obscure,
+                        decoration: const InputDecoration(
+                          labelText: 'Passwort bestätigen',
+                          prefixIcon: Icon(Icons.key_outlined),
+                        ),
+                        onFieldSubmitted: (_) => _submit(),
+                        validator: (v) {
+                          if (v != _passwordCtrl.text) {
+                            return 'Passwörter stimmen nicht überein';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                    if (_error != null) ...[
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Icon(Icons.error_outline, size: 16, color: cs.error),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              _error!,
+                              style: TextStyle(color: cs.error, fontSize: 13),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
                 ),
-              ],
-            ],
-          ),
-        ),
+              ),
       ),
       actions: [
         TextButton(
           onPressed: _loading ? null : () => Navigator.of(context).pop(),
           child: const Text('Abbrechen'),
         ),
+        if (needsMigration)
+          FilledButton(
+            onPressed: _loading ? null : _importLegacyConfig,
+            child: _loading
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('In diese Bibliothek übernehmen'),
+          ),
         FilledButton(
-          onPressed: _loading ? null : _submit,
+          onPressed: _loading || needsMigration ? null : _submit,
           child: _loading
               ? const SizedBox(
                   width: 16,

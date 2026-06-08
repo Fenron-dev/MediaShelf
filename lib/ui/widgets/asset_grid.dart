@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/constants.dart';
 import '../../core/mime_resolver.dart';
+import '../../core/safe_paths.dart';
 import '../../data/database/app_database.dart';
 import '../../providers/asset_list_provider.dart';
 import '../../providers/folder_tree_provider.dart';
@@ -155,11 +156,15 @@ class _AssetGridState extends ConsumerState<AssetGrid> {
               _itemKeys.putIfAbsent(i, () => GlobalKey());
               return GestureDetector(
                 key: _itemKeys[i],
-                onSecondaryTapUp: (details) =>
-                    _showAssetContextMenu(context, asset, details.globalPosition),
+                onSecondaryTapUp: (details) => _showAssetContextMenu(
+                  context,
+                  asset,
+                  details.globalPosition,
+                ),
                 child: AssetCard(
                   asset: asset,
-                  isSelected: selectedIds.contains(asset.id) || selectedId == asset.id,
+                  isSelected:
+                      selectedIds.contains(asset.id) || selectedId == asset.id,
                   onTapDown: () => _onTapDown(context, asset),
                   onDoubleTap: () => _onDoubleTap(context, asset),
                   onLongPress: () =>
@@ -224,11 +229,16 @@ class _AssetGridState extends ConsumerState<AssetGrid> {
           key.currentContext?.findRenderObject() as RenderBox?;
       if (itemRenderBox == null) continue;
 
-      final itemPos = itemRenderBox.localToGlobal(Offset.zero,
-          ancestor: gridRenderBox);
-      final itemRect =
-          Rect.fromLTWH(itemPos.dx, itemPos.dy,
-              itemRenderBox.size.width, itemRenderBox.size.height);
+      final itemPos = itemRenderBox.localToGlobal(
+        Offset.zero,
+        ancestor: gridRenderBox,
+      );
+      final itemRect = Rect.fromLTWH(
+        itemPos.dx,
+        itemPos.dy,
+        itemRenderBox.size.width,
+        itemRenderBox.size.height,
+      );
 
       if (rect.overlaps(itemRect)) {
         selected.add(allAssets[i].id);
@@ -239,7 +249,10 @@ class _AssetGridState extends ConsumerState<AssetGrid> {
   }
 
   Future<void> _showAssetContextMenu(
-      BuildContext context, Asset asset, Offset globalPos) async {
+    BuildContext context,
+    Asset asset,
+    Offset globalPos,
+  ) async {
     final mime = asset.mimeType ?? '';
     final isMedia = isVideo(mime) || isAudio(mime);
     final mediaType = isAudio(mime) ? 'audio' : 'video';
@@ -290,29 +303,35 @@ class _AssetGridState extends ConsumerState<AssetGrid> {
     final result = await showMenu<String>(
       context: context,
       position: RelativeRect.fromLTRB(
-          globalPos.dx, globalPos.dy, globalPos.dx + 1, globalPos.dy + 1),
+        globalPos.dx,
+        globalPos.dy,
+        globalPos.dx + 1,
+        globalPos.dy + 1,
+      ),
       items: items,
     );
-    if (!mounted || result == null) return;
+    if (!mounted || !context.mounted || result == null) return;
 
     switch (result) {
       case 'play_next':
         ref.read(queueProvider.notifier).insertNext(asset.id);
       case 'add_to_playlist':
-        if (mounted) {
-          await showAddToPlaylistDialog(
-            context,
-            assetId: asset.id,
-            mediaType: mediaType,
-          );
-        }
+        if (!context.mounted) return;
+        await showAddToPlaylistDialog(
+          context,
+          assetId: asset.id,
+          mediaType: mediaType,
+        );
       case 'move' || 'copy':
         await _pickDestAndTransfer(context, asset, move: result == 'move');
     }
   }
 
   Future<void> _pickDestAndTransfer(
-      BuildContext context, Asset asset, {required bool move}) async {
+    BuildContext context,
+    Asset asset, {
+    required bool move,
+  }) async {
     final libraryPath = ref.read(libraryPathProvider);
     if (libraryPath == null) return;
 
@@ -320,42 +339,56 @@ class _AssetGridState extends ConsumerState<AssetGrid> {
       context: context,
       builder: (ctx) => _FolderPickerDialog(libraryPath: libraryPath),
     );
-    if (!mounted || destDir == null) return;
+    if (!context.mounted || destDir == null) return;
 
-    final src = File('$libraryPath/${asset.path}');
-    final destRel = destDir.isEmpty ? asset.filename : '$destDir/${asset.filename}';
-    final dest = File('$libraryPath/$destRel');
+    final src = File(
+      resolveLibraryRelativePath(
+        libraryPath,
+        asset.path,
+        requireExisting: true,
+      ),
+    );
+    final destRel = destDir.isEmpty
+        ? asset.filename
+        : '$destDir/${asset.filename}';
+    final normalizedDestRel = normalizeStoredRelativePath(destRel);
+    final dest = File(
+      resolveLibraryRelativePath(libraryPath, normalizedDestRel),
+    );
 
     if (dest.existsSync()) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Datei existiert bereits: $destRel')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Datei existiert bereits: $normalizedDestRel')),
+      );
       return;
     }
 
     if (move) {
       await src.rename(dest.path);
-      await ref.read(assetsDaoProvider).updateAsset(AssetsCompanion(
-        id: Value(asset.id),
-        path: Value(destRel),
-        filename: Value(asset.filename),
-      ));
+      await ref
+          .read(assetsDaoProvider)
+          .updateAsset(
+            AssetsCompanion(
+              id: Value(asset.id),
+              path: Value(normalizedDestRel),
+              filename: Value(asset.filename),
+            ),
+          );
     } else {
       await src.copy(dest.path);
     }
     ref.read(scanVersionProvider.notifier).state++;
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(move
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          move
               ? 'Verschoben nach ${destDir.isEmpty ? "Bibliothek" : destDir}'
-              : 'Kopiert nach ${destDir.isEmpty ? "Bibliothek" : destDir}'),
+              : 'Kopiert nach ${destDir.isEmpty ? "Bibliothek" : destDir}',
         ),
-      );
-    }
+      ),
+    );
   }
 }
 
@@ -410,17 +443,17 @@ class _FolderPickerDialogBodyState
               child: treeAsync.when(
                 data: (roots) => ListView(
                   children: roots
-                      .map((n) => _PickerFolderTile(
-                            node: n,
-                            depth: 0,
-                            selectedPath: _selectedPath,
-                            onSelect: (p) =>
-                                setState(() => _selectedPath = p),
-                          ))
+                      .map(
+                        (n) => _PickerFolderTile(
+                          node: n,
+                          depth: 0,
+                          selectedPath: _selectedPath,
+                          onSelect: (p) => setState(() => _selectedPath = p),
+                        ),
+                      )
                       .toList(),
                 ),
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
+                loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => const SizedBox.shrink(),
               ),
             ),
@@ -429,8 +462,9 @@ class _FolderPickerDialogBodyState
       ),
       actions: [
         TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Abbrechen')),
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Abbrechen'),
+        ),
         FilledButton(
           onPressed: _selectedPath == null
               ? null
@@ -499,12 +533,14 @@ class _PickerFolderTileState extends State<_PickerFolderTile> {
           onTap: () => widget.onSelect(dir),
         ),
         if (_expanded && hasChildren)
-          ...widget.node.children.map((child) => _PickerFolderTile(
-                node: child,
-                depth: widget.depth + 1,
-                selectedPath: widget.selectedPath,
-                onSelect: widget.onSelect,
-              )),
+          ...widget.node.children.map(
+            (child) => _PickerFolderTile(
+              node: child,
+              depth: widget.depth + 1,
+              selectedPath: widget.selectedPath,
+              onSelect: widget.onSelect,
+            ),
+          ),
       ],
     );
   }

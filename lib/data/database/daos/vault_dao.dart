@@ -1,7 +1,6 @@
 import 'package:drift/drift.dart';
 
 import '../app_database.dart';
-import '../tables/vault_table.dart';
 
 part 'vault_dao.g.dart';
 
@@ -10,9 +9,9 @@ class VaultDao extends DatabaseAccessor<AppDatabase> with _$VaultDaoMixin {
   VaultDao(super.db);
 
   /// Stream of all vault items, newest first.
-  Stream<List<VaultItem>> watchAll() => (select(vaultItems)
-        ..orderBy([(t) => OrderingTerm.desc(t.addedAt)]))
-      .watch();
+  Stream<List<VaultItem>> watchAll() => (select(
+    vaultItems,
+  )..orderBy([(t) => OrderingTerm.desc(t.addedAt)])).watch();
 
   /// Insert a new vault item.
   Future<void> insertItem(VaultItemsCompanion entry) =>
@@ -23,7 +22,16 @@ class VaultDao extends DatabaseAccessor<AppDatabase> with _$VaultDaoMixin {
       (delete(vaultItems)..where((t) => t.id.equals(id))).go();
 
   /// Returns all vault items (one-shot).
-  Future<List<VaultItem>> getAll() => (select(vaultItems)
-        ..orderBy([(t) => OrderingTerm.desc(t.addedAt)]))
-      .get();
+  Future<List<VaultItem>> getAll() => (select(
+    vaultItems,
+  )..orderBy([(t) => OrderingTerm.desc(t.addedAt)])).get();
+
+  Future<void> replaceAll(List<VaultItemsCompanion> entries) async {
+    await transaction(() async {
+      await delete(vaultItems).go();
+      for (final entry in entries) {
+        await into(vaultItems).insert(entry);
+      }
+    });
+  }
 }

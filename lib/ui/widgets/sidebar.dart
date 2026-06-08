@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 
 import 'package:go_router/go_router.dart';
 
+import '../../core/safe_paths.dart';
 import '../../data/database/app_database.dart';
 import '../../domain/models/asset_filter.dart';
 import '../../providers/asset_filter_provider.dart';
@@ -78,19 +79,32 @@ class _LibrarySidebarState extends ConsumerState<LibrarySidebar> {
           title: 'Ordner',
           color: Colors.blue,
           expanded: _expandFolders,
-          onToggle: () => setState(() =>
-              _toggle(_kExpandFolders, _expandFolders, (v) => _expandFolders = v)),
+          onToggle: () => setState(
+            () => _toggle(
+              _kExpandFolders,
+              _expandFolders,
+              (v) => _expandFolders = v,
+            ),
+          ),
           trailing: Consumer(
             builder: (context, ref, _) {
-              final includeSubdirs = ref.watch(assetFilterProvider.select((f) => f.includeSubdirs));
+              final includeSubdirs = ref.watch(
+                assetFilterProvider.select((f) => f.includeSubdirs),
+              );
               return Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.create_new_folder_outlined, size: 16),
+                    icon: const Icon(
+                      Icons.create_new_folder_outlined,
+                      size: 16,
+                    ),
                     tooltip: 'Neuer Ordner',
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                    constraints: const BoxConstraints(
+                      minWidth: 28,
+                      minHeight: 28,
+                    ),
                     onPressed: () => _createFolder(context, ref, null),
                   ),
                   IconButton(
@@ -103,16 +117,26 @@ class _LibrarySidebarState extends ConsumerState<LibrarySidebar> {
                           ? Theme.of(context).colorScheme.primary
                           : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
-                    tooltip: includeSubdirs ? 'Unterordner eingeschlossen' : 'Nur dieser Ordner',
+                    tooltip: includeSubdirs
+                        ? 'Unterordner eingeschlossen'
+                        : 'Nur dieser Ordner',
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                    constraints: const BoxConstraints(
+                      minWidth: 28,
+                      minHeight: 28,
+                    ),
                     onPressed: () {
-                      final currentIncludeSubdirs = ref.read(assetFilterProvider).includeSubdirs;
+                      final currentIncludeSubdirs = ref
+                          .read(assetFilterProvider)
+                          .includeSubdirs;
                       final notifier = ref.read(assetFilterProvider.notifier);
                       notifier.toggleIncludeSubdirs();
                       final current = ref.read(assetFilterProvider);
                       if (current.dirFilter.isNotEmpty) {
-                        notifier.setDirFilter(current.dirFilter, includeSubdirs: !currentIncludeSubdirs);
+                        notifier.setDirFilter(
+                          current.dirFilter,
+                          includeSubdirs: !currentIncludeSubdirs,
+                        );
                       }
                     },
                   ),
@@ -129,8 +153,9 @@ class _LibrarySidebarState extends ConsumerState<LibrarySidebar> {
           title: 'Smarte Ordner',
           color: Colors.amber,
           expanded: _expandSmart,
-          onToggle: () => setState(() =>
-              _toggle(_kExpandSmart, _expandSmart, (v) => _expandSmart = v)),
+          onToggle: () => setState(
+            () => _toggle(_kExpandSmart, _expandSmart, (v) => _expandSmart = v),
+          ),
           trailing: IconButton(
             icon: const Icon(Icons.auto_awesome_outlined, size: 16),
             tooltip: 'Neuer smarter Ordner',
@@ -147,8 +172,13 @@ class _LibrarySidebarState extends ConsumerState<LibrarySidebar> {
           title: 'Sammlungen',
           color: Colors.teal,
           expanded: _expandCollections,
-          onToggle: () => setState(() => _toggle(
-              _kExpandCollections, _expandCollections, (v) => _expandCollections = v)),
+          onToggle: () => setState(
+            () => _toggle(
+              _kExpandCollections,
+              _expandCollections,
+              (v) => _expandCollections = v,
+            ),
+          ),
           trailing: IconButton(
             icon: const Icon(Icons.create_new_folder_outlined, size: 16),
             tooltip: 'Neue Sammlung',
@@ -165,8 +195,9 @@ class _LibrarySidebarState extends ConsumerState<LibrarySidebar> {
           title: 'Tags',
           color: Colors.purple,
           expanded: _expandTags,
-          onToggle: () => setState(() =>
-              _toggle(_kExpandTags, _expandTags, (v) => _expandTags = v)),
+          onToggle: () => setState(
+            () => _toggle(_kExpandTags, _expandTags, (v) => _expandTags = v),
+          ),
           trailing: IconButton(
             icon: const Icon(Icons.add, size: 16),
             tooltip: 'Neuer Tag',
@@ -183,8 +214,13 @@ class _LibrarySidebarState extends ConsumerState<LibrarySidebar> {
           title: 'Playlists',
           color: Colors.orange,
           expanded: _expandPlaylists,
-          onToggle: () => setState(() => _toggle(
-              _kExpandPlaylists, _expandPlaylists, (v) => _expandPlaylists = v)),
+          onToggle: () => setState(
+            () => _toggle(
+              _kExpandPlaylists,
+              _expandPlaylists,
+              (v) => _expandPlaylists = v,
+            ),
+          ),
           trailing: IconButton(
             icon: const Icon(Icons.playlist_add_outlined, size: 16),
             tooltip: 'Neue Playlist',
@@ -216,8 +252,9 @@ class _LibrarySidebarState extends ConsumerState<LibrarySidebar> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Abbrechen')),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Abbrechen'),
+          ),
           FilledButton(
             onPressed: () => Navigator.pop(context, ctrl.text),
             child: const Text('Erstellen'),
@@ -246,8 +283,9 @@ class _LibrarySidebarState extends ConsumerState<LibrarySidebar> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Abbrechen')),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Abbrechen'),
+          ),
           FilledButton(
             onPressed: () => Navigator.pop(context, ctrl.text),
             child: const Text('Erstellen'),
@@ -280,10 +318,10 @@ class _LibrarySidebarState extends ConsumerState<LibrarySidebar> {
                   border: OutlineInputBorder(),
                   isDense: true,
                 ),
-                onSubmitted: (_) => Navigator.pop(
-                  context,
-                  {'name': ctrl.text, 'type': mediaType},
-                ),
+                onSubmitted: (_) => Navigator.pop(context, {
+                  'name': ctrl.text,
+                  'type': mediaType,
+                }),
               ),
               const SizedBox(height: 12),
               SegmentedButton<String>(
@@ -300,20 +338,20 @@ class _LibrarySidebarState extends ConsumerState<LibrarySidebar> {
                   ),
                 ],
                 selected: {mediaType},
-                onSelectionChanged: (s) =>
-                    setSt(() => mediaType = s.first),
+                onSelectionChanged: (s) => setSt(() => mediaType = s.first),
               ),
             ],
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Abbrechen')),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Abbrechen'),
+            ),
             FilledButton(
-              onPressed: () => Navigator.pop(
-                context,
-                {'name': ctrl.text, 'type': mediaType},
-              ),
+              onPressed: () => Navigator.pop(context, {
+                'name': ctrl.text,
+                'type': mediaType,
+              }),
               child: const Text('Erstellen'),
             ),
           ],
@@ -324,18 +362,23 @@ class _LibrarySidebarState extends ConsumerState<LibrarySidebar> {
     if (result == null) return;
     final name = result['name']?.trim() ?? '';
     if (name.isEmpty) return;
-    await ref.read(playlistsDaoProvider).createPlaylist(
-          name: name,
-          mediaType: result['type'] ?? 'audio',
-        );
+    await ref
+        .read(playlistsDaoProvider)
+        .createPlaylist(name: name, mediaType: result['type'] ?? 'audio');
   }
 
-  Future<void> _createFolder(BuildContext ctx, WidgetRef ref, String? parentPath) async {
+  Future<void> _createFolder(
+    BuildContext ctx,
+    WidgetRef ref,
+    String? parentPath,
+  ) async {
     final ctrl = TextEditingController();
     final name = await showDialog<String>(
       context: ctx,
       builder: (context) => AlertDialog(
-        title: Text(parentPath != null ? 'Unterordner in "$parentPath"' : 'Neuer Ordner'),
+        title: Text(
+          parentPath != null ? 'Unterordner in "$parentPath"' : 'Neuer Ordner',
+        ),
         content: TextField(
           controller: ctrl,
           autofocus: true,
@@ -344,8 +387,9 @@ class _LibrarySidebarState extends ConsumerState<LibrarySidebar> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Abbrechen')),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Abbrechen'),
+          ),
           FilledButton(
             onPressed: () => Navigator.pop(context, ctrl.text),
             child: const Text('Erstellen'),
@@ -421,18 +465,23 @@ class _FolderTreeSection extends ConsumerWidget {
       data: (roots) => roots.isEmpty
           ? Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text('Keine Ordner',
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant)),
+              child: Text(
+                'Keine Ordner',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
             )
           : Column(
               children: roots
-                  .map((node) => _FolderTile(
-                        node: node,
-                        depth: 0,
-                        activeDir: filter.dirFilter,
-                      ))
+                  .map(
+                    (node) => _FolderTile(
+                      node: node,
+                      depth: 0,
+                      activeDir: filter.dirFilter,
+                    ),
+                  )
                   .toList(),
             ),
       loading: () => const SizedBox.shrink(),
@@ -465,7 +514,12 @@ class _FolderTileState extends ConsumerState<_FolderTile> {
     final pos = renderBox.localToGlobal(Offset(renderBox.size.width, 0));
     final result = await showMenu<String>(
       context: context,
-      position: RelativeRect.fromLTRB(pos.dx - 200, pos.dy, pos.dx, pos.dy + 60),
+      position: RelativeRect.fromLTRB(
+        pos.dx - 200,
+        pos.dy,
+        pos.dx,
+        pos.dy + 60,
+      ),
       items: [
         const PopupMenuItem(
           value: 'new_subfolder',
@@ -477,7 +531,7 @@ class _FolderTileState extends ConsumerState<_FolderTile> {
         ),
       ],
     );
-    if (!mounted || result == null) return;
+    if (!mounted || !context.mounted || result == null) return;
     final dir = widget.node.fullPath.endsWith('/')
         ? widget.node.fullPath.substring(0, widget.node.fullPath.length - 1)
         : widget.node.fullPath;
@@ -499,13 +553,23 @@ class _FolderTileState extends ConsumerState<_FolderTile> {
           onSubmitted: (v) => Navigator.pop(ctx, v),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Abbrechen')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, ctrl.text), child: const Text('Erstellen')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text),
+            child: const Text('Erstellen'),
+          ),
         ],
       ),
     );
-    if (!mounted || name == null || name.trim().isEmpty) return;
-    await Directory('$libraryPath/$parentPath/${name.trim()}').create(recursive: true);
+    if (!context.mounted || name == null || name.trim().isEmpty) return;
+    final relativePath = parentPath.isEmpty
+        ? sanitizeFilename(name.trim())
+        : '$parentPath/${sanitizeFilename(name.trim())}';
+    final targetDir = resolveLibraryRelativePath(libraryPath, relativePath);
+    await Directory(targetDir).create(recursive: true);
     ref.read(scanVersionProvider.notifier).state++;
   }
 
@@ -518,75 +582,92 @@ class _FolderTileState extends ConsumerState<_FolderTile> {
         : widget.node.fullPath;
     final selected = widget.activeDir == nodeDir;
     final indent = 12.0 + widget.depth * 14.0;
-    final includeSubdirs = ref.watch(assetFilterProvider.select((f) => f.includeSubdirs));
-    final displayCount = includeSubdirs ? widget.node.totalCount : widget.node.fileCount;
+    final includeSubdirs = ref.watch(
+      assetFilterProvider.select((f) => f.includeSubdirs),
+    );
+    final displayCount = includeSubdirs
+        ? widget.node.totalCount
+        : widget.node.fileCount;
 
     return Column(
       children: [
         GestureDetector(
           onSecondaryTap: () => _showFolderMenu(context),
           child: ListTile(
-          dense: true,
-          contentPadding: EdgeInsets.only(left: indent, right: 8),
-          leading: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: 14,
-                child: hasChildren
-                    ? Icon(
-                        _expanded ? Icons.expand_more : Icons.chevron_right,
-                        size: 14,
-                        color: cs.onSurfaceVariant,
-                      )
-                    : null,
-              ),
-              const SizedBox(width: 4),
-              Icon(
-                _expanded && hasChildren
-                    ? Icons.folder_open_outlined
-                    : Icons.folder_outlined,
-                size: 18,
+            dense: true,
+            contentPadding: EdgeInsets.only(left: indent, right: 8),
+            leading: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 14,
+                  child: hasChildren
+                      ? Icon(
+                          _expanded ? Icons.expand_more : Icons.chevron_right,
+                          size: 14,
+                          color: cs.onSurfaceVariant,
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  _expanded && hasChildren
+                      ? Icons.folder_open_outlined
+                      : Icons.folder_outlined,
+                  size: 18,
+                  color: selected ? cs.primary : null,
+                ),
+              ],
+            ),
+            title: Text(
+              widget.node.name,
+              style: TextStyle(
+                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
                 color: selected ? cs.primary : null,
               ),
-            ],
-          ),
-          title: Text(
-            widget.node.name,
-            style: TextStyle(
-              fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-              color: selected ? cs.primary : null,
             ),
+            trailing: displayCount > 0
+                ? Text(
+                    '$displayCount',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  )
+                : null,
+            selected: selected,
+            selectedTileColor: cs.primaryContainer.withValues(alpha: 0.3),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            onTap: () {
+              if (hasChildren) setState(() => _expanded = !_expanded);
+              final notifier = ref.read(assetFilterProvider.notifier);
+              if (selected) {
+                notifier.clearDirFilter();
+              } else {
+                final dir = widget.node.fullPath.endsWith('/')
+                    ? widget.node.fullPath.substring(
+                        0,
+                        widget.node.fullPath.length - 1,
+                      )
+                    : widget.node.fullPath;
+                final currentIncludeSubdirs = ref
+                    .read(assetFilterProvider)
+                    .includeSubdirs;
+                notifier.setDirFilter(
+                  dir,
+                  includeSubdirs: currentIncludeSubdirs,
+                );
+              }
+            },
           ),
-          trailing: displayCount > 0
-              ? Text('$displayCount', style: Theme.of(context).textTheme.bodySmall)
-              : null,
-          selected: selected,
-          selectedTileColor: cs.primaryContainer.withValues(alpha: 0.3),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8)),
-          onTap: () {
-            if (hasChildren) setState(() => _expanded = !_expanded);
-            final notifier = ref.read(assetFilterProvider.notifier);
-            if (selected) {
-              notifier.clearDirFilter();
-            } else {
-              final dir = widget.node.fullPath.endsWith('/')
-                  ? widget.node.fullPath.substring(
-                      0, widget.node.fullPath.length - 1)
-                  : widget.node.fullPath;
-              final currentIncludeSubdirs = ref.read(assetFilterProvider).includeSubdirs;
-              notifier.setDirFilter(dir, includeSubdirs: currentIncludeSubdirs);
-            }
-          },
-        ),
         ),
         if (_expanded && hasChildren)
-          ...widget.node.children.map((child) => _FolderTile(
-                node: child,
-                depth: widget.depth + 1,
-                activeDir: widget.activeDir,
-              )),
+          ...widget.node.children.map(
+            (child) => _FolderTile(
+              node: child,
+              depth: widget.depth + 1,
+              activeDir: widget.activeDir,
+            ),
+          ),
       ],
     );
   }
@@ -656,15 +737,18 @@ class _ManualCollectionsSection extends ConsumerWidget {
         }
         return Column(
           children: roots
-              .map((c) => _CollectionTile(
-                    collection: c,
-                    depth: 0,
-                    colMap: colMap,
-                    childrenOf: childrenOf,
-                    activeId: filter.collectionId,
-                    onTap: (id) => notifier
-                        .setCollectionId(filter.collectionId == id ? null : id),
-                  ))
+              .map(
+                (c) => _CollectionTile(
+                  collection: c,
+                  depth: 0,
+                  colMap: colMap,
+                  childrenOf: childrenOf,
+                  activeId: filter.collectionId,
+                  onTap: (id) => notifier.setCollectionId(
+                    filter.collectionId == id ? null : id,
+                  ),
+                ),
+              )
               .toList(),
         );
       },
@@ -762,14 +846,16 @@ class _CollectionTileState extends ConsumerState<_CollectionTile> {
               },
             ),
             if (hasChildren && _expanded)
-              ...children.map((child) => _CollectionTile(
-                collection: child,
-                depth: widget.depth + 1,
-                colMap: widget.colMap,
-                childrenOf: widget.childrenOf,
-                activeId: widget.activeId,
-                onTap: widget.onTap,
-              )),
+              ...children.map(
+                (child) => _CollectionTile(
+                  collection: child,
+                  depth: widget.depth + 1,
+                  colMap: widget.colMap,
+                  childrenOf: widget.childrenOf,
+                  activeId: widget.activeId,
+                  onTap: widget.onTap,
+                ),
+              ),
           ],
         );
       },
@@ -781,9 +867,9 @@ class _CollectionTileState extends ConsumerState<_CollectionTile> {
 
 class _TagNode {
   _TagNode({required this.name, required this.fullName});
-  final String name;       // display segment (e.g. "strand")
-  final String fullName;   // full tag name (e.g. "bilder/strand")
-  String? tagId;           // null for virtual parent nodes; set after creation
+  final String name; // display segment (e.g. "strand")
+  final String fullName; // full tag name (e.g. "bilder/strand")
+  String? tagId; // null for virtual parent nodes; set after creation
   int count = 0;
   final List<_TagNode> children = [];
 }
@@ -803,13 +889,18 @@ class _TagsSection extends ConsumerWidget {
         final roots = _buildTagTree(tags);
         if (roots.isEmpty) return const SizedBox.shrink();
         return Column(
-          children: roots.map((node) => _TagTile(
-            node: node,
-            depth: 0,
-            activeTag: filter.tagFilter,
-            onTap: (tagName) =>
-                notifier.setTagFilter(filter.tagFilter == tagName ? null : tagName),
-          )).toList(),
+          children: roots
+              .map(
+                (node) => _TagTile(
+                  node: node,
+                  depth: 0,
+                  activeTag: filter.tagFilter,
+                  onTap: (tagName) => notifier.setTagFilter(
+                    filter.tagFilter == tagName ? null : tagName,
+                  ),
+                ),
+              )
+              .toList(),
         );
       },
       loading: () => const Padding(
@@ -825,18 +916,17 @@ class _TagsSection extends ConsumerWidget {
     final roots = <_TagNode>[];
 
     // Sort so parents come before children
-    final sorted = [...tags]..sort((a, b) =>
-        a.tag.name.toLowerCase().compareTo(b.tag.name.toLowerCase()));
+    final sorted = [...tags]
+      ..sort(
+        (a, b) => a.tag.name.toLowerCase().compareTo(b.tag.name.toLowerCase()),
+      );
 
     for (final twc in sorted) {
       final parts = twc.tag.name.split('/');
       for (var i = 0; i < parts.length; i++) {
         final fullName = parts.sublist(0, i + 1).join('/');
         if (!byFullName.containsKey(fullName)) {
-          final node = _TagNode(
-            name: parts[i],
-            fullName: fullName,
-          );
+          final node = _TagNode(name: parts[i], fullName: fullName);
           byFullName[fullName] = node;
           if (i == 0) {
             roots.add(node);
@@ -882,7 +972,8 @@ class _TagTileState extends ConsumerState<_TagTile> {
     final hasChildren = widget.node.children.isNotEmpty;
     final selected = widget.activeTag == widget.node.fullName;
     // Also highlight if active filter is a child of this node
-    final isAncestor = widget.activeTag != null &&
+    final isAncestor =
+        widget.activeTag != null &&
         widget.activeTag!.startsWith('${widget.node.fullName}/');
     final indent = 12.0 + widget.depth * 14.0;
 
@@ -915,7 +1006,9 @@ class _TagTileState extends ConsumerState<_TagTile> {
                       width: 14,
                       child: hasChildren
                           ? Icon(
-                              _expanded ? Icons.expand_more : Icons.chevron_right,
+                              _expanded
+                                  ? Icons.expand_more
+                                  : Icons.chevron_right,
                               size: 14,
                               color: cs.onSurfaceVariant,
                             )
@@ -932,17 +1025,23 @@ class _TagTileState extends ConsumerState<_TagTile> {
                 title: Text(
                   widget.node.name,
                   style: TextStyle(
-                    fontWeight: (selected || isAncestor) ? FontWeight.w600 : FontWeight.normal,
+                    fontWeight: (selected || isAncestor)
+                        ? FontWeight.w600
+                        : FontWeight.normal,
                     color: (selected || isAncestor) ? cs.primary : null,
                   ),
                 ),
                 trailing: widget.node.count > 0
-                    ? Text('${widget.node.count}',
-                        style: Theme.of(context).textTheme.bodySmall)
+                    ? Text(
+                        '${widget.node.count}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      )
                     : null,
                 selected: selected,
                 selectedTileColor: cs.primaryContainer.withValues(alpha: 0.3),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 onTap: () {
                   if (hasChildren) setState(() => _expanded = !_expanded);
                   widget.onTap(widget.node.fullName);
@@ -950,12 +1049,14 @@ class _TagTileState extends ConsumerState<_TagTile> {
               ),
             ),
             if (_expanded && hasChildren)
-              ...widget.node.children.map((child) => _TagTile(
-                node: child,
-                depth: widget.depth + 1,
-                activeTag: widget.activeTag,
-                onTap: widget.onTap,
-              )),
+              ...widget.node.children.map(
+                (child) => _TagTile(
+                  node: child,
+                  depth: widget.depth + 1,
+                  activeTag: widget.activeTag,
+                  onTap: widget.onTap,
+                ),
+              ),
           ],
         );
       },
@@ -972,14 +1073,33 @@ class _TagTileState extends ConsumerState<_TagTile> {
 
     final result = await showMenu<String>(
       context: context,
-      position: RelativeRect.fromLTRB(pos.dx - 160, pos.dy, pos.dx, pos.dy + 100),
+      position: RelativeRect.fromLTRB(
+        pos.dx - 160,
+        pos.dy,
+        pos.dx,
+        pos.dy + 100,
+      ),
       items: [
-        const PopupMenuItem(value: 'rename', child: ListTile(leading: Icon(Icons.edit_outlined), title: Text('Umbenennen'), dense: true)),
-        const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_outline), title: Text('Löschen'), dense: true)),
+        const PopupMenuItem(
+          value: 'rename',
+          child: ListTile(
+            leading: Icon(Icons.edit_outlined),
+            title: Text('Umbenennen'),
+            dense: true,
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'delete',
+          child: ListTile(
+            leading: Icon(Icons.delete_outline),
+            title: Text('Löschen'),
+            dense: true,
+          ),
+        ),
       ],
     );
 
-    if (!mounted || result == null) return;
+    if (!mounted || !context.mounted || result == null) return;
 
     if (result == 'rename') {
       final ctrl = TextEditingController(text: widget.node.name);
@@ -994,12 +1114,18 @@ class _TagTileState extends ConsumerState<_TagTile> {
             onSubmitted: (v) => Navigator.pop(ctx, v),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Abbrechen')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, ctrl.text), child: const Text('Speichern')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Abbrechen'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, ctrl.text),
+              child: const Text('Speichern'),
+            ),
           ],
         ),
       );
-      if (!mounted || newName == null || newName.trim().isEmpty) return;
+      if (!context.mounted || newName == null || newName.trim().isEmpty) return;
       final parts = widget.node.fullName.split('/');
       parts[parts.length - 1] = newName.trim();
       final newFullName = parts.join('/');
@@ -1012,12 +1138,18 @@ class _TagTileState extends ConsumerState<_TagTile> {
           title: const Text('Tag löschen'),
           content: Text('Tag "${widget.node.fullName}" wirklich löschen?'),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Abbrechen')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Löschen')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Abbrechen'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Löschen'),
+            ),
           ],
         ),
       );
-      if (!mounted || confirm != true) return;
+      if (!context.mounted || confirm != true) return;
       await ref.read(tagsDaoProvider).deleteTag(tagId);
       ref.invalidate(allTagsProvider);
       final filter = ref.read(assetFilterProvider);
@@ -1041,9 +1173,7 @@ class _PlaylistsSection extends ConsumerWidget {
       data: (playlists) {
         if (playlists.isEmpty) return const SizedBox.shrink();
         return Column(
-          children: playlists
-              .map((p) => _PlaylistTile(playlist: p))
-              .toList(),
+          children: playlists.map((p) => _PlaylistTile(playlist: p)).toList(),
         );
       },
       loading: () => const SizedBox.shrink(),
@@ -1068,8 +1198,12 @@ class _PlaylistTileState extends ConsumerState<_PlaylistTile> {
 
     final result = await showMenu<String>(
       context: context,
-      position:
-          RelativeRect.fromLTRB(pos.dx - 180, pos.dy, pos.dx, pos.dy + 60),
+      position: RelativeRect.fromLTRB(
+        pos.dx - 180,
+        pos.dy,
+        pos.dx,
+        pos.dy + 60,
+      ),
       items: [
         const PopupMenuItem(
           value: 'rename',
@@ -1089,13 +1223,12 @@ class _PlaylistTileState extends ConsumerState<_PlaylistTile> {
         ),
       ],
     );
-    if (!mounted || result == null) return;
-    final ctx = context;
+    if (!mounted || !context.mounted || result == null) return;
 
     if (result == 'rename') {
       final ctrl = TextEditingController(text: widget.playlist.name);
       final name = await showDialog<String>(
-        context: ctx,
+        context: context,
         builder: (dlgCtx) => AlertDialog(
           title: const Text('Playlist umbenennen'),
           content: TextField(
@@ -1109,8 +1242,9 @@ class _PlaylistTileState extends ConsumerState<_PlaylistTile> {
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(dlgCtx),
-                child: const Text('Abbrechen')),
+              onPressed: () => Navigator.pop(dlgCtx),
+              child: const Text('Abbrechen'),
+            ),
             FilledButton(
               onPressed: () => Navigator.pop(dlgCtx, ctrl.text),
               child: const Text('Speichern'),
@@ -1118,34 +1252,33 @@ class _PlaylistTileState extends ConsumerState<_PlaylistTile> {
           ],
         ),
       );
-      if (!mounted || name == null || name.trim().isEmpty) return;
+      if (!context.mounted || name == null || name.trim().isEmpty) return;
       await ref
           .read(playlistsDaoProvider)
           .renamePlaylist(widget.playlist.id, name.trim());
     } else if (result == 'delete') {
       final confirm = await showDialog<bool>(
-        context: ctx,
+        context: context,
         builder: (dlgCtx) => AlertDialog(
           title: const Text('Playlist löschen'),
-          content: Text(
-              'Playlist "${widget.playlist.name}" wirklich löschen?'),
+          content: Text('Playlist "${widget.playlist.name}" wirklich löschen?'),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(dlgCtx, false),
-                child: const Text('Abbrechen')),
+              onPressed: () => Navigator.pop(dlgCtx, false),
+              child: const Text('Abbrechen'),
+            ),
             FilledButton(
               style: FilledButton.styleFrom(
-                  backgroundColor: Theme.of(dlgCtx).colorScheme.error),
+                backgroundColor: Theme.of(dlgCtx).colorScheme.error,
+              ),
               onPressed: () => Navigator.pop(dlgCtx, true),
               child: const Text('Löschen'),
             ),
           ],
         ),
       );
-      if (!mounted || confirm != true) return;
-      await ref
-          .read(playlistsDaoProvider)
-          .deletePlaylist(widget.playlist.id);
+      if (!context.mounted || confirm != true) return;
+      await ref.read(playlistsDaoProvider).deletePlaylist(widget.playlist.id);
     }
   }
 
@@ -1169,10 +1302,8 @@ class _PlaylistTileState extends ConsumerState<_PlaylistTile> {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        onTap: () =>
-            context.push('/library/playlist/${widget.playlist.id}'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        onTap: () => context.push('/library/playlist/${widget.playlist.id}'),
       ),
     );
   }
@@ -1195,6 +1326,7 @@ class _CollapsibleSection extends StatelessWidget {
   final VoidCallback onToggle;
   final Widget child;
   final Widget? trailing;
+
   /// Accent colour for the section header (label, chevron, left border).
   final Color? color;
 
@@ -1203,10 +1335,10 @@ class _CollapsibleSection extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final accent = color ?? cs.onSurfaceVariant;
     final labelStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: accent,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.8,
-        );
+      color: accent,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 0.8,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1216,7 +1348,10 @@ class _CollapsibleSection extends StatelessWidget {
           child: Container(
             decoration: BoxDecoration(
               border: Border(
-                left: BorderSide(color: accent.withValues(alpha: 0.6), width: 3),
+                left: BorderSide(
+                  color: accent.withValues(alpha: 0.6),
+                  width: 3,
+                ),
               ),
             ),
             padding: const EdgeInsets.fromLTRB(13, 10, 4, 6),
@@ -1255,10 +1390,10 @@ Widget _sectionLabel(BuildContext context, String title) {
     child: Text(
       title.toUpperCase(),
       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.8,
-          ),
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.8,
+      ),
     ),
   );
 }

@@ -9,9 +9,13 @@ import 'package:go_router/go_router.dart';
 import '../../core/file_picker_helper.dart';
 import '../../core/library_lock.dart';
 import '../../core/plugin_registry.dart';
+import '../../data/services/library_backup_service.dart';
+import '../../data/services/library_integrity_service.dart';
 import '../../providers/library_lock_provider.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/media_template_provider.dart';
+import '../../providers/asset_list_provider.dart';
+import '../../providers/vault_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -108,32 +112,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: ListView(
               children: [
                 Padding(
-                  padding:
-                      const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: Text('Medien-Templates',
-                      style: Theme.of(context).textTheme.titleSmall),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Text(
+                    'Medien-Templates',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
                 ),
-                ...MediaCategory.values.map((cat) => ListTile(
-                      dense: true,
-                      selected: !_showPlugins && _selectedCategory == cat,
-                      selectedTileColor:
-                          cs.primaryContainer.withValues(alpha: 0.3),
-                      leading: Icon(_categoryIcon(cat), size: 20),
-                      title: Text(cat.label),
-                      trailing: Text(
-                        '${templates.getTemplate(cat).fields.length}',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      onTap: () => setState(() {
-                        _selectedCategory = cat;
-                        _showPlugins = false;
-                      }),
-                    )),
+                ...MediaCategory.values.map(
+                  (cat) => ListTile(
+                    dense: true,
+                    selected: !_showPlugins && _selectedCategory == cat,
+                    selectedTileColor: cs.primaryContainer.withValues(
+                      alpha: 0.3,
+                    ),
+                    leading: Icon(_categoryIcon(cat), size: 20),
+                    title: Text(cat.label),
+                    trailing: Text(
+                      '${templates.getTemplate(cat).fields.length}',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    onTap: () => setState(() {
+                      _selectedCategory = cat;
+                      _showPlugins = false;
+                    }),
+                  ),
+                ),
                 const Divider(height: 16),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                  child: Text('Plugins',
-                      style: Theme.of(context).textTheme.titleSmall),
+                  child: Text(
+                    'Plugins',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
                 ),
                 ListTile(
                   dense: true,
@@ -153,8 +163,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const Divider(height: 16),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                  child: Text('Sicherheit',
-                      style: Theme.of(context).textTheme.titleSmall),
+                  child: Text(
+                    'Sicherheit',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
                 ),
                 ListTile(
                   dense: true,
@@ -185,14 +197,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: _showSecurity
                 ? const _SecurityPanel()
                 : _showPlugins
-                    ? const _PluginManager()
-                    : _TemplateEditor(
-                        category: _selectedCategory,
-                        config: templates.getTemplate(_selectedCategory),
-                        onChanged: (config) => ref
-                            .read(mediaTemplatesProvider.notifier)
-                            .updateTemplate(_selectedCategory, config),
-                      ),
+                ? const _PluginManager()
+                : _TemplateEditor(
+                    category: _selectedCategory,
+                    config: templates.getTemplate(_selectedCategory),
+                    onChanged: (config) => ref
+                        .read(mediaTemplatesProvider.notifier)
+                        .updateTemplate(_selectedCategory, config),
+                  ),
           ),
         ],
       ),
@@ -213,9 +225,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         if (result != null) {
           await File(result).writeAsString(json);
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Exportiert')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Exportiert')));
           }
         }
       case 'import':
@@ -230,8 +242,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                  content: Text(
-                      success ? 'Importiert' : 'Import fehlgeschlagen')),
+                content: Text(success ? 'Importiert' : 'Import fehlgeschlagen'),
+              ),
             );
           }
         }
@@ -246,9 +258,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       case 'save_global':
         await notifier.saveAsGlobal();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Global gespeichert')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Global gespeichert')));
         }
       case 'save_library':
         await notifier.saveForLibrary();
@@ -261,8 +273,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         await notifier.clearLibraryOverride();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('Bibliothek-Override gelöscht')),
+            const SnackBar(content: Text('Bibliothek-Override gelöscht')),
           );
         }
       case 'reset':
@@ -276,16 +287,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   IconData _categoryIcon(MediaCategory cat) => switch (cat) {
-        MediaCategory.audio => Icons.music_note_outlined,
-        MediaCategory.video => Icons.movie_outlined,
-        MediaCategory.image => Icons.image_outlined,
-        MediaCategory.documentPdf => Icons.picture_as_pdf_outlined,
-        MediaCategory.documentEbook => Icons.auto_stories_outlined,
-        MediaCategory.documentOther => Icons.description_outlined,
-        MediaCategory.text => Icons.text_snippet_outlined,
-        MediaCategory.archive => Icons.folder_zip_outlined,
-        MediaCategory.other => Icons.insert_drive_file_outlined,
-      };
+    MediaCategory.audio => Icons.music_note_outlined,
+    MediaCategory.video => Icons.movie_outlined,
+    MediaCategory.image => Icons.image_outlined,
+    MediaCategory.documentPdf => Icons.picture_as_pdf_outlined,
+    MediaCategory.documentEbook => Icons.auto_stories_outlined,
+    MediaCategory.documentOther => Icons.description_outlined,
+    MediaCategory.text => Icons.text_snippet_outlined,
+    MediaCategory.archive => Icons.folder_zip_outlined,
+    MediaCategory.other => Icons.insert_drive_file_outlined,
+  };
 }
 
 // ── Template Editor ───────────────────────────────────────────────────────────
@@ -322,26 +333,25 @@ class _TemplateEditor extends StatelessWidget {
             'Ziehe Felder zum Sortieren oder entferne sie. '
             'Felder unten können hinzugefügt werden.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 16),
 
           // Active fields (reorderable)
-          Text('Aktive Felder',
-              style: Theme.of(context).textTheme.labelMedium),
+          Text('Aktive Felder', style: Theme.of(context).textTheme.labelMedium),
           const SizedBox(height: 8),
           Expanded(
             flex: 3,
             child: Material(
-              color: Theme.of(context)
-                  .colorScheme
-                  .surfaceContainerLow,
+              color: Theme.of(context).colorScheme.surfaceContainerLow,
               borderRadius: BorderRadius.circular(8),
               child: active.isEmpty
                   ? const Center(
-                      child: Text('Keine Felder ausgewählt',
-                          style: TextStyle(color: Colors.grey)),
+                      child: Text(
+                        'Keine Felder ausgewählt',
+                        style: TextStyle(color: Colors.grey),
+                      ),
                     )
                   : ReorderableListView.builder(
                       padding: const EdgeInsets.all(4),
@@ -351,26 +361,24 @@ class _TemplateEditor extends StatelessWidget {
                         final fields = List.of(active);
                         final item = fields.removeAt(oldIdx);
                         fields.insert(newIdx, item);
-                        onChanged(
-                            MediaTemplateConfig(fields: fields));
+                        onChanged(MediaTemplateConfig(fields: fields));
                       },
                       itemBuilder: (context, i) {
                         final field = active[i];
                         return ListTile(
                           key: ValueKey(field),
                           dense: true,
-                          leading: const Icon(Icons.drag_handle,
-                              size: 18),
+                          leading: const Icon(Icons.drag_handle, size: 18),
                           title: Text(field.label),
                           trailing: IconButton(
-                            icon: const Icon(Icons.remove_circle_outline,
-                                size: 18),
+                            icon: const Icon(
+                              Icons.remove_circle_outline,
+                              size: 18,
+                            ),
                             tooltip: 'Entfernen',
                             onPressed: () {
-                              final fields = List.of(active)
-                                ..removeAt(i);
-                              onChanged(MediaTemplateConfig(
-                                  fields: fields));
+                              final fields = List.of(active)..removeAt(i);
+                              onChanged(MediaTemplateConfig(fields: fields));
                             },
                           ),
                         );
@@ -382,20 +390,22 @@ class _TemplateEditor extends StatelessWidget {
           const SizedBox(height: 16),
 
           // Available fields
-          Text('Verfügbare Felder',
-              style: Theme.of(context).textTheme.labelMedium),
+          Text(
+            'Verfügbare Felder',
+            style: Theme.of(context).textTheme.labelMedium,
+          ),
           const SizedBox(height: 8),
           Expanded(
             flex: 2,
             child: Material(
-              color: Theme.of(context)
-                  .colorScheme
-                  .surfaceContainerLow,
+              color: Theme.of(context).colorScheme.surfaceContainerLow,
               borderRadius: BorderRadius.circular(8),
               child: available.isEmpty
                   ? const Center(
-                      child: Text('Alle Felder werden angezeigt',
-                          style: TextStyle(color: Colors.grey)),
+                      child: Text(
+                        'Alle Felder werden angezeigt',
+                        style: TextStyle(color: Colors.grey),
+                      ),
                     )
                   : ListView(
                       padding: const EdgeInsets.all(4),
@@ -403,13 +413,13 @@ class _TemplateEditor extends StatelessWidget {
                         return ListTile(
                           dense: true,
                           leading: const Icon(
-                              Icons.add_circle_outline,
-                              size: 18),
+                            Icons.add_circle_outline,
+                            size: 18,
+                          ),
                           title: Text(field.label),
                           onTap: () {
                             final fields = [...active, field];
-                            onChanged(
-                                MediaTemplateConfig(fields: fields));
+                            onChanged(MediaTemplateConfig(fields: fields));
                           },
                         );
                       }).toList(),
@@ -438,8 +448,8 @@ class _PluginManager extends ConsumerWidget {
         child: Text(
           'Keine Plugins installiert.',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
       );
     }
@@ -466,9 +476,8 @@ class _PluginManager extends ConsumerWidget {
                 IconButton(
                   icon: const Icon(Icons.settings_outlined, size: 18),
                   tooltip: '${plugin.displayName} Einstellungen',
-                  onPressed: () => context.push(
-                    '/library/settings/plugin/${plugin.id}',
-                  ),
+                  onPressed: () =>
+                      context.push('/library/settings/plugin/${plugin.id}'),
                 ),
               Switch(
                 value: enabled,
@@ -514,16 +523,18 @@ class _SecurityPanelState extends ConsumerState<_SecurityPanel> {
         Text(
           'Beim Öffnen dieser Bibliothek wird ein Passwort verlangt. '
           'Die Dateien auf der Festplatte bleiben unverändert.',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
         ),
         const SizedBox(height: 16),
         SwitchListTile(
           value: isLocked,
           title: const Text('Bibliothek mit Passwort schützen'),
           subtitle: Text(isLocked ? 'Aktiv' : 'Deaktiviert'),
-          onChanged: _loading ? null : (v) => v ? _enable(libraryPath) : _disable(libraryPath),
+          onChanged: _loading
+              ? null
+              : (v) => v ? _enable(libraryPath) : _disable(libraryPath),
         ),
         if (isLocked) ...[
           const SizedBox(height: 8),
@@ -538,22 +549,28 @@ class _SecurityPanelState extends ConsumerState<_SecurityPanel> {
         const Divider(height: 32),
 
         // ── Dateinamen-Verschleierung ─────────────────────────────────────
-        Text('Dateinamen-Verschleierung',
-            style: Theme.of(context).textTheme.titleMedium),
+        Text(
+          'Dateinamen-Verschleierung',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
         const SizedBox(height: 4),
         Text(
           'Dateien werden beim Import unter zufälligen UUIDs gespeichert '
           '(z.B. "3f9a1b2c.jpg"). Der Ordner auf der Festplatte verrät '
           'so keine Dateinamen. Nur für neue Importe wirksam.',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
         ),
         const SizedBox(height: 16),
         SwitchListTile(
           value: obfuscated,
           title: const Text('Dateinamen verschleiern'),
-          subtitle: Text(obfuscated ? 'Aktiv — neue Dateien erhalten UUID-Namen' : 'Deaktiviert'),
+          subtitle: Text(
+            obfuscated
+                ? 'Aktiv — neue Dateien erhalten UUID-Namen'
+                : 'Deaktiviert',
+          ),
           onChanged: isLocked && !_loading
               ? (v) async {
                   await LibraryLock.setObfuscateFilenames(libraryPath, v);
@@ -571,6 +588,49 @@ class _SecurityPanelState extends ConsumerState<_SecurityPanel> {
               style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
             ),
           ),
+
+        const Divider(height: 32),
+
+        Text(
+          'Wartung & Backup',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Prüfe die Bibliothek auf Inkonsistenzen und sichere kritische '
+          'Metadaten wie App-Einstellungen, Lock-Datei und Vault-Metadaten.',
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+        ),
+        const SizedBox(height: 12),
+        ListTile(
+          leading: const Icon(Icons.health_and_safety_outlined),
+          title: const Text('Bibliotheks-Integrität prüfen'),
+          subtitle: const Text(
+            'Sucht nach fehlenden Assets, verwaisten Thumbnails und Vault-Problemen',
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: _loading ? null : () => _runIntegrityCheck(libraryPath),
+        ),
+        ListTile(
+          leading: const Icon(Icons.backup_outlined),
+          title: const Text('Sicherungsdatei exportieren'),
+          subtitle: const Text(
+            'Exportiert App-Einstellungen, Lock- und Vault-Metadaten als JSON',
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: _loading ? null : () => _exportBackup(libraryPath),
+        ),
+        ListTile(
+          leading: const Icon(Icons.restore_page_outlined),
+          title: const Text('Sicherungsdatei importieren'),
+          subtitle: const Text(
+            'Stellt App-Einstellungen, Lock- und Vault-Metadaten aus einer JSON-Sicherung wieder her',
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: _loading ? null : () => _importBackup(libraryPath),
+        ),
       ],
     );
   }
@@ -592,11 +652,13 @@ class _SecurityPanelState extends ConsumerState<_SecurityPanel> {
         content: const Text('Der Passwortschutz wird entfernt. Fortfahren?'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Abbrechen')),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Abbrechen'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Deaktivieren')),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Deaktivieren'),
+          ),
         ],
       ),
     );
@@ -610,17 +672,191 @@ class _SecurityPanelState extends ConsumerState<_SecurityPanel> {
   }
 
   Future<void> _changePassword(String libraryPath) async {
-    final password = await _askPassword(context, isSetup: true, title: 'Neues Passwort');
+    final password = await _askPassword(
+      context,
+      isSetup: true,
+      title: 'Neues Passwort',
+    );
     if (password == null || !mounted) return;
     setState(() => _loading = true);
     final obfuscated = LibraryLock.filenamesObfuscated(libraryPath);
-    await LibraryLock.enable(libraryPath, password, obfuscateFilenames: obfuscated);
+    await LibraryLock.enable(
+      libraryPath,
+      password,
+      obfuscateFilenames: obfuscated,
+    );
     if (mounted) {
       setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwort geändert')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Passwort geändert')));
     }
+  }
+
+  LibraryIntegrityService _integrityService(String libraryPath) {
+    return LibraryIntegrityService(
+      libraryPath: libraryPath,
+      assetsDao: ref.read(assetsDaoProvider),
+      vaultDao: ref.read(vaultDaoProvider),
+      libraryRepository: ref.read(libraryRepositoryProvider),
+      vaultConfigStore: ref.read(vaultConfigStoreProvider),
+    );
+  }
+
+  LibraryBackupService _backupService(String libraryPath) {
+    return LibraryBackupService(
+      libraryPath: libraryPath,
+      vaultDao: ref.read(vaultDaoProvider),
+      vaultConfigStore: ref.read(vaultConfigStoreProvider),
+    );
+  }
+
+  Future<void> _runIntegrityCheck(String libraryPath) async {
+    setState(() => _loading = true);
+    final report = await _integrityService(libraryPath).inspect();
+    if (!mounted) return;
+    setState(() => _loading = false);
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Integritätsbericht'),
+        content: SizedBox(
+          width: 520,
+          child: SingleChildScrollView(
+            child: Text(_formatIntegrityReport(report)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Schließen'),
+          ),
+          if (!report.isHealthy)
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _runRepair(libraryPath);
+              },
+              child: const Text('Reparatur ausführen'),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _runRepair(String libraryPath) async {
+    setState(() => _loading = true);
+    final result = await _integrityService(libraryPath).repair();
+    ref.read(scanVersionProvider.notifier).state++;
+    if (!mounted) return;
+    setState(() => _loading = false);
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Reparatur abgeschlossen'),
+        content: Text(
+          'Entfernte verwaiste Thumbnails: ${result.removedOrphanThumbnails}\n\n'
+          '${_formatIntegrityReport(result.after)}',
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _exportBackup(String libraryPath) async {
+    setState(() => _loading = true);
+    final json = await _backupService(libraryPath).exportJson();
+    if (!mounted) return;
+    setState(() => _loading = false);
+
+    final targetPath = await FilePickerHelper.saveFile(
+      dialogTitle: 'Sicherungsdatei exportieren',
+      fileName: 'mediashelf_security_backup.json',
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+    );
+    if (targetPath == null || !mounted) return;
+
+    await File(targetPath).writeAsString(json);
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Sicherungsdatei exportiert')));
+  }
+
+  Future<void> _importBackup(String libraryPath) async {
+    final file = await FilePickerHelper.pickFiles(
+      dialogTitle: 'Sicherungsdatei importieren',
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+    );
+    final path = file?.files.single.path;
+    if (path == null || !mounted) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sicherung importieren'),
+        content: const Text(
+          'App-Einstellungen sowie Lock- und Vault-Metadaten werden mit den '
+          'Werten aus der Sicherung überschrieben. Fortfahren?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Importieren'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _loading = true);
+    try {
+      final json = await File(path).readAsString();
+      await _backupService(libraryPath).importJson(json);
+      ref.invalidate(libraryLockedProvider);
+      ref.invalidate(filenamesObfuscatedProvider);
+      ref.invalidate(vaultProvider);
+      ref.read(scanVersionProvider.notifier).state++;
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Sicherung importiert')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Import fehlgeschlagen: $e')));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  static String _formatIntegrityReport(LibraryIntegrityReport report) {
+    if (report.isHealthy) {
+      return 'Keine Probleme gefunden.';
+    }
+
+    return report.issues
+        .map((issue) {
+          final examples = issue.examples.isEmpty
+              ? ''
+              : '\n  Beispiele: ${issue.examples.join(', ')}';
+          return '- ${issue.description}: ${issue.count}$examples';
+        })
+        .join('\n\n');
   }
 
   /// Shows a dialog to enter (and optionally confirm) a password.
@@ -654,9 +890,11 @@ class _SecurityPanelState extends ConsumerState<_SecurityPanel> {
                     decoration: InputDecoration(
                       labelText: 'Passwort',
                       suffixIcon: IconButton(
-                        icon: Icon(obscure
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined),
+                        icon: Icon(
+                          obscure
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
                         onPressed: () => setSt(() => obscure = !obscure),
                       ),
                     ),
@@ -672,7 +910,8 @@ class _SecurityPanelState extends ConsumerState<_SecurityPanel> {
                       controller: confirmCtrl,
                       obscureText: obscure,
                       decoration: const InputDecoration(
-                          labelText: 'Passwort bestätigen'),
+                        labelText: 'Passwort bestätigen',
+                      ),
                       validator: (v) => v != ctrl.text
                           ? 'Passwörter stimmen nicht überein'
                           : null,
@@ -684,8 +923,9 @@ class _SecurityPanelState extends ConsumerState<_SecurityPanel> {
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Abbrechen')),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Abbrechen'),
+            ),
             FilledButton(
               onPressed: () {
                 if (formKey.currentState?.validate() ?? false) {

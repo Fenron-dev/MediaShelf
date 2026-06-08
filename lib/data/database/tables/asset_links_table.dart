@@ -11,10 +11,12 @@ class AssetLinks extends Table {
   TextColumn get id => text()();
 
   /// The original / primary asset.
+  @ReferenceName('outgoingAssetLinks')
   TextColumn get originalId =>
       text().references(Assets, #id, onDelete: KeyAction.restrict)();
 
   /// The linked (secondary) asset.
+  @ReferenceName('incomingAssetLinks')
   TextColumn get linkedId =>
       text().references(Assets, #id, onDelete: KeyAction.cascade)();
 
@@ -25,6 +27,6 @@ class AssetLinks extends Table {
 
   @override
   List<Set<Column>> get uniqueKeys => [
-        {originalId, linkedId},
-      ];
+    {originalId, linkedId},
+  ];
 }

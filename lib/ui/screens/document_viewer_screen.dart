@@ -13,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/epub_parser.dart';
 import '../../core/mime_resolver.dart';
+import '../../core/safe_paths.dart';
 import '../../data/database/app_database.dart';
 import '../../providers/epub_settings_provider.dart';
 import '../../providers/library_provider.dart';
@@ -44,7 +45,11 @@ class _DocumentViewerScreenState extends ConsumerState<DocumentViewerScreen> {
     if (libraryPath == null) return;
     setState(() {
       _asset = asset;
-      _filePath = '$libraryPath/${asset.path}';
+      _filePath = resolveLibraryRelativePath(
+        libraryPath,
+        asset.path,
+        requireExisting: true,
+      );
     });
   }
 
@@ -64,9 +69,7 @@ class _DocumentViewerScreenState extends ConsumerState<DocumentViewerScreen> {
         return KeyEventResult.ignored;
       },
       child: path == null || asset == null
-          ? const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            )
+          ? const Scaffold(body: Center(child: CircularProgressIndicator()))
           : _buildViewer(asset, path),
     );
   }
@@ -100,23 +103,23 @@ class _DocumentViewerScreenState extends ConsumerState<DocumentViewerScreen> {
   }
 
   Widget _buildSimpleScaffold(Asset asset, Widget body) => Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.pop(),
+    appBar: AppBar(
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () => context.pop(),
+      ),
+      title: Text(asset.filename),
+      actions: [
+        if (_filePath != null)
+          IconButton(
+            icon: const Icon(Icons.open_in_new),
+            tooltip: 'Mit System-App öffnen',
+            onPressed: () => _openExternal(_filePath!),
           ),
-          title: Text(asset.filename),
-          actions: [
-            if (_filePath != null)
-              IconButton(
-                icon: const Icon(Icons.open_in_new),
-                tooltip: 'Mit System-App öffnen',
-                onPressed: () => _openExternal(_filePath!),
-              ),
-          ],
-        ),
-        body: body,
-      );
+      ],
+    ),
+    body: body,
+  );
 
   Future<void> _openExternal(String path) async {
     final uri = Uri.file(path);
@@ -168,23 +171,25 @@ class _EpubViewerState extends ConsumerState<_EpubViewer> {
       final saved = await ref
           .read(documentPositionsDaoProvider)
           .getPosition(widget.asset.id);
-      final savedChapter =
-          int.tryParse(saved?.positionKey ?? '') ?? 0;
+      final savedChapter = int.tryParse(saved?.positionKey ?? '') ?? 0;
       if (mounted) {
         setState(() {
           _epub = epub;
-          _currentChapter =
-              savedChapter.clamp(0, epub.chapters.length - 1);
+          _currentChapter = savedChapter.clamp(0, epub.chapters.length - 1);
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _error = 'ePub konnte nicht geöffnet werden: $e');
+      if (mounted) {
+        setState(() => _error = 'ePub konnte nicht geöffnet werden: $e');
+      }
     }
   }
 
   void _goToChapter(int index) {
     if (_epub == null) return;
-    setState(() => _currentChapter = index.clamp(0, _epub!.chapters.length - 1));
+    setState(
+      () => _currentChapter = index.clamp(0, _epub!.chapters.length - 1),
+    );
     _scrollCtrl.jumpTo(0);
     _schedulePositionSave();
   }
@@ -201,7 +206,9 @@ class _EpubViewerState extends ConsumerState<_EpubViewer> {
     final progress = epub.chapters.isEmpty
         ? 0.0
         : _currentChapter / epub.chapters.length;
-    await ref.read(documentPositionsDaoProvider).savePosition(
+    await ref
+        .read(documentPositionsDaoProvider)
+        .savePosition(
           widget.asset.id,
           _currentChapter.toString(),
           label: ch.title,
@@ -217,7 +224,9 @@ class _EpubViewerState extends ConsumerState<_EpubViewer> {
     final label = await _showBookmarkDialog(context);
     if (label == null || !mounted) return;
 
-    await ref.read(mediaBookmarksDaoProvider).addBookmark(
+    await ref
+        .read(mediaBookmarksDaoProvider)
+        .addBookmark(
           assetId: widget.asset.id,
           mediaType: 'epub',
           positionKey: _currentChapter.toString(),
@@ -225,9 +234,9 @@ class _EpubViewerState extends ConsumerState<_EpubViewer> {
           label: label.isEmpty ? null : label,
         );
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lesezeichen gesetzt')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Lesezeichen gesetzt')));
     }
   }
 
@@ -335,9 +344,7 @@ class _EpubViewerState extends ConsumerState<_EpubViewer> {
               margin: Margins.zero,
               padding: HtmlPaddings.zero,
             ),
-            'p': Style(
-              margin: Margins.only(bottom: fontSize * 0.75),
-            ),
+            'p': Style(margin: Margins.only(bottom: fontSize * 0.75)),
             'a': Style(color: Theme.of(context).colorScheme.primary),
           },
         ),
@@ -352,8 +359,9 @@ class _EpubViewerState extends ConsumerState<_EpubViewer> {
         children: [
           IconButton(
             icon: const Icon(Icons.chevron_left),
-            onPressed:
-                _currentChapter > 0 ? () => _goToChapter(_currentChapter - 1) : null,
+            onPressed: _currentChapter > 0
+                ? () => _goToChapter(_currentChapter - 1)
+                : null,
           ),
           Expanded(
             child: Text(
@@ -400,8 +408,10 @@ class _EpubSettingsSheet extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Leseeinstellungen',
-              style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            'Leseeinstellungen',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 16),
 
           // Theme selector
@@ -417,7 +427,9 @@ class _EpubSettingsSheet extends ConsumerWidget {
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: t.background,
                       borderRadius: BorderRadius.circular(8),
@@ -443,11 +455,15 @@ class _EpubSettingsSheet extends ConsumerWidget {
           // Font size
           Row(
             children: [
-              Text('Schriftgröße',
-                  style: Theme.of(context).textTheme.labelMedium),
+              Text(
+                'Schriftgröße',
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
               const Spacer(),
-              Text('${settings.fontSize.round()}px',
-                  style: Theme.of(context).textTheme.bodySmall),
+              Text(
+                '${settings.fontSize.round()}px',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ],
           ),
           Slider(
@@ -461,11 +477,15 @@ class _EpubSettingsSheet extends ConsumerWidget {
           // Line height
           Row(
             children: [
-              Text('Zeilenabstand',
-                  style: Theme.of(context).textTheme.labelMedium),
+              Text(
+                'Zeilenabstand',
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
               const Spacer(),
-              Text(settings.lineHeight.toStringAsFixed(1),
-                  style: Theme.of(context).textTheme.bodySmall),
+              Text(
+                settings.lineHeight.toStringAsFixed(1),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ],
           ),
           Slider(
@@ -538,7 +558,9 @@ class _PdfViewerState extends ConsumerState<_PdfViewer> {
   Future<void> _savePosition() async {
     final total = _totalPages;
     final progress = total > 0 ? _currentPage / total : 0.0;
-    await ref.read(documentPositionsDaoProvider).savePosition(
+    await ref
+        .read(documentPositionsDaoProvider)
+        .savePosition(
           widget.asset.id,
           _currentPage.toString(),
           label: 'Seite $_currentPage',
@@ -549,7 +571,9 @@ class _PdfViewerState extends ConsumerState<_PdfViewer> {
   Future<void> _addBookmark() async {
     final label = await _showBookmarkDialog(context);
     if (label == null || !mounted) return;
-    await ref.read(mediaBookmarksDaoProvider).addBookmark(
+    await ref
+        .read(mediaBookmarksDaoProvider)
+        .addBookmark(
           assetId: widget.asset.id,
           mediaType: 'pdf',
           positionKey: _currentPage.toString(),
@@ -557,9 +581,9 @@ class _PdfViewerState extends ConsumerState<_PdfViewer> {
           label: label.isEmpty ? null : label,
         );
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lesezeichen gesetzt')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Lesezeichen gesetzt')));
     }
   }
 
@@ -649,23 +673,25 @@ class _BookmarkDrawer extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Icon(Icons.bookmarks_outlined,
-                    size: 28, color: cs.onPrimaryContainer),
+                Icon(
+                  Icons.bookmarks_outlined,
+                  size: 28,
+                  color: cs.onPrimaryContainer,
+                ),
                 const SizedBox(height: 8),
                 Text(
                   'Lesezeichen',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: cs.onPrimaryContainer,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    color: cs.onPrimaryContainer,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
           ),
           Expanded(
             child: bookmarksAsync.when(
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Center(child: Text('Fehler: $e')),
               data: (bookmarks) {
                 final filtered = bookmarks
@@ -681,13 +707,15 @@ class _BookmarkDrawer extends ConsumerWidget {
                 }
                 return ListView.separated(
                   itemCount: filtered.length,
-                  separatorBuilder: (context, i) =>
-                      const Divider(height: 1),
+                  separatorBuilder: (context, i) => const Divider(height: 1),
                   itemBuilder: (context, i) {
                     final bm = filtered[i];
                     return ListTile(
-                      leading: Icon(Icons.bookmark_outlined,
-                          color: cs.primary, size: 20),
+                      leading: Icon(
+                        Icons.bookmark_outlined,
+                        color: cs.primary,
+                        size: 20,
+                      ),
                       title: Text(
                         bm.label ?? bm.positionLabel ?? bm.positionKey,
                         maxLines: 1,
@@ -702,14 +730,16 @@ class _BookmarkDrawer extends ConsumerWidget {
                         children: [
                           Text(
                             DateFormat('dd.MM.yy').format(
-                              DateTime.fromMillisecondsSinceEpoch(
-                                  bm.createdAt),
+                              DateTime.fromMillisecondsSinceEpoch(bm.createdAt),
                             ),
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                           IconButton(
-                            icon: Icon(Icons.delete_outline,
-                                size: 16, color: cs.error),
+                            icon: Icon(
+                              Icons.delete_outline,
+                              size: 16,
+                              color: cs.error,
+                            ),
                             onPressed: () => ref
                                 .read(mediaBookmarksDaoProvider)
                                 .deleteBookmark(bm.id),
@@ -740,9 +770,7 @@ Future<String?> _showBookmarkDialog(BuildContext context) {
       content: TextField(
         controller: ctrl,
         autofocus: true,
-        decoration: const InputDecoration(
-          hintText: 'Bezeichnung (optional)',
-        ),
+        decoration: const InputDecoration(hintText: 'Bezeichnung (optional)'),
         onSubmitted: (v) => Navigator.pop(ctx, v),
       ),
       actions: [
@@ -787,16 +815,20 @@ class _TextViewerState extends State<_TextViewer> {
       final size = await file.length();
       if (size > _maxBytes) {
         if (mounted) {
-          setState(() => _error =
-              'Datei zu groß für Vorschau (${(size / 1024 / 1024).toStringAsFixed(1)} MB).\n'
-              'Bitte mit System-App öffnen.');
+          setState(
+            () => _error =
+                'Datei zu groß für Vorschau (${(size / 1024 / 1024).toStringAsFixed(1)} MB).\n'
+                'Bitte mit System-App öffnen.',
+          );
         }
         return;
       }
       final text = await file.readAsString();
       if (mounted) setState(() => _content = text);
     } catch (e) {
-      if (mounted) setState(() => _error = 'Datei kann nicht gelesen werden: $e');
+      if (mounted) {
+        setState(() => _error = 'Datei kann nicht gelesen werden: $e');
+      }
     }
   }
 
@@ -806,9 +838,11 @@ class _TextViewerState extends State<_TextViewer> {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
-          child: Text(_error!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.red)),
+          child: Text(
+            _error!,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.red),
+          ),
         ),
       );
     }
@@ -872,11 +906,10 @@ class _UnsupportedView extends StatelessWidget {
   }
 
   IconData _iconForCategory(MimeCategory cat) => switch (cat) {
-        MimeCategory.document => Icons.description_outlined,
-        MimeCategory.archive => Icons.folder_zip_outlined,
-        MimeCategory.font => Icons.font_download_outlined,
-        MimeCategory.model => Icons.view_in_ar_outlined,
-        _ => Icons.insert_drive_file_outlined,
-      };
+    MimeCategory.document => Icons.description_outlined,
+    MimeCategory.archive => Icons.folder_zip_outlined,
+    MimeCategory.font => Icons.font_download_outlined,
+    MimeCategory.model => Icons.view_in_ar_outlined,
+    _ => Icons.insert_drive_file_outlined,
+  };
 }
-

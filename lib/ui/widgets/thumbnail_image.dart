@@ -2,19 +2,21 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path/path.dart' as p;
 
 import '../../core/constants.dart';
 import '../../core/mime_resolver.dart';
 import '../../data/database/app_database.dart';
+import '../../data/thumbnailer/thumbnailer.dart';
 import '../../providers/library_provider.dart';
 
 // ── OBJ thumbnail proxy ───────────────────────────────────────────────────────
 
 /// For .obj assets: returns the content-hash (or id) of the first linked
 /// PNG/JPG texture so it can be displayed as a thumbnail proxy.
-final _objTextureThumbnailProvider =
-    FutureProvider.family<String?, String>((ref, assetId) async {
+final _objTextureThumbnailProvider = FutureProvider.family<String?, String>((
+  ref,
+  assetId,
+) async {
   final linksDao = ref.watch(assetLinksDaoProvider);
   final linked = await linksDao.getLinkedAssets(assetId);
   final texture = linked
@@ -44,12 +46,7 @@ class ThumbnailImage extends ConsumerWidget {
       final proxyAsync = ref.watch(_objTextureThumbnailProvider(asset.id));
       final proxyHash = proxyAsync.valueOrNull;
       if (proxyHash != null) {
-        final proxyPath = p.join(
-          libraryPath,
-          kMediashelfDir,
-          kThumbDir,
-          '$proxyHash.jpg',
-        );
+        final proxyPath = thumbPath(libraryPath, proxyHash);
         final proxyFile = File(proxyPath);
         if (proxyFile.existsSync()) {
           return Image.file(
@@ -64,14 +61,12 @@ class ThumbnailImage extends ConsumerWidget {
       return _Placeholder(asset.mimeType);
     }
 
-    final thumbPath = p.join(
+    final thumbPathValue = thumbPath(
       libraryPath,
-      kMediashelfDir,
-      kThumbDir,
-      '${asset.contentHash ?? asset.id}.jpg',
+      asset.contentHash ?? asset.id,
     );
 
-    final file = File(thumbPath);
+    final file = File(thumbPathValue);
     if (!file.existsSync()) {
       return _Placeholder(asset.mimeType);
     }

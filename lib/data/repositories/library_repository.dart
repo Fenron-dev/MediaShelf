@@ -4,6 +4,7 @@ import 'package:path/path.dart' as p;
 
 import '../../core/constants.dart';
 import '../../core/mime_resolver.dart';
+import '../../core/safe_paths.dart';
 import '../../domain/models/scan_result.dart';
 import '../database/app_database.dart';
 import '../scanner/library_scanner.dart';
@@ -11,10 +12,7 @@ import '../thumbnailer/thumbnailer.dart';
 
 /// Metadata about an open library.
 class LibraryInfo {
-  const LibraryInfo({
-    required this.path,
-    required this.name,
-  });
+  const LibraryInfo({required this.path, required this.name});
 
   final String path;
 
@@ -119,13 +117,14 @@ class LibraryRepository {
       onGenerated: onThumbnailGenerated,
     );
 
-    return scanResult ?? const ScanResult(
-      added: 0,
-      updated: 0,
-      missing: 0,
-      total: 0,
-      elapsed: Duration.zero,
-    );
+    return scanResult ??
+        const ScanResult(
+          added: 0,
+          updated: 0,
+          missing: 0,
+          total: 0,
+          elapsed: Duration.zero,
+        );
   }
 
   Future<void> _generateMissingThumbnails({
@@ -134,10 +133,12 @@ class LibraryRepository {
     void Function(String)? onGenerated,
   }) async {
     // Get all 'ok' assets that don't have a thumbnail yet
-    final rows = await db.customSelect(
-      'SELECT id, path, extension, mime_type, content_hash'
-      " FROM assets WHERE status = 'ok' AND content_hash IS NOT NULL",
-    ).get();
+    final rows = await db
+        .customSelect(
+          'SELECT id, path, extension, mime_type, content_hash'
+          " FROM assets WHERE status = 'ok' AND content_hash IS NOT NULL",
+        )
+        .get();
 
     final jobs = <ThumbJob>[];
     for (final row in rows) {
@@ -145,14 +146,21 @@ class LibraryRepository {
       final thumbFile = File(thumbPath(libraryPath, hash));
       if (!thumbFile.existsSync()) {
         final ext = row.readNullable<String>('extension') ?? '';
-        jobs.add(ThumbJob(
-          libraryPath: libraryPath,
-          assetId: row.read<String>('id'),
-          absFilePath: p.join(libraryPath, row.read<String>('path')),
-          mimeType: row.readNullable<String>('mime_type') ??
-              mimeTypeFromExtension(ext),
-          contentHash: hash,
-        ));
+        jobs.add(
+          ThumbJob(
+            libraryPath: libraryPath,
+            assetId: row.read<String>('id'),
+            absFilePath: resolveLibraryRelativePath(
+              libraryPath,
+              row.read<String>('path'),
+              requireExisting: true,
+            ),
+            mimeType:
+                row.readNullable<String>('mime_type') ??
+                mimeTypeFromExtension(ext),
+            contentHash: hash,
+          ),
+        );
       }
     }
 

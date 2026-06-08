@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import '../../data/database/app_database.dart';
 import '../../domain/models/import_result.dart';
 import '../../core/mime_resolver.dart';
+import '../../core/safe_paths.dart';
 
 // ── ImportService ─────────────────────────────────────────────────────────────
 
@@ -44,9 +45,9 @@ class ImportService {
         allFiles.add(File(sp));
       } else if (entity == FileSystemEntityType.directory) {
         allFiles.addAll(
-          Directory(sp)
-              .listSync(recursive: true, followLinks: false)
-              .whereType<File>(),
+          Directory(
+            sp,
+          ).listSync(recursive: true, followLinks: false).whereType<File>(),
         );
       }
     }
@@ -70,9 +71,8 @@ class ImportService {
       } else {
         rel = p.basename(absPath);
       }
-      // Normalise to forward slashes
-      final destRel = rel.replaceAll(r'\', '/');
-      final destAbs = p.join(libraryPath, destRel.replaceAll('/', p.separator));
+      final destRel = normalizeStoredRelativePath(rel.replaceAll(r'\', '/'));
+      final destAbs = resolveLibraryRelativePath(libraryPath, destRel);
 
       // Hash for duplicate detection
       final hash = _md5File(absPath);
@@ -81,21 +81,22 @@ class ImportService {
       final existing = await assetsDao.getByHash(hash);
       if (existing != null && existing.path != destRel) {
         // Same content, different path → let user decide
-        duplicates.add(DuplicateInfo(
-          sourcePath: absPath,
-          existingAsset: existing,
-          destRelPath: destRel,
-        ));
+        duplicates.add(
+          DuplicateInfo(
+            sourcePath: absPath,
+            existingAsset: existing,
+            destRelPath: destRel,
+          ),
+        );
         continue;
       }
 
       // Check if the destination file already exists on disk
       if (File(destAbs).existsSync()) {
         // Same path exists → auto-rename
-        toRename.add(ImportItem(
-          sourcePath: absPath,
-          destRelPath: _uniqueDestRel(destRel),
-        ));
+        toRename.add(
+          ImportItem(sourcePath: absPath, destRelPath: _uniqueDestRel(destRel)),
+        );
       } else {
         toCopy.add(ImportItem(sourcePath: absPath, destRelPath: destRel));
       }
@@ -202,10 +203,8 @@ class ImportService {
   /// Copies [sourcePath] to `libraryPath/destRelPath` and inserts the asset
   /// into the database. Returns the new asset's ID.
   Future<String> _copyAndIndex(String sourcePath, String destRelPath) async {
-    final destAbs = p.join(
-      libraryPath,
-      destRelPath.replaceAll('/', p.separator),
-    );
+    final normalizedDest = normalizeStoredRelativePath(destRelPath);
+    final destAbs = resolveLibraryRelativePath(libraryPath, normalizedDest);
     // Ensure parent directory exists
     await Directory(p.dirname(destAbs)).create(recursive: true);
     await File(sourcePath).copy(destAbs);
@@ -219,18 +218,20 @@ class ImportService {
     final now = DateTime.now().millisecondsSinceEpoch;
     final id = const Uuid().v4();
 
-    await assetsDao.upsertAsset(AssetsCompanion(
-      id: Value(id),
-      path: Value(destRelPath),
-      filename: Value(filename),
-      extension: Value(ext.isEmpty ? null : ext),
-      size: Value(stat.size),
-      mimeType: Value(mimeType),
-      contentHash: Value(hash),
-      status: const Value('ok'),
-      fileModifiedAt: Value(stat.modified.millisecondsSinceEpoch),
-      indexedAt: Value(now),
-    ));
+    await assetsDao.upsertAsset(
+      AssetsCompanion(
+        id: Value(id),
+        path: Value(normalizedDest),
+        filename: Value(filename),
+        extension: Value(ext.isEmpty ? null : ext),
+        size: Value(stat.size),
+        mimeType: Value(mimeType),
+        contentHash: Value(hash),
+        status: const Value('ok'),
+        fileModifiedAt: Value(stat.modified.millisecondsSinceEpoch),
+        indexedAt: Value(now),
+      ),
+    );
 
     return id;
   }
@@ -297,7 +298,7 @@ class ImportService {
     var counter = 2;
     while (true) {
       final candidate = '$dir${basename}_$counter$ext';
-      final abs = p.join(libraryPath, candidate.replaceAll('/', p.separator));
+      final abs = resolveLibraryRelativePath(libraryPath, candidate);
       if (!File(abs).existsSync()) return candidate;
       counter++;
     }

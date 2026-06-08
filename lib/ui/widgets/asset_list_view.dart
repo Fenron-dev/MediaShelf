@@ -75,7 +75,10 @@ class _AssetListViewState extends ConsumerState<AssetListView> {
   }
 
   Future<void> _showContextMenu(
-      BuildContext context, Asset asset, Offset globalPos) async {
+    BuildContext context,
+    Asset asset,
+    Offset globalPos,
+  ) async {
     final mime = asset.mimeType ?? '';
     final isMedia = isVideo(mime) || isAudio(mime);
     final mediaType = isAudio(mime) ? 'audio' : 'video';
@@ -106,13 +109,17 @@ class _AssetListViewState extends ConsumerState<AssetListView> {
     final result = await showMenu<String>(
       context: context,
       position: RelativeRect.fromLTRB(
-          globalPos.dx, globalPos.dy, globalPos.dx + 1, globalPos.dy + 1),
+        globalPos.dx,
+        globalPos.dy,
+        globalPos.dx + 1,
+        globalPos.dy + 1,
+      ),
       items: items.isEmpty
           ? [
               const PopupMenuItem(
                 enabled: false,
                 child: Text('Keine Aktionen verfügbar'),
-              )
+              ),
             ]
           : items,
     );
@@ -122,13 +129,12 @@ class _AssetListViewState extends ConsumerState<AssetListView> {
       case 'play_next':
         ref.read(queueProvider.notifier).insertNext(asset.id);
       case 'add_to_playlist':
-        if (mounted) {
-          await showAddToPlaylistDialog(
-            context,
-            assetId: asset.id,
-            mediaType: mediaType,
-          );
-        }
+        if (!context.mounted) return;
+        await showAddToPlaylistDialog(
+          context,
+          assetId: asset.id,
+          mediaType: mediaType,
+        );
     }
   }
 
@@ -139,15 +145,30 @@ class _AssetListViewState extends ConsumerState<AssetListView> {
       case ListColumn.type:
         return Expanded(flex: 2, child: Text(col.label, style: style));
       case ListColumn.size:
-        return SizedBox(width: 72, child: Text(col.label, style: style, textAlign: TextAlign.right));
+        return SizedBox(
+          width: 72,
+          child: Text(col.label, style: style, textAlign: TextAlign.right),
+        );
       case ListColumn.duration:
-        return SizedBox(width: 80, child: Text(col.label, style: style, textAlign: TextAlign.right));
+        return SizedBox(
+          width: 80,
+          child: Text(col.label, style: style, textAlign: TextAlign.right),
+        );
       case ListColumn.rating:
-        return SizedBox(width: 64, child: Text(col.label, style: style, textAlign: TextAlign.center));
+        return SizedBox(
+          width: 64,
+          child: Text(col.label, style: style, textAlign: TextAlign.center),
+        );
       case ListColumn.modified:
-        return SizedBox(width: 88, child: Text(col.label, style: style, textAlign: TextAlign.right));
+        return SizedBox(
+          width: 88,
+          child: Text(col.label, style: style, textAlign: TextAlign.right),
+        );
       default:
-        return SizedBox(width: 80, child: Text(col.label, style: style, textAlign: TextAlign.right));
+        return SizedBox(
+          width: 80,
+          child: Text(col.label, style: style, textAlign: TextAlign.right),
+        );
     }
   }
 
@@ -161,7 +182,10 @@ class _AssetListViewState extends ConsumerState<AssetListView> {
         return PopupMenuItem(
           child: Row(
             children: [
-              Icon(active ? Icons.check_box : Icons.check_box_outline_blank, size: 18),
+              Icon(
+                active ? Icons.check_box : Icons.check_box_outline_blank,
+                size: 18,
+              ),
               const SizedBox(width: 8),
               Text(col.label),
             ],
@@ -214,9 +238,9 @@ class _AssetListViewState extends ConsumerState<AssetListView> {
 
     final cs = Theme.of(context).colorScheme;
     final headerStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: cs.onSurfaceVariant,
-          fontWeight: FontWeight.w700,
-        );
+      color: cs.onSurfaceVariant,
+      fontWeight: FontWeight.w700,
+    );
     final columns = ref.watch(listColumnsProvider);
 
     return Column(
@@ -245,10 +269,11 @@ class _AssetListViewState extends ConsumerState<AssetListView> {
             itemBuilder: (context, i) {
               if (i >= allAssets.length) {
                 return const Center(
-                    child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: CircularProgressIndicator(),
-                ));
+                  child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: CircularProgressIndicator(),
+                  ),
+                );
               }
               final asset = allAssets[i];
               final isSelected =
@@ -294,13 +319,16 @@ class _AssetRow extends ConsumerWidget {
     final cs = Theme.of(context).colorScheme;
     final mime = asset.mimeType ?? '';
     final cat = categoryFromMime(mime);
-    final sub = Theme.of(context).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant);
+    final sub = Theme.of(
+      context,
+    ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant);
 
     return GestureDetector(
       onTap: onTap,
       onDoubleTap: onDoubleTap,
       onSecondaryTapUp: (details) => onContextMenu(details.globalPosition),
-      onLongPress: () => ref.read(multiSelectProvider.notifier).toggle(asset.id),
+      onLongPress: () =>
+          ref.read(multiSelectProvider.notifier).toggle(asset.id),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 120),
         color: isSelected
@@ -312,8 +340,11 @@ class _AssetRow extends ConsumerWidget {
             // Type icon (always shown)
             SizedBox(
               width: 28,
-              child: Icon(_categoryIcon(cat, mime), size: 18,
-                  color: _categoryColor(cat, mime)),
+              child: Icon(
+                _categoryIcon(cat, mime),
+                size: 18,
+                color: _categoryColor(cat, mime),
+              ),
             ),
             ...columns.map((col) => _buildCell(context, col, cat, mime, sub)),
           ],
@@ -322,7 +353,13 @@ class _AssetRow extends ConsumerWidget {
     );
   }
 
-  Widget _buildCell(BuildContext context, ListColumn col, MimeCategory cat, String mime, TextStyle? sub) {
+  Widget _buildCell(
+    BuildContext context,
+    ListColumn col,
+    MimeCategory cat,
+    String mime,
+    TextStyle? sub,
+  ) {
     switch (col) {
       case ListColumn.name:
         return Expanded(
@@ -331,7 +368,8 @@ class _AssetRow extends ConsumerWidget {
             children: [
               if ((asset.colorLabel ?? '').isNotEmpty)
                 Container(
-                  width: 8, height: 8,
+                  width: 8,
+                  height: 8,
                   margin: const EdgeInsets.only(right: 6),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
@@ -339,76 +377,172 @@ class _AssetRow extends ConsumerWidget {
                   ),
                 ),
               Expanded(
-                child: Text(asset.filename, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall),
+                child: Text(
+                  asset.filename,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               ),
               if (_subtitle(asset) != null) ...[
                 const SizedBox(width: 8),
-                Flexible(child: Text(_subtitle(asset)!, maxLines: 1,
-                    overflow: TextOverflow.ellipsis, style: sub)),
+                Flexible(
+                  child: Text(
+                    _subtitle(asset)!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: sub,
+                  ),
+                ),
               ],
             ],
           ),
         );
       case ListColumn.type:
-        return Expanded(flex: 2, child: Text(_typeLabel(cat, mime), maxLines: 1,
-            overflow: TextOverflow.ellipsis, style: sub));
+        return Expanded(
+          flex: 2,
+          child: Text(
+            _typeLabel(cat, mime),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: sub,
+          ),
+        );
       case ListColumn.size:
-        return SizedBox(width: 72, child: Text(
+        return SizedBox(
+          width: 72,
+          child: Text(
             asset.size != null ? _fmtSize(asset.size!) : '—',
-            textAlign: TextAlign.right, style: sub));
+            textAlign: TextAlign.right,
+            style: sub,
+          ),
+        );
       case ListColumn.duration:
-        return SizedBox(width: 80, child: Text(_durationOrPages(asset),
-            textAlign: TextAlign.right, style: sub));
+        return SizedBox(
+          width: 80,
+          child: Text(
+            _durationOrPages(asset),
+            textAlign: TextAlign.right,
+            style: sub,
+          ),
+        );
       case ListColumn.rating:
-        return SizedBox(width: 64, child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(asset.rating,
-              (_) => const Icon(Icons.star, size: 10, color: Colors.amber)),
-        ));
+        return SizedBox(
+          width: 64,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              asset.rating,
+              (_) => const Icon(Icons.star, size: 10, color: Colors.amber),
+            ),
+          ),
+        );
       case ListColumn.modified:
-        return SizedBox(width: 88, child: Text(
+        return SizedBox(
+          width: 88,
+          child: Text(
             asset.fileModifiedAt != null
                 ? DateFormat(dateFormat).format(
-                    DateTime.fromMillisecondsSinceEpoch(asset.fileModifiedAt!))
+                    DateTime.fromMillisecondsSinceEpoch(asset.fileModifiedAt!),
+                  )
                 : '—',
-            textAlign: TextAlign.right, style: sub));
+            textAlign: TextAlign.right,
+            style: sub,
+          ),
+        );
       case ListColumn.artist:
-        return SizedBox(width: 80, child: Text(asset.artist ?? '—',
-            maxLines: 1, overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.right, style: sub));
+        return SizedBox(
+          width: 80,
+          child: Text(
+            asset.artist ?? '—',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
+            style: sub,
+          ),
+        );
       case ListColumn.album:
-        return SizedBox(width: 80, child: Text(asset.album ?? '—',
-            maxLines: 1, overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.right, style: sub));
+        return SizedBox(
+          width: 80,
+          child: Text(
+            asset.album ?? '—',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
+            style: sub,
+          ),
+        );
       case ListColumn.genre:
-        return SizedBox(width: 80, child: Text(asset.genre ?? '—',
-            maxLines: 1, overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.right, style: sub));
+        return SizedBox(
+          width: 80,
+          child: Text(
+            asset.genre ?? '—',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
+            style: sub,
+          ),
+        );
       case ListColumn.bitrate:
-        return SizedBox(width: 80, child: Text(
+        return SizedBox(
+          width: 80,
+          child: Text(
             asset.bitrate != null ? '${asset.bitrate} kbps' : '—',
-            textAlign: TextAlign.right, style: sub));
+            textAlign: TextAlign.right,
+            style: sub,
+          ),
+        );
       case ListColumn.sampleRate:
-        return SizedBox(width: 80, child: Text(
+        return SizedBox(
+          width: 80,
+          child: Text(
             asset.sampleRate != null ? '${asset.sampleRate} Hz' : '—',
-            textAlign: TextAlign.right, style: sub));
+            textAlign: TextAlign.right,
+            style: sub,
+          ),
+        );
       case ListColumn.resolution:
-        return SizedBox(width: 80, child: Text(
+        return SizedBox(
+          width: 80,
+          child: Text(
             asset.width != null && asset.height != null
-                ? '${asset.width}×${asset.height}' : '—',
-            textAlign: TextAlign.right, style: sub));
+                ? '${asset.width}×${asset.height}'
+                : '—',
+            textAlign: TextAlign.right,
+            style: sub,
+          ),
+        );
       case ListColumn.author:
-        return SizedBox(width: 80, child: Text(asset.author ?? '—',
-            maxLines: 1, overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.right, style: sub));
+        return SizedBox(
+          width: 80,
+          child: Text(
+            asset.author ?? '—',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
+            style: sub,
+          ),
+        );
       case ListColumn.publisher:
-        return SizedBox(width: 80, child: Text(asset.publisher ?? '—',
-            maxLines: 1, overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.right, style: sub));
+        return SizedBox(
+          width: 80,
+          child: Text(
+            asset.publisher ?? '—',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
+            style: sub,
+          ),
+        );
       case ListColumn.captureDate:
-        return SizedBox(width: 80, child: Text(asset.captureDate ?? '—',
-            textAlign: TextAlign.right, style: sub));
+        return SizedBox(
+          width: 80,
+          child: Text(
+            asset.captureDate ?? '—',
+            textAlign: TextAlign.right,
+            style: sub,
+          ),
+        );
     }
   }
 

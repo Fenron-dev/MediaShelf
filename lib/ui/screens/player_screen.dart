@@ -8,6 +8,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
 import '../../core/mime_resolver.dart';
+import '../../core/safe_paths.dart';
 import '../../data/database/app_database.dart';
 import '../../providers/active_player_provider.dart';
 import '../../providers/library_provider.dart';
@@ -53,7 +54,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     if (libraryPath == null) return;
 
     final mime = asset.mimeType ?? '';
-    final filePath = '$libraryPath/${asset.path}';
+    final filePath = resolveLibraryRelativePath(
+      libraryPath,
+      asset.path,
+      requireExisting: true,
+    );
     final isVid = isVideo(mime);
     final alreadyLoaded =
         ref.read(activePlayerProvider).assetId == widget.assetId;
@@ -79,12 +84,16 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       // Media still loaded in background — offer to restart or continue
       final currentPos = _player.state.position;
       // Only offer restart if paused/stopped at a significant position
-      if (!_player.state.playing && currentPos.inMilliseconds > 500 && mounted) {
+      if (!_player.state.playing &&
+          currentPos.inMilliseconds > 500 &&
+          mounted) {
         final restart = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
             title: const Text('Playback'),
-            content: Text('Playing from ${_fmt(currentPos)}. Start from the beginning?'),
+            content: Text(
+              'Playing from ${_fmt(currentPos)}. Start from the beginning?',
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(false),
@@ -131,7 +140,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           builder: (ctx) => AlertDialog(
             title: const Text('Resume Playback'),
             content: Text(
-                'Continue from ${_fmt(Duration(milliseconds: resumeMs))}?'),
+              'Continue from ${_fmt(Duration(milliseconds: resumeMs))}?',
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(false),
@@ -156,19 +166,25 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     if (!mounted) return;
 
     _playbackNotifier.setAsset(widget.assetId);
-    _subs.add(_player.stream.position.listen((pos) {
-      if (!mounted) return;
-      _playbackNotifier.updatePosition(pos);
-      _savePosition(pos.inMilliseconds);
-    }));
-    _subs.add(_player.stream.duration.listen((dur) {
-      if (!mounted) return;
-      _playbackNotifier.updateDuration(dur);
-    }));
-    _subs.add(_player.stream.playing.listen((playing) {
-      if (!mounted) return;
-      _playbackNotifier.setPlaying(playing);
-    }));
+    _subs.add(
+      _player.stream.position.listen((pos) {
+        if (!mounted) return;
+        _playbackNotifier.updatePosition(pos);
+        _savePosition(pos.inMilliseconds);
+      }),
+    );
+    _subs.add(
+      _player.stream.duration.listen((dur) {
+        if (!mounted) return;
+        _playbackNotifier.updateDuration(dur);
+      }),
+    );
+    _subs.add(
+      _player.stream.playing.listen((playing) {
+        if (!mounted) return;
+        _playbackNotifier.setPlaying(playing);
+      }),
+    );
   }
 
   void _savePosition(int ms) {
@@ -187,7 +203,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   @override
   void dispose() {
     _focusNode.dispose();
-    for (final s in _subs) { s.cancel(); }
+    for (final s in _subs) {
+      s.cancel();
+    }
     _savePosition(_player.state.position.inMilliseconds);
 
     if (_isVideo) {
@@ -237,17 +255,20 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           ),
           actions: [
             // Queue/Playlist button — only visible when a queue is active
-            Consumer(builder: (context, ref, _) {
-              final queue = ref.watch(queueProvider);
-              if (!queue.hasQueue || queue.total <= 1) {
-                return const SizedBox.shrink();
-              }
-              return IconButton(
-                icon: const Icon(Icons.queue_music, color: Colors.white),
-                tooltip: 'Warteschlange (${queue.displayPosition}/${queue.total})',
-                onPressed: () => _showQueueDialog(context, ref, queue),
-              );
-            }),
+            Consumer(
+              builder: (context, ref, _) {
+                final queue = ref.watch(queueProvider);
+                if (!queue.hasQueue || queue.total <= 1) {
+                  return const SizedBox.shrink();
+                }
+                return IconButton(
+                  icon: const Icon(Icons.queue_music, color: Colors.white),
+                  tooltip:
+                      'Warteschlange (${queue.displayPosition}/${queue.total})',
+                  onPressed: () => _showQueueDialog(context, ref, queue),
+                );
+              },
+            ),
           ],
         ),
         body: asset == null
@@ -295,8 +316,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                         '${i + 1}',
                         textAlign: TextAlign.right,
                         style: TextStyle(
-                          fontWeight:
-                              isCurrent ? FontWeight.bold : FontWeight.normal,
+                          fontWeight: isCurrent
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                           color: isCurrent
                               ? Theme.of(ctx).colorScheme.primary
                               : null,
@@ -308,17 +330,24 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontWeight:
-                            isCurrent ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: isCurrent
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                     ),
                     subtitle: asset?.artist != null
-                        ? Text(asset!.artist!,
-                            maxLines: 1, overflow: TextOverflow.ellipsis)
+                        ? Text(
+                            asset!.artist!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          )
                         : null,
                     trailing: isCurrent
-                        ? Icon(Icons.play_arrow,
-                            color: Theme.of(ctx).colorScheme.primary, size: 20)
+                        ? Icon(
+                            Icons.play_arrow,
+                            color: Theme.of(ctx).colorScheme.primary,
+                            size: 20,
+                          )
                         : null,
                     onTap: () {
                       ref.read(queueProvider.notifier).skipTo(i);
@@ -347,9 +376,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       final ctrl = _videoController;
       if (ctrl == null) {
         return const Center(
-            child: CircularProgressIndicator(color: Colors.white));
+          child: CircularProgressIndicator(color: Colors.white),
+        );
       }
-      return _VideoPlayerView(key: _videoViewKey, player: _player, controller: ctrl);
+      return _VideoPlayerView(
+        key: _videoViewKey,
+        player: _player,
+        controller: ctrl,
+      );
     }
 
     return _AudioPlayerView(player: _player, asset: asset);
@@ -474,26 +508,38 @@ class _AudioPlayerViewState extends State<_AudioPlayerView> {
     _rate = widget.player.state.rate;
     _volume = widget.player.state.volume;
 
-    _subs.add(widget.player.stream.position.listen((p) {
-      if (mounted) setState(() => _position = p);
-    }));
-    _subs.add(widget.player.stream.duration.listen((d) {
-      if (mounted) setState(() => _duration = d);
-    }));
-    _subs.add(widget.player.stream.playing.listen((pl) {
-      if (mounted) setState(() => _playing = pl);
-    }));
-    _subs.add(widget.player.stream.rate.listen((r) {
-      if (mounted) setState(() => _rate = r);
-    }));
-    _subs.add(widget.player.stream.volume.listen((v) {
-      if (mounted) setState(() => _volume = v);
-    }));
+    _subs.add(
+      widget.player.stream.position.listen((p) {
+        if (mounted) setState(() => _position = p);
+      }),
+    );
+    _subs.add(
+      widget.player.stream.duration.listen((d) {
+        if (mounted) setState(() => _duration = d);
+      }),
+    );
+    _subs.add(
+      widget.player.stream.playing.listen((pl) {
+        if (mounted) setState(() => _playing = pl);
+      }),
+    );
+    _subs.add(
+      widget.player.stream.rate.listen((r) {
+        if (mounted) setState(() => _rate = r);
+      }),
+    );
+    _subs.add(
+      widget.player.stream.volume.listen((v) {
+        if (mounted) setState(() => _volume = v);
+      }),
+    );
   }
 
   @override
   void dispose() {
-    for (final s in _subs) { s.cancel(); }
+    for (final s in _subs) {
+      s.cancel();
+    }
     super.dispose();
   }
 
@@ -521,16 +567,20 @@ class _AudioPlayerViewState extends State<_AudioPlayerView> {
                       color: Colors.white12,
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Icon(Icons.music_note,
-                        size: 80, color: Colors.white38),
+                    child: const Icon(
+                      Icons.music_note,
+                      size: 80,
+                      color: Colors.white38,
+                    ),
                   ),
                   const SizedBox(height: 24),
                   Text(
                     widget.asset.filename,
                     style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600),
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
                     textAlign: TextAlign.center,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -551,8 +601,9 @@ class _AudioPlayerViewState extends State<_AudioPlayerView> {
               SliderTheme(
                 data: SliderTheme.of(context).copyWith(
                   trackHeight: 4,
-                  thumbShape:
-                      const RoundSliderThumbShape(enabledThumbRadius: 8),
+                  thumbShape: const RoundSliderThumbShape(
+                    enabledThumbRadius: 8,
+                  ),
                   activeTrackColor: primary,
                   inactiveTrackColor: Colors.white24,
                   thumbColor: primary,
@@ -573,12 +624,20 @@ class _AudioPlayerViewState extends State<_AudioPlayerView> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(_fmt(_position),
-                        style: const TextStyle(
-                            color: Colors.white54, fontSize: 12)),
-                    Text(_fmt(_duration),
-                        style: const TextStyle(
-                            color: Colors.white54, fontSize: 12)),
+                    Text(
+                      _fmt(_position),
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 12,
+                      ),
+                    ),
+                    Text(
+                      _fmt(_duration),
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -589,10 +648,14 @@ class _AudioPlayerViewState extends State<_AudioPlayerView> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.replay_10,
-                        color: Colors.white, size: 32),
-                    onPressed: () => widget.player
-                        .seek(_position - const Duration(seconds: 10)),
+                    icon: const Icon(
+                      Icons.replay_10,
+                      color: Colors.white,
+                      size: 32,
+                    ),
+                    onPressed: () => widget.player.seek(
+                      _position - const Duration(seconds: 10),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   IconButton(
@@ -608,8 +671,7 @@ class _AudioPlayerViewState extends State<_AudioPlayerView> {
                   ),
                   const SizedBox(width: 4),
                   IconButton(
-                    icon:
-                        const Icon(Icons.stop, color: Colors.white, size: 32),
+                    icon: const Icon(Icons.stop, color: Colors.white, size: 32),
                     onPressed: () async {
                       await widget.player.pause();
                       await widget.player.seek(Duration.zero);
@@ -617,25 +679,34 @@ class _AudioPlayerViewState extends State<_AudioPlayerView> {
                   ),
                   const SizedBox(width: 8),
                   IconButton(
-                    icon: const Icon(Icons.forward_30,
-                        color: Colors.white, size: 32),
-                    onPressed: () => widget.player
-                        .seek(_position + const Duration(seconds: 30)),
+                    icon: const Icon(
+                      Icons.forward_30,
+                      color: Colors.white,
+                      size: 32,
+                    ),
+                    onPressed: () => widget.player.seek(
+                      _position + const Duration(seconds: 30),
+                    ),
                   ),
                   const SizedBox(width: 16),
                   // Speed dropdown
                   DropdownButton<double>(
-                    value: _speeds.reduce((a, b) =>
-                        (a - _rate).abs() < (b - _rate).abs() ? a : b),
+                    value: _speeds.reduce(
+                      (a, b) => (a - _rate).abs() < (b - _rate).abs() ? a : b,
+                    ),
                     dropdownColor: Colors.grey[900],
                     style: const TextStyle(color: Colors.white70, fontSize: 13),
                     underline: const SizedBox.shrink(),
-                    icon: const Icon(Icons.speed, color: Colors.white54, size: 18),
+                    icon: const Icon(
+                      Icons.speed,
+                      color: Colors.white54,
+                      size: 18,
+                    ),
                     items: _speeds
-                        .map((s) => DropdownMenuItem(
-                              value: s,
-                              child: Text('${s}x'),
-                            ))
+                        .map(
+                          (s) =>
+                              DropdownMenuItem(value: s, child: Text('${s}x')),
+                        )
                         .toList(),
                     onChanged: (s) {
                       if (s != null) widget.player.setRate(s);
@@ -653,8 +724,8 @@ class _AudioPlayerViewState extends State<_AudioPlayerView> {
                       _volume == 0
                           ? Icons.volume_off
                           : _volume < 50
-                              ? Icons.volume_down
-                              : Icons.volume_up,
+                          ? Icons.volume_down
+                          : Icons.volume_up,
                       color: Colors.white54,
                       size: 20,
                     ),
@@ -666,8 +737,9 @@ class _AudioPlayerViewState extends State<_AudioPlayerView> {
                     child: SliderTheme(
                       data: SliderTheme.of(context).copyWith(
                         trackHeight: 3,
-                        thumbShape:
-                            const RoundSliderThumbShape(enabledThumbRadius: 6),
+                        thumbShape: const RoundSliderThumbShape(
+                          enabledThumbRadius: 6,
+                        ),
                         activeTrackColor: Colors.white70,
                         inactiveTrackColor: Colors.white24,
                         thumbColor: Colors.white,
@@ -686,7 +758,9 @@ class _AudioPlayerViewState extends State<_AudioPlayerView> {
                     child: Text(
                       '${_volume.round()}',
                       style: const TextStyle(
-                          color: Colors.white54, fontSize: 11),
+                        color: Colors.white54,
+                        fontSize: 11,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -745,16 +819,17 @@ class _SpeedButtonState extends State<_SpeedButton> {
       initialValue: _rate,
       onSelected: widget.player.setRate,
       itemBuilder: (_) => _speeds
-          .map((s) => PopupMenuItem(
-                value: s,
-                child: Text(
-                  '${s}x',
-                  style: TextStyle(
-                    fontWeight:
-                        (s - _rate).abs() < 0.01 ? FontWeight.bold : null,
-                  ),
+          .map(
+            (s) => PopupMenuItem(
+              value: s,
+              child: Text(
+                '${s}x',
+                style: TextStyle(
+                  fontWeight: (s - _rate).abs() < 0.01 ? FontWeight.bold : null,
                 ),
-              ))
+              ),
+            ),
+          )
           .toList(),
     );
   }
@@ -794,8 +869,10 @@ class _TracksDialogState extends State<_TracksDialog> {
           children: [
             // ── Audio ───────────────────────────────────────────────────────
             if (audioTracks.isNotEmpty) ...[
-              const Text('Audio',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                'Audio',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               RadioGroup<String>(
                 groupValue: _audio.id,
                 onChanged: (id) {
@@ -806,12 +883,13 @@ class _TracksDialogState extends State<_TracksDialog> {
                 },
                 child: Column(
                   children: audioTracks
-                      .map((t) => RadioListTile<String>(
-                            dense: true,
-                            title:
-                                Text(t.title ?? t.language ?? 'Track ${t.id}'),
-                            value: t.id,
-                          ))
+                      .map(
+                        (t) => RadioListTile<String>(
+                          dense: true,
+                          title: Text(t.title ?? t.language ?? 'Track ${t.id}'),
+                          value: t.id,
+                        ),
+                      )
                       .toList(),
                 ),
               ),
@@ -819,8 +897,10 @@ class _TracksDialogState extends State<_TracksDialog> {
             ],
 
             // ── Subtitles ────────────────────────────────────────────────────
-            const Text('Subtitles',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text(
+              'Subtitles',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             RadioGroup<String>(
               groupValue: _subtitle.id,
               onChanged: (id) {
@@ -841,11 +921,13 @@ class _TracksDialogState extends State<_TracksDialog> {
                     title: Text('None'),
                     value: 'no',
                   ),
-                  ...subTracks.map((t) => RadioListTile<String>(
-                        dense: true,
-                        title: Text(t.title ?? t.language ?? 'Track ${t.id}'),
-                        value: t.id,
-                      )),
+                  ...subTracks.map(
+                    (t) => RadioListTile<String>(
+                      dense: true,
+                      title: Text(t.title ?? t.language ?? 'Track ${t.id}'),
+                      value: t.id,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -861,4 +943,3 @@ class _TracksDialogState extends State<_TracksDialog> {
     );
   }
 }
-

@@ -36,9 +36,11 @@ class AssetsDao extends DatabaseAccessor<AppDatabase> with _$AssetsDaoMixin {
   Future<Asset?> getByPath(String path) =>
       (select(assets)..where((a) => a.path.equals(path))).getSingleOrNull();
 
-  Future<Asset?> getByHash(String hash) =>
-      (select(assets)..where((a) => a.contentHash.equals(hash)))
-          .getSingleOrNull();
+  Future<Asset?> getByHash(String hash) => (select(
+    assets,
+  )..where((a) => a.contentHash.equals(hash))).getSingleOrNull();
+
+  Future<List<Asset>> getAllAssets() => select(assets).get();
 
   /// Searches assets by filename substring (case-insensitive), max 20 results.
   Future<List<Asset>> searchByFilename(String query) =>
@@ -50,21 +52,23 @@ class AssetsDao extends DatabaseAccessor<AppDatabase> with _$AssetsDaoMixin {
   Future<void> upsertAsset(AssetsCompanion companion) =>
       into(assets).insertOnConflictUpdate(companion);
 
-  Future<void> updateAsset(AssetsCompanion companion) =>
-      (update(assets)..where((a) => a.id.equals(companion.id.value)))
-          .write(companion);
+  Future<void> updateAsset(AssetsCompanion companion) => (update(
+    assets,
+  )..where((a) => a.id.equals(companion.id.value))).write(companion);
 
   Future<void> deleteById(String id) =>
       (delete(assets)..where((a) => a.id.equals(id))).go();
 
   /// Marks all 'ok' assets as 'missing' — first step of a full rescan.
   Future<void> markAllMissing() =>
-      (update(assets)..where((a) => a.status.equals('ok')))
-          .write(const AssetsCompanion(status: Value('missing')));
+      (update(assets)..where((a) => a.status.equals('ok'))).write(
+        const AssetsCompanion(status: Value('missing')),
+      );
 
   Future<void> markAsOk(String id) =>
-      (update(assets)..where((a) => a.id.equals(id)))
-          .write(const AssetsCompanion(status: Value('ok')));
+      (update(assets)..where((a) => a.id.equals(id))).write(
+        const AssetsCompanion(status: Value('ok')),
+      );
 
   Future<List<Asset>> getMissingAssets() =>
       (select(assets)..where((a) => a.status.equals('missing'))).get();
@@ -77,13 +81,14 @@ class AssetsDao extends DatabaseAccessor<AppDatabase> with _$AssetsDaoMixin {
     Value<String?> colorLabel = const Value.absent(),
     Value<String?> note = const Value.absent(),
     Value<String?> sourceUrl = const Value.absent(),
-  }) =>
-      (update(assets)..where((a) => a.id.equals(id))).write(AssetsCompanion(
-        rating: rating,
-        colorLabel: colorLabel,
-        note: note,
-        sourceUrl: sourceUrl,
-      ));
+  }) => (update(assets)..where((a) => a.id.equals(id))).write(
+    AssetsCompanion(
+      rating: rating,
+      colorLabel: colorLabel,
+      note: note,
+      sourceUrl: sourceUrl,
+    ),
+  );
 
   Future<void> updateMediaMetadata({
     required String id,
@@ -102,24 +107,25 @@ class AssetsDao extends DatabaseAccessor<AppDatabase> with _$AssetsDaoMixin {
     Value<int?> durationMs = const Value.absent(),
     Value<int?> width = const Value.absent(),
     Value<int?> height = const Value.absent(),
-  }) =>
-      (update(assets)..where((a) => a.id.equals(id))).write(AssetsCompanion(
-        mediaTitle: mediaTitle,
-        artist: artist,
-        album: album,
-        genre: genre,
-        trackNumber: trackNumber,
-        bitrate: bitrate,
-        sampleRate: sampleRate,
-        author: author,
-        publisher: publisher,
-        pageCount: pageCount,
-        captureDate: captureDate,
-        cameraModel: cameraModel,
-        durationMs: durationMs,
-        width: width,
-        height: height,
-      ));
+  }) => (update(assets)..where((a) => a.id.equals(id))).write(
+    AssetsCompanion(
+      mediaTitle: mediaTitle,
+      artist: artist,
+      album: album,
+      genre: genre,
+      trackNumber: trackNumber,
+      bitrate: bitrate,
+      sampleRate: sampleRate,
+      author: author,
+      publisher: publisher,
+      pageCount: pageCount,
+      captureDate: captureDate,
+      cameraModel: cameraModel,
+      durationMs: durationMs,
+      width: width,
+      height: height,
+    ),
+  );
 
   /// Returns assets that have never had metadata extracted (mediaTitle, artist, etc. all null
   /// and mimeType is non-null).
@@ -149,8 +155,7 @@ class AssetsDao extends DatabaseAccessor<AppDatabase> with _$AssetsDaoMixin {
   Future<List<Tag>> getTagsForAsset(String assetId) {
     final query = select(tags).join([
       innerJoin(assetTags, assetTags.tagId.equalsExp(tags.id)),
-    ])
-      ..where(assetTags.assetId.equals(assetId));
+    ])..where(assetTags.assetId.equals(assetId));
     return query.map((row) => row.readTable(tags)).get();
   }
 
@@ -170,12 +175,9 @@ class AssetsDao extends DatabaseAccessor<AppDatabase> with _$AssetsDaoMixin {
         mode: InsertMode.insertOrIgnore,
       );
 
-  Future<void> removeTagFromAsset(String assetId, String tagId) =>
-      (delete(assetTags)
-            ..where(
-              (at) => at.assetId.equals(assetId) & at.tagId.equals(tagId),
-            ))
-          .go();
+  Future<void> removeTagFromAsset(String assetId, String tagId) => (delete(
+    assetTags,
+  )..where((at) => at.assetId.equals(assetId) & at.tagId.equals(tagId))).go();
 
   Future<void> addTagToAssets(List<String> assetIds, String tagId) async {
     for (final assetId in assetIds) {
@@ -263,12 +265,11 @@ class AssetsDao extends DatabaseAccessor<AppDatabase> with _$AssetsDaoMixin {
     // Collection filter
     if (filter.collectionId != null) {
       final colId = filter.collectionId!;
-      final col = await (select(collections)
-            ..where((c) => c.id.equals(colId)))
-          .getSingleOrNull();
+      final col = await (select(
+        collections,
+      )..where((c) => c.id.equals(colId))).getSingleOrNull();
       if (col != null && col.isSmartFilter && col.smartFilterQuery != null) {
-        final smartWhere =
-            _buildSmartFilterSql(col.smartFilterQuery!, params);
+        final smartWhere = _buildSmartFilterSql(col.smartFilterQuery!, params);
         if (smartWhere != null) conditions.add(smartWhere);
       } else {
         conditions.add(
@@ -332,21 +333,24 @@ class AssetsDao extends DatabaseAccessor<AppDatabase> with _$AssetsDaoMixin {
     // Date range (indexed_at)
     if (filter.dateFrom.isNotEmpty) {
       conditions.add('a.indexed_at >= ?');
-      params.add(Variable.withInt(
-        DateTime.parse(filter.dateFrom).millisecondsSinceEpoch,
-      ));
+      params.add(
+        Variable.withInt(
+          DateTime.parse(filter.dateFrom).millisecondsSinceEpoch,
+        ),
+      );
     }
     if (filter.dateTo.isNotEmpty) {
       conditions.add('a.indexed_at <= ?');
-      params.add(Variable.withInt(
-        DateTime.parse(filter.dateTo)
-            .add(const Duration(days: 1))
-            .millisecondsSinceEpoch,
-      ));
+      params.add(
+        Variable.withInt(
+          DateTime.parse(
+            filter.dateTo,
+          ).add(const Duration(days: 1)).millisecondsSinceEpoch,
+        ),
+      );
     }
 
-    final whereClause =
-        conditions.isEmpty ? '1=1' : conditions.join(' AND ');
+    final whereClause = conditions.isEmpty ? '1=1' : conditions.join(' AND ');
 
     final orderClause = filter.randomMode
         ? 'ORDER BY RANDOM()'
@@ -456,7 +460,8 @@ class AssetsDao extends DatabaseAccessor<AppDatabase> with _$AssetsDaoMixin {
           case 'color_label:notset':
             cond = 'a.color_label IS NULL';
           case 'tag:eq':
-            cond = 'EXISTS (SELECT 1 FROM asset_tags at2 JOIN tags t ON t.id = at2.tag_id'
+            cond =
+                'EXISTS (SELECT 1 FROM asset_tags at2 JOIN tags t ON t.id = at2.tag_id'
                 ' WHERE at2.asset_id = a.id AND LOWER(t.name) = LOWER(?))';
             params.add(Variable.withString(value));
           case 'mime_type:startswith':
@@ -473,15 +478,18 @@ class AssetsDao extends DatabaseAccessor<AppDatabase> with _$AssetsDaoMixin {
             cond = 'a.extension = ?';
             params.add(Variable.withString(value.toLowerCase()));
           case 'has_resume:isset':
-            cond = '(a.playback_position_ms IS NOT NULL AND a.playback_position_ms > 0)';
+            cond =
+                '(a.playback_position_ms IS NOT NULL AND a.playback_position_ms > 0)';
           case 'has_resume:notset':
-            cond = '(a.playback_position_ms IS NULL OR a.playback_position_ms = 0)';
+            cond =
+                '(a.playback_position_ms IS NULL OR a.playback_position_ms = 0)';
           default:
             if (field.startsWith('prop:')) {
               final propId = field.substring('prop:'.length);
               switch (op) {
                 case 'eq':
-                  cond = 'EXISTS (SELECT 1 FROM asset_properties ap WHERE ap.asset_id = a.id'
+                  cond =
+                      'EXISTS (SELECT 1 FROM asset_properties ap WHERE ap.asset_id = a.id'
                       ' AND ap.property_id = ? AND LOWER(ap.value_text) = LOWER(?))';
                   params
                     ..add(Variable.withString(propId))
@@ -490,17 +498,20 @@ class AssetsDao extends DatabaseAccessor<AppDatabase> with _$AssetsDaoMixin {
                   final esc = value
                       .replaceAll('%', r'\%')
                       .replaceAll('_', r'\_');
-                  cond = 'EXISTS (SELECT 1 FROM asset_properties ap WHERE ap.asset_id = a.id'
+                  cond =
+                      'EXISTS (SELECT 1 FROM asset_properties ap WHERE ap.asset_id = a.id'
                       " AND ap.property_id = ? AND ap.value_text LIKE ? ESCAPE '\\')";
                   params
                     ..add(Variable.withString(propId))
                     ..add(Variable.withString('%$esc%'));
                 case 'isset':
-                  cond = 'EXISTS (SELECT 1 FROM asset_properties ap WHERE ap.asset_id = a.id'
+                  cond =
+                      'EXISTS (SELECT 1 FROM asset_properties ap WHERE ap.asset_id = a.id'
                       " AND ap.property_id = ? AND ap.value_text IS NOT NULL AND ap.value_text != '')";
                   params.add(Variable.withString(propId));
                 case 'notset':
-                  cond = 'NOT EXISTS (SELECT 1 FROM asset_properties ap WHERE ap.asset_id = a.id'
+                  cond =
+                      'NOT EXISTS (SELECT 1 FROM asset_properties ap WHERE ap.asset_id = a.id'
                       " AND ap.property_id = ? AND ap.value_text IS NOT NULL AND ap.value_text != '')";
                   params.add(Variable.withString(propId));
               }
@@ -541,8 +552,9 @@ class AssetsDao extends DatabaseAccessor<AppDatabase> with _$AssetsDaoMixin {
 
   Future<void> updateRatingForAssets(List<String> ids, int rating) async {
     for (final id in ids) {
-      await (update(assets)..where((a) => a.id.equals(id)))
-          .write(AssetsCompanion(rating: Value(rating)));
+      await (update(assets)..where((a) => a.id.equals(id))).write(
+        AssetsCompanion(rating: Value(rating)),
+      );
     }
   }
 
@@ -551,8 +563,9 @@ class AssetsDao extends DatabaseAccessor<AppDatabase> with _$AssetsDaoMixin {
     String? colorLabel,
   ) async {
     for (final id in ids) {
-      await (update(assets)..where((a) => a.id.equals(id)))
-          .write(AssetsCompanion(colorLabel: Value(colorLabel)));
+      await (update(assets)..where((a) => a.id.equals(id))).write(
+        AssetsCompanion(colorLabel: Value(colorLabel)),
+      );
     }
   }
 
@@ -574,10 +587,7 @@ class AssetsDao extends DatabaseAccessor<AppDatabase> with _$AssetsDaoMixin {
       ' GROUP BY dir',
       readsFrom: {assets},
     ).get();
-    return {
-      for (final r in rows)
-        r.read<String>('dir'): r.read<int>('cnt'),
-    };
+    return {for (final r in rows) r.read<String>('dir'): r.read<int>('cnt')};
   }
 
   /// Returns all unique directory path prefixes from indexed assets.

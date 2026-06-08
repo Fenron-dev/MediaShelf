@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+import '../../core/safe_paths.dart';
 import '../../data/database/app_database.dart';
 import '../../domain/models/import_result.dart';
 
@@ -27,21 +28,25 @@ class ExportService {
     final usedNames = <String>{};
 
     for (final asset in assets) {
-      final srcAbs = p.join(
+      final srcAbs = resolveLibraryRelativePath(
         libraryPath,
-        asset.path.replaceAll('/', p.separator),
+        asset.path,
+        requireExisting: true,
       );
 
       String destRel;
       if (preserveStructure) {
-        destRel = asset.path.replaceAll('/', p.separator);
+        destRel = normalizeStoredRelativePath(asset.path);
       } else {
         // Flat export — deduplicate filenames
-        destRel = _uniqueName(asset.filename, usedNames);
+        destRel = sanitizeFilename(_uniqueName(asset.filename, usedNames));
         usedNames.add(destRel);
       }
 
-      final destAbs = p.join(destPath, destRel);
+      final destAbs = resolveRelativePathWithinRoot(
+        rootPath: destPath,
+        relativePath: destRel,
+      );
 
       try {
         await Directory(p.dirname(destAbs)).create(recursive: true);

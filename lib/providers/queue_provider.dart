@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/mime_resolver.dart';
+import '../core/safe_paths.dart';
 import 'active_player_provider.dart';
 import 'library_provider.dart';
 
@@ -30,8 +31,10 @@ class QueueState {
   final int currentIndex;
   final QueueRepeatMode repeatMode;
   final bool shuffle;
+
   /// Shuffled index order (indices into [assetIds]).
   final List<int> shuffleOrder;
+
   /// Current position within [shuffleOrder].
   final int shuffleIndex;
 
@@ -40,6 +43,7 @@ class QueueState {
     if (shuffle) return shuffleIndex > 0 || repeatMode == QueueRepeatMode.all;
     return currentIndex > 0 || repeatMode == QueueRepeatMode.all;
   }
+
   bool get hasNext {
     if (shuffle) {
       return shuffleIndex < shuffleOrder.length - 1 ||
@@ -49,10 +53,9 @@ class QueueState {
         repeatMode == QueueRepeatMode.all;
   }
 
-  String? get currentId =>
-      (currentIndex >= 0 && currentIndex < assetIds.length)
-          ? assetIds[currentIndex]
-          : null;
+  String? get currentId => (currentIndex >= 0 && currentIndex < assetIds.length)
+      ? assetIds[currentIndex]
+      : null;
 
   int get total => assetIds.length;
 
@@ -66,15 +69,14 @@ class QueueState {
     bool? shuffle,
     List<int>? shuffleOrder,
     int? shuffleIndex,
-  }) =>
-      QueueState(
-        assetIds: assetIds ?? this.assetIds,
-        currentIndex: currentIndex ?? this.currentIndex,
-        repeatMode: repeatMode ?? this.repeatMode,
-        shuffle: shuffle ?? this.shuffle,
-        shuffleOrder: shuffleOrder ?? this.shuffleOrder,
-        shuffleIndex: shuffleIndex ?? this.shuffleIndex,
-      );
+  }) => QueueState(
+    assetIds: assetIds ?? this.assetIds,
+    currentIndex: currentIndex ?? this.currentIndex,
+    repeatMode: repeatMode ?? this.repeatMode,
+    shuffle: shuffle ?? this.shuffle,
+    shuffleOrder: shuffleOrder ?? this.shuffleOrder,
+    shuffleIndex: shuffleIndex ?? this.shuffleIndex,
+  );
 }
 
 // ── Notifier ──────────────────────────────────────────────────────────────────
@@ -113,7 +115,9 @@ class QueueNotifier extends StateNotifier<QueueState> {
   /// Replaces the queue without auto-playing.
   /// Call this before navigating to [PlayerScreen] so the screen handles play.
   void setQueue(List<String> ids, int startIndex) {
-    final shuffleOrder = state.shuffle ? _generateShuffleOrder(ids.length, startIndex) : <int>[];
+    final shuffleOrder = state.shuffle
+        ? _generateShuffleOrder(ids.length, startIndex)
+        : <int>[];
     final shuffleIdx = state.shuffle ? 0 : -1;
     state = QueueState(
       assetIds: ids,
@@ -148,7 +152,10 @@ class QueueNotifier extends StateNotifier<QueueState> {
       );
     } else {
       // Enable shuffle — generate order starting from current
-      final order = _generateShuffleOrder(state.assetIds.length, state.currentIndex);
+      final order = _generateShuffleOrder(
+        state.assetIds.length,
+        state.currentIndex,
+      );
       state = state.copyWith(
         shuffle: true,
         shuffleOrder: order,
@@ -294,7 +301,8 @@ class QueueNotifier extends StateNotifier<QueueState> {
     }
     if (state.hasNext) {
       skipToNext();
-    } else if (state.repeatMode == QueueRepeatMode.all && state.assetIds.isNotEmpty) {
+    } else if (state.repeatMode == QueueRepeatMode.all &&
+        state.assetIds.isNotEmpty) {
       // Wrap around
       skipToNext();
     }
@@ -330,11 +338,17 @@ class QueueNotifier extends StateNotifier<QueueState> {
     final asset = await dao.getById(id);
     if (asset == null) return;
 
-    final filePath = '$libraryPath/${asset.path}';
+    final filePath = resolveLibraryRelativePath(
+      libraryPath,
+      asset.path,
+      requireExisting: true,
+    );
     final mime = asset.mimeType ?? '';
     final isVid = isVideo(mime);
 
-    await _ref.read(activePlayerProvider.notifier).playAsset(
+    await _ref
+        .read(activePlayerProvider.notifier)
+        .playAsset(
           filePath: filePath,
           assetId: asset.id,
           assetName: asset.filename,
@@ -373,7 +387,9 @@ class QueueNotifier extends StateNotifier<QueueState> {
       final repeatIdx = (map['repeatMode'] as int?) ?? 0;
       final repeat = QueueRepeatMode.values[repeatIdx.clamp(0, 2)];
       final shuffleOn = (map['shuffle'] as bool?) ?? false;
-      final shuffleOrder = shuffleOn ? _generateShuffleOrder(ids.length, idx) : <int>[];
+      final shuffleOrder = shuffleOn
+          ? _generateShuffleOrder(ids.length, idx)
+          : <int>[];
       state = QueueState(
         assetIds: ids,
         currentIndex: idx,
@@ -394,7 +410,6 @@ class QueueNotifier extends StateNotifier<QueueState> {
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
-final queueProvider =
-    StateNotifierProvider<QueueNotifier, QueueState>((ref) {
+final queueProvider = StateNotifierProvider<QueueNotifier, QueueState>((ref) {
   return QueueNotifier(ref);
 });
