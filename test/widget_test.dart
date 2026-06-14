@@ -28,7 +28,7 @@ void main() {
       appName: 'MediaShelf',
       packageName: 'com.example.mediashelf',
       version: '0.5.6',
-      buildNumber: '2',
+      buildNumber: '3',
     );
 
     await tester.pumpWidget(
@@ -39,6 +39,6 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Version 0.5.6 (Build 2)'), findsOneWidget);
+    expect(find.text('Version 0.5.6 (Build 3)'), findsOneWidget);
   });
 }

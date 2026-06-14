@@ -20,6 +20,8 @@ void main() async {
 
   if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
     await windowManager.ensureInitialized();
+    await windowManager.show();
+    await windowManager.focus();
     await windowManager.maximize();
   }
 
