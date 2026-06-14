@@ -71,6 +71,7 @@ dependencies:
 
   # ── Utilities ───────────────────────────────────────────────────────────────
   collection: ^1.19.1
+  package_info_plus: ^9.0.0
   shared_preferences: ^2.3.5
   window_manager: ^0.5.1
   flutter_html: ^3.0.0
@@ -92,3 +93,4 @@ flutter:
   generate: true
   assets:
     - assets/help/
+    - assets/branding/

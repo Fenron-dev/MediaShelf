@@ -16,6 +16,7 @@ import '../../providers/library_provider.dart';
 import '../../providers/media_template_provider.dart';
 import '../../providers/asset_list_provider.dart';
 import '../../providers/vault_provider.dart';
+import '../widgets/app_info_panel.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -28,6 +29,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   MediaCategory _selectedCategory = MediaCategory.audio;
   bool _showPlugins = false;
   bool _showSecurity = false;
+  bool _showAbout = false;
 
   @override
   Widget build(BuildContext context) {
@@ -121,7 +123,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ...MediaCategory.values.map(
                   (cat) => ListTile(
                     dense: true,
-                    selected: !_showPlugins && _selectedCategory == cat,
+                    selected:
+                        !_showPlugins &&
+                        !_showSecurity &&
+                        !_showAbout &&
+                        _selectedCategory == cat,
                     selectedTileColor: cs.primaryContainer.withValues(
                       alpha: 0.3,
                     ),
@@ -134,6 +140,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     onTap: () => setState(() {
                       _selectedCategory = cat;
                       _showPlugins = false;
+                      _showSecurity = false;
+                      _showAbout = false;
                     }),
                   ),
                 ),
@@ -158,6 +166,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: () => setState(() {
                     _showPlugins = true;
                     _showSecurity = false;
+                    _showAbout = false;
                   }),
                 ),
                 const Divider(height: 16),
@@ -177,6 +186,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: () => setState(() {
                     _showSecurity = true;
                     _showPlugins = false;
+                    _showAbout = false;
                   }),
                 ),
                 const Divider(height: 16),
@@ -187,6 +197,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   trailing: const Icon(Icons.open_in_new, size: 14),
                   onTap: () => context.push('/library/help'),
                 ),
+                ListTile(
+                  dense: true,
+                  selected: _showAbout,
+                  selectedTileColor: cs.primaryContainer.withValues(alpha: 0.3),
+                  leading: const Icon(Icons.info_outline, size: 20),
+                  title: const Text('Über MediaShelf'),
+                  onTap: () => setState(() {
+                    _showAbout = true;
+                    _showSecurity = false;
+                    _showPlugins = false;
+                  }),
+                ),
               ],
             ),
           ),
@@ -196,6 +218,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           Expanded(
             child: _showSecurity
                 ? const _SecurityPanel()
+                : _showAbout
+                ? const AppInfoPanel()
                 : _showPlugins
                 ? const _PluginManager()
                 : _TemplateEditor(
