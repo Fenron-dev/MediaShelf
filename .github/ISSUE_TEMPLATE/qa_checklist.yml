@@ -1,0 +1,61 @@
+name: Manuelle Pruefcheckliste
+description: Eine Version, Funktion oder Fehlerbehebung manuell abnehmen
+title: "[QA] "
+labels:
+  - "type: qa"
+body:
+  - type: input
+    id: build
+    attributes:
+      label: Version oder Build
+      placeholder: "z. B. 0.5.6 oder Commit-SHA"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Plattform
+      multiple: true
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Android
+        - iOS
+    validations:
+      required: true
+
+  - type: textarea
+    id: prerequisites
+    attributes:
+      label: Voraussetzungen
+      placeholder: Testbibliothek, Beispieldateien, besondere Einstellungen
+
+  - type: textarea
+    id: checklist
+    attributes:
+      label: Pruefschritte
+      description: Jeden Schritt einzeln abhaken. Fehler als separates Issue verlinken.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: result
+    attributes:
+      label: Ergebnis und Auffaelligkeiten
+      placeholder: Verlinkte Fehler-Issues, Screenshots oder Hinweise
+
+  - type: checkboxes
+    id: approval
+    attributes:
+      label: Abnahme
+      options:
+        - label: Alle vorgesehenen Pruefschritte sind abgeschlossen
+        - label: Gefundene Fehler wurden als eigene Issues erfasst
+        - label: Version oder Funktion ist aus Nutzersicht abgenommen
+

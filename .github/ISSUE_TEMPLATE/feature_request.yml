@@ -1,0 +1,65 @@
+name: Funktion oder Verbesserung
+description: Eine neue Funktion oder Verbesserung vorschlagen und verfolgen
+title: "[Feature] "
+labels:
+  - "type: feature"
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Ausgangslage
+      description: Welches Problem oder welcher Arbeitsablauf soll verbessert werden?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Gewuenschtes Ergebnis
+      description: Beschreibe das sichtbare Verhalten, nicht nur eine technische Loesung.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Umfang
+      placeholder: |
+        Inbegriffen:
+        - ...
+
+        Nicht inbegriffen:
+        - ...
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Akzeptanzkriterien
+      description: Als pruefbare GitHub-Checkliste formulieren.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: user_test
+    attributes:
+      label: Manuelle Nutzerpruefung
+      description: Schritte, die nach der Implementierung manuell abgehakt werden sollen.
+      placeholder: |
+        - [ ] Funktion unter Windows geprueft
+        - [ ] Fehlerfall geprueft
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Prioritaet
+      options:
+        - Noch festzulegen
+        - Hoch
+        - Mittel
+        - Niedrig
+    validations:
+      required: true
+

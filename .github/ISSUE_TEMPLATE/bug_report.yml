@@ -1,0 +1,73 @@
+name: Fehlerbericht
+description: Einen reproduzierbaren Fehler in MediaShelf melden
+title: "[Bug] "
+labels:
+  - "type: bug"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Bitte den Fehler so konkret wie moeglich beschreiben. Checklisten werden
+        im Verlauf des Issues aktualisiert und dienen als Abnahmenachweis.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Fehlerbeschreibung
+      description: Was ist passiert und was sollte stattdessen passieren?
+      placeholder: |
+        Ist-Verhalten:
+        Erwartetes Verhalten:
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Schritte zur Reproduktion
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Plattform
+      multiple: true
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Android
+        - iOS
+        - Plattformunabhaengig
+        - Noch nicht bekannt
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: MediaShelf-Version
+      placeholder: "z. B. 0.5.6"
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Logs, Screenshots oder Beispieldateien
+      description: Keine Passwoerter, Tokens oder privaten Bibliotheksdaten anhaengen.
+
+  - type: checkboxes
+    id: completion
+    attributes:
+      label: Abschlusskriterien
+      options:
+        - label: Ursache wurde identifiziert
+        - label: Fehler wurde behoben
+        - label: Automatischer Regressionstest wurde ergaenzt oder begruendet
+        - label: Betroffene Plattformen wurden geprueft
+        - label: Nutzerabnahme wurde abgeschlossen
+

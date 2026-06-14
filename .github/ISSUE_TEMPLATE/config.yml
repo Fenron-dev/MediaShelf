@@ -1,0 +1,6 @@
+blank_issues_enabled: true
+contact_links:
+  - name: MediaShelf-Dokumentation
+    url: https://github.com/Fenron-dev/MediaShelf/blob/main/docs/HANDBUCH.md
+    about: Vor dem Melden pruefen, ob das Verhalten bereits dokumentiert ist.
+
