@@ -47,8 +47,11 @@ class _ImportDialogState extends ConsumerState<ImportDialog> {
     super.initState();
     final commonAncestor = _commonAncestor(widget.sourcePaths);
     _stripPrefix = commonAncestor;
+    // Use rootPrefix to filter the platform root ('/' on Unix, 'C:\' on Windows).
+    // The +1 in _currentStripPrefix assumes root is NOT in _prefixSegments.
+    final root = p.rootPrefix(commonAncestor);
     _prefixSegments = p.split(commonAncestor)
-        .where((s) => s.isNotEmpty && s != '/' && s != p.separator)
+        .where((s) => s.isNotEmpty && s != root && s != p.separator)
         .toList();
     _stripDepth = 0; // default: strip everything (use only filename)
 
