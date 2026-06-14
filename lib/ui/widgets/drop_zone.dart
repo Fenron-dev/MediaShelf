@@ -32,7 +32,12 @@ class _DropZoneOverlayState extends ConsumerState<DropZoneOverlay> {
       onDragExited: (_) => setState(() => _isDragging = false),
       onDragDone: (detail) {
         setState(() => _isDragging = false);
-        _handleDrop(detail.files);
+        // Delay by one frame so Flutter can finish the OLE DnD message loop
+        // on Windows before the dialog is pushed — without this the window
+        // stays grey/frozen after the drop.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _handleDrop(detail.files);
+        });
       },
       child: Stack(
         fit: StackFit.expand,

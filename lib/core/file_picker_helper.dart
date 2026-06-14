@@ -19,8 +19,7 @@ class FilePickerHelper {
 
   static bool get _isDesktop =>
       Platform.isLinux || Platform.isWindows || Platform.isMacOS;
-  static bool get _shouldMinimizeDesktopWindow =>
-      Platform.isLinux || Platform.isMacOS;
+  static bool get _shouldMinimizeDesktopWindow => Platform.isLinux;
 
   static bool _effectiveLockParentWindow(bool lockParentWindow) =>
       lockParentWindow || Platform.isWindows;
