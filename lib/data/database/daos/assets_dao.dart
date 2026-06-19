@@ -127,6 +127,52 @@ class AssetsDao extends DatabaseAccessor<AppDatabase> with _$AssetsDaoMixin {
     ),
   );
 
+  /// Updates built-in asset fields from an external metadata source.
+  ///
+  /// This is used by enrichment plugins so that one lookup can fill title,
+  /// creator/publisher, genre, note and source URL in a single write.
+  Future<void> updateExternalMetadata({
+    required String id,
+    Value<String?> mediaTitle = const Value.absent(),
+    Value<String?> artist = const Value.absent(),
+    Value<String?> album = const Value.absent(),
+    Value<String?> genre = const Value.absent(),
+    Value<int?> trackNumber = const Value.absent(),
+    Value<int?> bitrate = const Value.absent(),
+    Value<int?> sampleRate = const Value.absent(),
+    Value<String?> author = const Value.absent(),
+    Value<String?> publisher = const Value.absent(),
+    Value<int?> pageCount = const Value.absent(),
+    Value<String?> captureDate = const Value.absent(),
+    Value<String?> cameraModel = const Value.absent(),
+    Value<int?> durationMs = const Value.absent(),
+    Value<int?> width = const Value.absent(),
+    Value<int?> height = const Value.absent(),
+    Value<String?> note = const Value.absent(),
+    Value<String?> sourceUrl = const Value.absent(),
+  }) =>
+      (update(assets)..where((a) => a.id.equals(id))).write(
+        AssetsCompanion(
+          mediaTitle: mediaTitle,
+          artist: artist,
+          album: album,
+          genre: genre,
+          trackNumber: trackNumber,
+          bitrate: bitrate,
+          sampleRate: sampleRate,
+          author: author,
+          publisher: publisher,
+          pageCount: pageCount,
+          captureDate: captureDate,
+          cameraModel: cameraModel,
+          durationMs: durationMs,
+          width: width,
+          height: height,
+          note: note,
+          sourceUrl: sourceUrl,
+        ),
+      );
+
   /// Returns assets that have never had metadata extracted (mediaTitle, artist, etc. all null
   /// and mimeType is non-null).
   Future<List<Asset>> getAssetsNeedingMetadata() async {

@@ -7,6 +7,7 @@ import 'package:window_manager/window_manager.dart';
 
 import 'app.dart';
 import 'core/plugin_registry.dart';
+import 'features/external_metadata/external_metadata_plugin.dart';
 import 'features/drivethrurpg/drivethrurpg_plugin.dart';
 import 'features/emuvr/emuvr_plugin.dart';
 
@@ -17,6 +18,7 @@ void main() async {
   // ── Register plugins ───────────────────────────────────────────────────────
   registerPlugin(EmuvrPlugin());
   registerPlugin(DriveThruRpgPlugin());
+  registerPlugin(ExternalMetadataPlugin());
 
   if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
     await windowManager.ensureInitialized();
