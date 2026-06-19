@@ -115,7 +115,8 @@ class WelcomeScreen extends ConsumerWidget {
   }
 
   Future<void> _openLibrary(BuildContext context, WidgetRef ref) async {
-    final dir = await FilePickerHelper.getDirectoryPath(
+    final dir = await _pickLibraryDirectory(
+      context,
       dialogTitle: 'Open MediaShelf Library',
     );
     if (dir == null || !context.mounted) return;
@@ -123,7 +124,8 @@ class WelcomeScreen extends ConsumerWidget {
   }
 
   Future<void> _createLibrary(BuildContext context, WidgetRef ref) async {
-    final dir = await FilePickerHelper.getDirectoryPath(
+    final dir = await _pickLibraryDirectory(
+      context,
       dialogTitle: 'Choose Folder for New Library',
     );
     if (dir == null || !context.mounted) return;
@@ -140,6 +142,22 @@ class WelcomeScreen extends ConsumerWidget {
           SnackBar(content: Text('Error: $e')),
         );
       }
+    }
+  }
+
+  Future<String?> _pickLibraryDirectory(
+    BuildContext context, {
+    required String dialogTitle,
+  }) async {
+    try {
+      return await FilePickerHelper.getDirectoryPath(dialogTitle: dialogTitle);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open folder picker: $e')),
+        );
+      }
+      return null;
     }
   }
 

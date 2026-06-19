@@ -1,7 +1,7 @@
 name: mediashelf
 description: "MediaShelf — Cross-platform Digital Asset Manager"
 publish_to: 'none'
-version: 0.5.6+6
+version: 0.5.6+7
 
 environment:
   sdk: ^3.11.1
