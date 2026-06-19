@@ -22,29 +22,40 @@ class FilePickerHelper {
   static bool get _shouldMinimizeDesktopWindow => Platform.isLinux;
 
   static bool _effectiveLockParentWindow(bool lockParentWindow) =>
-      lockParentWindow || Platform.isWindows || Platform.isMacOS;
+      lockParentWindow || Platform.isWindows;
 
-  static Future<void> _beforeDialog() async {
-    if (!_isDesktop) return;
+  static Future<bool> _beforeDialog() async {
+    if (!_isDesktop) return false;
 
-    // macOS dialogs can end up behind a frameless/maximized window if the app
-    // is not explicitly brought to the front right before opening them.
-    await windowManager.show();
-    await windowManager.focus();
+    var restoreMaximized = false;
+    if (Platform.isMacOS && await windowManager.isMaximized()) {
+      restoreMaximized = true;
+      await windowManager.unmaximize();
+    }
 
     if (_shouldMinimizeDesktopWindow) {
       await windowManager.minimize();
       await Future.delayed(const Duration(milliseconds: 120));
-    } else if (Platform.isMacOS) {
-      await Future.delayed(const Duration(milliseconds: 50));
     }
+
+    await windowManager.focus();
+    return restoreMaximized;
   }
 
-  static Future<void> _afterDialog() async {
-    if (!_isDesktop || !_shouldMinimizeDesktopWindow) return;
-    await windowManager.restore();
-    await windowManager.maximize();
-    await windowManager.focus();
+  static Future<void> _afterDialog(bool restoreMaximized) async {
+    if (!_isDesktop) return;
+
+    if (_shouldMinimizeDesktopWindow) {
+      await windowManager.restore();
+      await windowManager.maximize();
+      await windowManager.focus();
+      return;
+    }
+
+    if (Platform.isMacOS && restoreMaximized) {
+      await windowManager.maximize();
+      await windowManager.focus();
+    }
   }
 
   /// Replacement for [FilePicker.platform.getDirectoryPath].
@@ -52,14 +63,14 @@ class FilePickerHelper {
     String? dialogTitle,
     bool lockParentWindow = false,
   }) async {
-    await _beforeDialog();
+    final restoreMaximized = await _beforeDialog();
     try {
       return await FilePicker.platform.getDirectoryPath(
         dialogTitle: dialogTitle,
         lockParentWindow: _effectiveLockParentWindow(lockParentWindow),
       );
     } finally {
-      await _afterDialog();
+      await _afterDialog(restoreMaximized);
     }
   }
 
@@ -72,7 +83,7 @@ class FilePickerHelper {
     bool withData = false,
     bool lockParentWindow = false,
   }) async {
-    await _beforeDialog();
+    final restoreMaximized = await _beforeDialog();
     try {
       return await FilePicker.platform.pickFiles(
         dialogTitle: dialogTitle,
@@ -83,7 +94,7 @@ class FilePickerHelper {
         lockParentWindow: _effectiveLockParentWindow(lockParentWindow),
       );
     } finally {
-      await _afterDialog();
+      await _afterDialog(restoreMaximized);
     }
   }
 
@@ -95,7 +106,7 @@ class FilePickerHelper {
     List<String>? allowedExtensions,
     bool lockParentWindow = false,
   }) async {
-    await _beforeDialog();
+    final restoreMaximized = await _beforeDialog();
     try {
       return await FilePicker.platform.saveFile(
         dialogTitle: dialogTitle,
@@ -105,7 +116,7 @@ class FilePickerHelper {
         lockParentWindow: _effectiveLockParentWindow(lockParentWindow),
       );
     } finally {
-      await _afterDialog();
+      await _afterDialog(restoreMaximized);
     }
   }
 }
