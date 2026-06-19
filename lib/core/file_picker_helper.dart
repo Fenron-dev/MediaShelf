@@ -22,12 +22,22 @@ class FilePickerHelper {
   static bool get _shouldMinimizeDesktopWindow => Platform.isLinux;
 
   static bool _effectiveLockParentWindow(bool lockParentWindow) =>
-      lockParentWindow || Platform.isWindows;
+      lockParentWindow || Platform.isWindows || Platform.isMacOS;
 
   static Future<void> _beforeDialog() async {
-    if (!_isDesktop || !_shouldMinimizeDesktopWindow) return;
-    await windowManager.minimize();
-    await Future.delayed(const Duration(milliseconds: 120));
+    if (!_isDesktop) return;
+
+    // macOS dialogs can end up behind a frameless/maximized window if the app
+    // is not explicitly brought to the front right before opening them.
+    await windowManager.show();
+    await windowManager.focus();
+
+    if (_shouldMinimizeDesktopWindow) {
+      await windowManager.minimize();
+      await Future.delayed(const Duration(milliseconds: 120));
+    } else if (Platform.isMacOS) {
+      await Future.delayed(const Duration(milliseconds: 50));
+    }
   }
 
   static Future<void> _afterDialog() async {
